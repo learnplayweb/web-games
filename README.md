@@ -1,5 +1,5 @@
 # web-games
-# Web Games
+Web Games
 
 웹에서 실행되는 학습용 미니게임 모음입니다.
 
