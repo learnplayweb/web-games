@@ -1,0 +1,45 @@
+<!-- v0.1.0 : 최초 생성 - Web Games 허브 메인 화면 -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Games</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- 전체 페이지를 감싸는 래퍼 (PC 가운데 정렬용) -->
+  <div class="wrapper">
+
+    <!-- 헤더 영역: 제목 + 설명 -->
+    <header class="site-header">
+      <h1 class="site-title">Web Games</h1>
+      <p class="site-desc">브라우저에서 바로 즐기는 미니 게임 모음</p>
+    </header>
+
+    <!-- 게임 카드 목록 -->
+    <main class="card-grid">
+
+      <!-- Clock Game: 실제 게임 페이지로 이동 -->
+      <a href="games/clock/index.html" class="card card--active">
+        <div class="card__icon" aria-hidden="true">🕐</div>
+        <h2 class="card__title">Clock Game</h2>
+        <p class="card__desc">시계를 보고 시각을 맞혀보세요</p>
+        <span class="card__badge card__badge--play">Play</span>
+      </a>
+
+      <!-- Number Connect: 아직 준비 중 -->
+      <div class="card card--soon" aria-disabled="true">
+        <div class="card__icon" aria-hidden="true">🔢</div>
+        <h2 class="card__title">Number Connect</h2>
+        <p class="card__desc">숫자를 순서대로 연결해보세요</p>
+        <span class="card__badge card__badge--soon">Coming Soon</span>
+      </div>
+
+    </main>
+
+  </div><!-- /.wrapper -->
+
+</body>
+</html>
