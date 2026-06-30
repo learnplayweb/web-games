@@ -1,0 +1,198 @@
+/* v0.1.0 : 최초 생성 - Clock Game UI 스타일 (로직 없음) */
+
+/* ===========================
+   1. 전역 초기화 & 변수
+=========================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* 컬러 팔레트: 메인 화면과 톤 통일 */
+  --color-bg: #f0f4ff;
+  --color-surface: #ffffff;
+  --color-primary: #5b8dee;
+  --color-primary-dark: #3a6fdb;
+  --color-text: #2d3a4a;
+  --color-text-muted: #7a8fa6;
+  --color-keypad-bg: #eaf0fb;
+  --color-keypad-active: #dce8fb;
+
+  --font-base: 'Segoe UI', system-ui, sans-serif;
+  --max-width: 480px; /* 모바일 기준, PC에서 고정폭으로 가운데 정렬 */
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-base);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+/* ===========================
+   2. 전체 레이아웃
+   - 뷰포트 높이를 기준으로 비율 분배
+   - 1/12 : 1/2 : 1/6 : 1/4 (남은 영역 buffer 없이 합 = 1)
+=========================== */
+.game-wrapper {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===========================
+   3. 상단 정보 영역 (1/12)
+=========================== */
+.info-bar {
+  flex: 1 1 8.33%; /* 약 1/12 */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.info-bar__gold {
+  color: #d4a017; /* 금색 톤 */
+}
+
+.info-bar__combo {
+  color: var(--color-primary-dark);
+}
+
+/* ===========================
+   4. 시계 영역 (1/2)
+=========================== */
+.clock-area {
+  flex: 1 1 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 현재는 원형 플레이스홀더만 표시 (다음 작업에서 SVG로 교체 예정) */
+.clock-placeholder {
+  width: min(70vw, 280px);
+  height: min(70vw, 280px);
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: 0 4px 16px rgba(91, 141, 238, 0.15);
+}
+
+/* ===========================
+   5. 입력 영역 (1/6)
+=========================== */
+.input-area {
+  flex: 1 1 16.66%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0 1rem;
+}
+
+/* 시/분/초 각 그룹 (입력칸 + 라벨) */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+  max-width: 110px;
+}
+
+/* 입력칸: 동일한 크기, 숫자 가운데 정렬 */
+.input-box {
+  width: 100%;
+  aspect-ratio: 1 / 0.8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
+  border-radius: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* 시/분/초 라벨: 크게 표시 */
+.input-label {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+/* ===========================
+   6. 키패드 영역 (1/4)
+=========================== */
+.keypad-area {
+  flex: 1 1 25%;
+  display: flex;
+  align-items: stretch; /* ←/→ 버튼 높이를 숫자 2행 전체 높이와 맞춤 */
+  gap: 0.5rem;
+  padding: 0.5rem 1rem 1rem;
+}
+
+/* 숫자 버튼 2행을 담는 영역 */
+.keypad-numbers {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.keypad-row {
+  flex: 1;
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* 키패드 버튼 공통 스타일 (모바일 터치 충분한 크기) */
+.keypad-btn {
+  flex: 1;
+  min-height: 44px; /* 터치 접근성 권장 최소 크기 */
+  background: var(--color-keypad-bg);
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.keypad-btn:active {
+  background: var(--color-keypad-active);
+}
+
+/* 좌우 이동 버튼: 숫자 2행 전체 높이와 동일 (flex stretch로 자동 적용) */
+.keypad-btn--nav {
+  flex: 0 0 15%;
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: 1.5rem;
+}
+
+.keypad-btn--nav:active {
+  background: var(--color-primary-dark);
+}
+
+/* ===========================
+   7. PC 대응 (480px 이상)
+   - wrapper는 고정 최대폭으로 가운데 정렬되며
+     비율 레이아웃은 그대로 유지
+=========================== */
+@media (min-width: 480px) {
+  .game-wrapper {
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.05);
+  }
+}
