@@ -78,13 +78,10 @@ body {
   justify-content: center;
 }
 
-/* 현재는 원형 플레이스홀더만 표시 (다음 작업에서 SVG로 교체 예정) */
-.clock-placeholder {
+/* clock-face.svg 표시 영역 */
+.clock-svg {
   width: min(70vw, 280px);
   height: min(70vw, 280px);
-  border-radius: 50%;
-  background: var(--color-surface);
-  box-shadow: 0 4px 16px rgba(91, 141, 238, 0.15);
 }
 
 /* ===========================
