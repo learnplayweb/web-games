@@ -1,5 +1,6 @@
 // v0.1.0 : 최초 생성 - setClock(hour, minute, second) 시계 바늘 회전 기능
 // v0.1.1 : object 로드 타이밍 문제 수정 (contentDocument 즉시/지연 분기)
+// v0.1.2 : SVG 내부 요소 null 오류 수정 - id 존재 여부로 파싱 완료 판단
 
 /**
  * SVG 내부 바늘 요소에 실제로 transform을 적용하는 내부 함수
@@ -40,15 +41,21 @@ function setClock(hour, minute, second) {
 
   const clockObject = document.getElementById('clock-object');
 
-  // SVG가 이미 로드된 경우 즉시 실행
-  // 아직 로드 중인 경우 load 이벤트 대기 후 실행
-  if (clockObject.contentDocument) {
-    applyHands(clockObject.contentDocument, hourAngle, minuteAngle, secondAngle);
-  } else {
-    clockObject.addEventListener('load', () => {
-      applyHands(clockObject.contentDocument, hourAngle, minuteAngle, secondAngle);
-    });
+  // SVG 내부 요소까지 완전히 파싱됐는지 확인하는 함수
+  // contentDocument만으로는 내부 요소가 없을 수 있어 id로 직접 검사
+  function tryApply() {
+    const doc = clockObject.contentDocument;
+    if (doc && doc.getElementById('hour-hand')) {
+      applyHands(doc, hourAngle, minuteAngle, secondAngle);
+    } else {
+      // 아직 준비 안 됐으면 load 이벤트 대기
+      clockObject.addEventListener('load', () => {
+        applyHands(clockObject.contentDocument, hourAngle, minuteAngle, secondAngle);
+      });
+    }
   }
+
+  tryApply();
 }
 
 // 동작 확인용 호출: 7시 9분 2초
