@@ -18,9 +18,8 @@
       <span class="info-bar__item info-bar__combo">Combo 0</span>
     </header>
 
-    <!-- 시계 영역 (약 1/2) : clock-face.svg 표시 -->
     <section class="clock-area">
-      <img src="assets/svg/clock-face.svg" alt="시계" class="clock-svg" />
+      <object id="clock-object" type="image/svg+xml" data="assets/svg/clock-face.svg" class="clock-svg">시계</object>
     </section>
 
     <!-- 입력 영역 (약 1/6) : 시 / 분 / 초 입력칸 -->
@@ -74,5 +73,6 @@
 
   </div><!-- /.game-wrapper -->
 
+  <script src="script.js"></script>
 </body>
 </html>

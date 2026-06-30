@@ -1,6 +1,6 @@
 docs/
 ├── ai-rules.md      ← AI에게 항상 적용할 규칙
-├── workflow.md      ← 개발 절차, Git, 토큰 절약
+├── workflow.md      ← 개발자의 절차와 습관
 ├── roadmap.md       ← 개발 순서
 ├── ideas.md         ← 아이디어 메모
 └── todo.md          ← 할 일
