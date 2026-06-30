@@ -1,0 +1,141 @@
+<!-- v0.1.0 : 최초 생성 - 시계판 + 눈금 + 숫자 + 시/분/초침 (정각 12:00:00 고정, JS 없음) -->
+<svg
+  id="clock-svg"
+  viewBox="0 0 400 400"
+  xmlns="http://www.w3.org/2000/svg"
+>
+
+  <!-- ===========================
+       스타일 정의
+       - 숫자 폰트는 키패드(Segoe UI, bold)와 통일성을 맞춤
+  =========================== -->
+  <style>
+    .clock-number {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-weight: 700;
+      font-size: 28px;
+      fill: #2d3a4a;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+  </style>
+
+  <!-- ===========================
+       1. 시계판 외곽선
+       - 배경은 투명(fill="none")
+  =========================== -->
+  <circle id="clock-outline" cx="200" cy="200" r="190" fill="none" stroke="#2d3a4a" stroke-width="4" />
+
+  <!-- ===========================
+       2. 60개 눈금
+       - 5분 단위(시 표시 위치)는 더 길고 굵게
+       - 그 외 1분 단위는 짧고 얇게
+  =========================== -->
+  <g id="clock-ticks">
+    <line x1="200.00" y1="12.00" x2="200.00" y2="30.00" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
+    <line x1="219.65" y1="13.03" x2="218.82" y2="20.99" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="239.09" y1="16.11" x2="237.42" y2="23.93" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="258.10" y1="21.20" x2="255.62" y2="28.81" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="276.47" y1="28.25" x2="273.21" y2="35.56" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="294.00" y1="37.19" x2="285.00" y2="52.78" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
+    <line x1="310.50" y1="47.90" x2="305.80" y2="54.38" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="325.80" y1="60.29" x2="320.44" y2="66.23" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="339.71" y1="74.20" x2="333.77" y2="79.56" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="352.10" y1="89.50" x2="345.62" y2="94.20" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="362.81" y1="106.00" x2="347.22" y2="115.00" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
+    <line x1="371.75" y1="123.53" x2="364.44" y2="126.79" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="378.80" y1="141.90" x2="371.19" y2="144.38" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="383.89" y1="160.91" x2="376.07" y2="162.58" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="386.97" y1="180.35" x2="379.01" y2="181.18" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="388.00" y1="200.00" x2="370.00" y2="200.00" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
+    <line x1="386.97" y1="219.65" x2="379.01" y2="218.82" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="383.89" y1="239.09" x2="376.07" y2="237.42" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="378.80" y1="258.10" x2="371.19" y2="255.62" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="371.75" y1="276.47" x2="364.44" y2="273.21" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="362.81" y1="294.00" x2="347.22" y2="285.00" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
+    <line x1="352.10" y1="310.50" x2="345.62" y2="305.80" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="339.71" y1="325.80" x2="333.77" y2="320.44" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="325.80" y1="339.71" x2="320.44" y2="333.77" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="310.50" y1="352.10" x2="305.80" y2="345.62" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="294.00" y1="362.81" x2="285.00" y2="347.22" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
+    <line x1="276.47" y1="371.75" x2="273.21" y2="364.44" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="258.10" y1="378.80" x2="255.62" y2="371.19" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="239.09" y1="383.89" x2="237.42" y2="376.07" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="219.65" y1="386.97" x2="218.82" y2="379.01" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="200.00" y1="388.00" x2="200.00" y2="370.00" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
+    <line x1="180.35" y1="386.97" x2="181.18" y2="379.01" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="160.91" y1="383.89" x2="162.58" y2="376.07" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="141.90" y1="378.80" x2="144.38" y2="371.19" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="123.53" y1="371.75" x2="126.79" y2="364.44" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="106.00" y1="362.81" x2="115.00" y2="347.22" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
+    <line x1="89.50" y1="352.10" x2="94.20" y2="345.62" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="74.20" y1="339.71" x2="79.56" y2="333.77" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="60.29" y1="325.80" x2="66.23" y2="320.44" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="47.90" y1="310.50" x2="54.38" y2="305.80" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="37.19" y1="294.00" x2="52.78" y2="285.00" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
+    <line x1="28.25" y1="276.47" x2="35.56" y2="273.21" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="21.20" y1="258.10" x2="28.81" y2="255.62" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="16.11" y1="239.09" x2="23.93" y2="237.42" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="13.03" y1="219.65" x2="20.99" y2="218.82" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="12.00" y1="200.00" x2="30.00" y2="200.00" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
+    <line x1="13.03" y1="180.35" x2="20.99" y2="181.18" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="16.11" y1="160.91" x2="23.93" y2="162.58" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="21.20" y1="141.90" x2="28.81" y2="144.38" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="28.25" y1="123.53" x2="35.56" y2="126.79" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="37.19" y1="106.00" x2="52.78" y2="115.00" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
+    <line x1="47.90" y1="89.50" x2="54.38" y2="94.20" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="60.29" y1="74.20" x2="66.23" y2="79.56" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="74.20" y1="60.29" x2="79.56" y2="66.23" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="89.50" y1="47.90" x2="94.20" y2="54.38" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="106.00" y1="37.19" x2="115.00" y2="52.78" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
+    <line x1="123.53" y1="28.25" x2="126.79" y2="35.56" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="141.90" y1="21.20" x2="144.38" y2="28.81" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="160.91" y1="16.11" x2="162.58" y2="23.93" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+    <line x1="180.35" y1="13.03" x2="181.18" y2="20.99" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
+  </g>
+
+  <!-- ===========================
+       3. 1~12 숫자
+  =========================== -->
+  <g id="clock-numbers">
+    <text x="276.00" y="68.36" class="clock-number">1</text>
+    <text x="331.64" y="124.00" class="clock-number">2</text>
+    <text x="352.00" y="200.00" class="clock-number">3</text>
+    <text x="331.64" y="276.00" class="clock-number">4</text>
+    <text x="276.00" y="331.64" class="clock-number">5</text>
+    <text x="200.00" y="352.00" class="clock-number">6</text>
+    <text x="124.00" y="331.64" class="clock-number">7</text>
+    <text x="68.36" y="276.00" class="clock-number">8</text>
+    <text x="48.00" y="200.00" class="clock-number">9</text>
+    <text x="68.36" y="124.00" class="clock-number">10</text>
+    <text x="124.00" y="68.36" class="clock-number">11</text>
+    <text x="200.00" y="48.00" class="clock-number">12</text>
+  </g>
+
+  <!-- ===========================
+       4. 바늘 (시침/분침/초침)
+       - 각 바늘은 중심(200,200)을 기준으로 위쪽(12시 방향)으로 그려서
+         transform="rotate(각도 200 200)" 형태로 회전시킬 수 있는 구조
+       - 현재는 12:00:00 정각이므로 회전 없이 고정 (transform 미적용)
+       - JS에서 회전시킬 때는 각 g 태그에 transform="rotate(...)"만 추가하면 됨
+  =========================== -->
+
+  <!-- 시침: 가장 짧고 굵게, 채도 낮춘 붉은 색 계열 -->
+  <g id="hour-hand">
+    <line x1="200" y1="200" x2="200" y2="110" stroke="#b06a5e" stroke-width="8" stroke-linecap="round" />
+  </g>
+
+  <!-- 분침: 더 길고 중간 굵기, 채도 낮춘 푸른 색 계열 -->
+  <g id="minute-hand">
+    <line x1="200" y1="200" x2="200" y2="70" stroke="#5b7ea6" stroke-width="5" stroke-linecap="round" />
+  </g>
+
+  <!-- 초침: 가장 길고 얇게, 검정 -->
+  <g id="second-hand">
+    <line x1="200" y1="200" x2="200" y2="45" stroke="#2d3a4a" stroke-width="2" stroke-linecap="round" />
+  </g>
+
+  <!-- 중심 고정핀 -->
+  <circle id="clock-center-pin" cx="200" cy="200" r="7" fill="#2d3a4a" />
+
+</svg>
