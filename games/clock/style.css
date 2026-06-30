@@ -1,4 +1,6 @@
-/* v0.1.0 : 최초 생성 - Clock Game UI 스타일 (로직 없음) */
+/* v0.1.0 : 최초 생성 - Clock Game UI 스타일 (로직 없음)
+   v0.1.1 : .clock-placeholder -> .clock-svg 로 교체 (SVG 시계 적용)
+   v0.1.2 : 더블탭 확대 방지 추가 */
 
 /* ===========================
    1. 전역 초기화 & 변수
@@ -7,6 +9,11 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+/* 더블탭 확대만 방지, 핀치 줌은 유지 */
+body {
+  touch-action: manipulation;
 }
 
 :root {
