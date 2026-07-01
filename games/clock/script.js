@@ -4,7 +4,7 @@
 // v0.1.3 : generateRandomTime() 추가 - 무작위 시각 생성 및 setClock 호출
 // v0.1.4 : 키패드 입력 기능 추가 - 시/분/초 입력, 포커스 이동, 삭제
 // v0.1.5 : 정답 판정 기능 추가 - checkAnswer(), 정답/오답 처리
-// v0.1.6 : 버그 수정 - 모바일 이중 이벤트(pointerdown), NaN 비교, 빈값 제출 방어
+// v0.1.6 : 버그 수정 - 판정 중 키패드 차단(isJudging), 빈값 제출 방어, 정답/오답 시각 피드백
 
 /**
  * SVG 내부 바늘 요소에 실제로 transform을 적용하는 내부 함수
@@ -210,13 +210,11 @@ function resetInput() {
  * - 오답: 현재 문제 유지 + 입력 초기화
  */
 function checkAnswer() {
-  // 빈 입력값이 있으면 제출하지 않는다
   if (inputState.values.some(v => v === '')) {
     console.log('입력값이 비어 있습니다.');
     return;
   }
 
-  // parseInt('')는 NaN이므로 반드시 빈값 체크 후 변환
   const userHour   = parseInt(inputState.values[0], 10);
   const userMinute = parseInt(inputState.values[1], 10);
   const userSecond = parseInt(inputState.values[2], 10);
@@ -226,13 +224,28 @@ function checkAnswer() {
     userMinute === currentAnswer.minute &&
     userSecond === currentAnswer.second;
 
+  const inputArea = document.querySelector('.input-area');
+
+  // 피드백 표시 중 키패드 입력 차단
+  isJudging = true;
+
   if (isCorrect) {
     console.log('Correct!');
-    resetInput();
-    generateRandomTime(); // 새 문제 생성
+    inputArea.classList.add('input-area--correct');
+    setTimeout(() => {
+      inputArea.classList.remove('input-area--correct');
+      resetInput();
+      generateRandomTime();
+      isJudging = false; // 새 문제 준비 완료 후 해제
+    }, 600);
   } else {
     console.log('Wrong!');
-    resetInput();         // 현재 문제 유지, 입력만 초기화
+    inputArea.classList.add('input-area--wrong');
+    setTimeout(() => {
+      inputArea.classList.remove('input-area--wrong');
+      resetInput();
+      isJudging = false; // 초기화 완료 후 해제
+    }, 600);
   }
 }
 
@@ -246,15 +259,15 @@ function submitAnswer() {
 
 /**
  * 키패드 이벤트 바인딩
- * - click 대신 pointerdown 사용: 모바일에서 touchend 후 click이 중복 발생하는 문제 방지
- * - 이벤트 위임으로 버튼 하나하나에 리스너를 붙이지 않는다
+ * - isJudging: 판정 중(피드백 표시 중)에는 키패드 입력 전체를 차단한다.
+ *   setTimeout 타이머 방식은 피드백 시간(600ms)과 불일치 위험이 있어 사용하지 않는다.
  */
-document.querySelector('.keypad-area').addEventListener('pointerdown', (e) => {
+let isJudging = false;
+
+document.querySelector('.keypad-area').addEventListener('click', (e) => {
+  if (isJudging) return;
   const btn = e.target.closest('[data-key]');
   if (!btn) return;
-
-  // pointerdown은 드래그 시작 등으로도 발생할 수 있어 버튼 영역 내에서만 처리
-  e.preventDefault();
 
   const key = btn.dataset.key;
 
