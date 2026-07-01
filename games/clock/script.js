@@ -5,6 +5,7 @@
 // v0.1.4 : 키패드 입력 기능 추가 - 시/분/초 입력, 포커스 이동, 삭제
 // v0.1.5 : 정답 판정 기능 추가 - checkAnswer(), 정답/오답 처리
 // v0.1.6 : 버그 수정 - 판정 중 키패드 차단(isJudging), 빈값 제출 방어, 정답/오답 시각 피드백
+// v0.1.7 : 골드/콤보 시스템 추가 - gold, currentCombo, maxCombo, 표시 갱신 함수
 
 /**
  * SVG 내부 바늘 요소에 실제로 transform을 적용하는 내부 함수
@@ -67,6 +68,46 @@ function setClock(hour, minute, second) {
  * generateRandomTime() 호출 시 갱신된다.
  */
 const currentAnswer = { hour: 0, minute: 0, second: 0 };
+
+/* ===========================
+   골드 / 콤보 시스템
+=========================== */
+
+// 게임 상태 변수
+let gold         = 0;  // 누적 골드
+let currentCombo = 0;  // 현재 연속 정답 수
+let maxCombo     = 0;  // 최고 콤보 기록
+
+/** Gold 표시를 현재 gold 값으로 갱신한다. */
+function updateGoldDisplay() {
+  document.getElementById('display-gold').textContent = `Gold ${gold}`;
+}
+
+/** Combo 표시를 현재 currentCombo 값으로 갱신한다. */
+function updateComboDisplay() {
+  document.getElementById('display-combo').textContent = `Combo ${currentCombo}`;
+}
+
+/**
+ * 정답 시 처리: Gold +10, Combo +1, maxCombo 갱신, 표시 업데이트
+ * checkAnswer()의 정답 분기에서 호출된다.
+ */
+function handleCorrectAnswer() {
+  gold += 10;
+  currentCombo += 1;
+  if (currentCombo > maxCombo) maxCombo = currentCombo;
+  updateGoldDisplay();
+  updateComboDisplay();
+}
+
+/**
+ * 오답 시 처리: Combo 초기화, 표시 업데이트 (Gold 감소 없음)
+ * checkAnswer()의 오답 분기에서 호출된다.
+ */
+function handleWrongAnswer() {
+  currentCombo = 0;
+  updateComboDisplay();
+}
 
 /**
  * 무작위 시각을 생성하여 setClock()에 전달하는 함수
@@ -231,20 +272,22 @@ function checkAnswer() {
 
   if (isCorrect) {
     console.log('Correct!');
+    handleCorrectAnswer(); // Gold +10, Combo +1, 표시 갱신
     inputArea.classList.add('input-area--correct');
     setTimeout(() => {
       inputArea.classList.remove('input-area--correct');
       resetInput();
       generateRandomTime();
-      isJudging = false; // 새 문제 준비 완료 후 해제
+      isJudging = false;
     }, 600);
   } else {
     console.log('Wrong!');
+    handleWrongAnswer();   // Combo 초기화, 표시 갱신
     inputArea.classList.add('input-area--wrong');
     setTimeout(() => {
       inputArea.classList.remove('input-area--wrong');
       resetInput();
-      isJudging = false; // 초기화 완료 후 해제
+      isJudging = false;
     }, 600);
   }
 }

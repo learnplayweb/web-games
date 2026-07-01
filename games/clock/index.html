@@ -1,5 +1,6 @@
 <!-- v0.1.0 : 최초 생성 - Clock Game UI (로직 없음, 더미 UI만)
-     v0.1.1 : 입력칸 id, 키패드 data-key 속성 추가 (키패드 입력 기능 연동용) -->
+     v0.1.1 : 입력칸 id, 키패드 data-key 속성 추가 (키패드 입력 기능 연동용)
+     v0.1.2 : Gold/Combo span에 id 추가 (골드/콤보 표시 연동용) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -15,8 +16,8 @@
 
     <!-- 상단 정보 영역 (약 1/12) : Gold / Combo -->
     <header class="info-bar">
-      <span class="info-bar__item info-bar__gold">Gold 0</span>
-      <span class="info-bar__item info-bar__combo">Combo 0</span>
+      <span id="display-gold"  class="info-bar__item info-bar__gold">Gold 0</span>
+      <span id="display-combo" class="info-bar__item info-bar__combo">Combo 0</span>
     </header>
 
     <!-- 시계 영역 (약 1/2) : clock-face.svg 표시 -->
