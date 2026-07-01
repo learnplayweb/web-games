@@ -3,6 +3,7 @@
 // v0.1.2 : SVG 내부 요소 null 오류 수정 - id 존재 여부로 파싱 완료 판단
 // v0.1.3 : generateRandomTime() 추가 - 무작위 시각 생성 및 setClock 호출
 // v0.1.4 : 키패드 입력 기능 추가 - 시/분/초 입력, 포커스 이동, 삭제
+// v0.1.5 : 정답 판정 기능 추가 - checkAnswer(), 정답/오답 처리
 
 /**
  * SVG 내부 바늘 요소에 실제로 transform을 적용하는 내부 함수
@@ -61,6 +62,12 @@ function setClock(hour, minute, second) {
 }
 
 /**
+ * 현재 문제의 정답 시각을 저장하는 객체
+ * generateRandomTime() 호출 시 갱신된다.
+ */
+const currentAnswer = { hour: 0, minute: 0, second: 0 };
+
+/**
  * 무작위 시각을 생성하여 setClock()에 전달하는 함수
  * - hour:   1~12
  * - minute: 0~59
@@ -70,6 +77,12 @@ function generateRandomTime() {
   const hour   = Math.floor(Math.random() * 12) + 1;  // 1~12
   const minute = Math.floor(Math.random() * 60);       // 0~59
   const second = Math.floor(Math.random() * 60);       // 0~59
+
+  // 정답 저장
+  currentAnswer.hour   = hour;
+  currentAnswer.minute = minute;
+  currentAnswer.second = second;
+
   setClock(hour, minute, second);
 }
 
@@ -91,7 +104,6 @@ const inputState = {
   fields: ['input-hour', 'input-minute', 'input-second'],
   values: ['', '', ''],
   current: 0,
-  userAnswer: null,
 };
 
 /**
@@ -177,17 +189,50 @@ function handleNext() {
 }
 
 /**
+ * 입력 영역을 초기화하는 함수
+ * - 모든 입력값을 비우고 표시를 '--'로 되돌린다.
+ * - 선택 위치를 시(hour)로 초기화한다.
+ */
+function resetInput() {
+  inputState.values  = ['', '', ''];
+  inputState.current = 0;
+  inputState.fields.forEach((id, i) => updateDisplay(i));
+  updateFocus();
+}
+
+/**
+ * 정답 판정 함수
+ * - 입력값을 숫자로 변환하여 currentAnswer와 비교한다.
+ * - 앞의 0 유무는 영향 없음 ("07" === 7, "7" === 7)
+ * - 정답: 새 문제 생성 + 입력 초기화
+ * - 오답: 현재 문제 유지 + 입력 초기화
+ */
+function checkAnswer() {
+  const userHour   = parseInt(inputState.values[0], 10);
+  const userMinute = parseInt(inputState.values[1], 10);
+  const userSecond = parseInt(inputState.values[2], 10);
+
+  const isCorrect =
+    userHour   === currentAnswer.hour   &&
+    userMinute === currentAnswer.minute &&
+    userSecond === currentAnswer.second;
+
+  if (isCorrect) {
+    console.log('Correct!');
+    resetInput();
+    generateRandomTime(); // 새 문제 생성
+  } else {
+    console.log('Wrong!');
+    resetInput();         // 현재 문제 유지, 입력만 초기화
+  }
+}
+
+/**
  * 입력값 제출 처리
- * - 입력된 시/분/초를 숫자로 변환하여 userAnswer에 저장
- * - 정답 판정은 추후 구현 예정
+ * - checkAnswer()에 위임한다.
  */
 function submitAnswer() {
-  inputState.userAnswer = {
-    hour:   parseInt(inputState.values[0], 10) || 0,
-    minute: parseInt(inputState.values[1], 10) || 0,
-    second: parseInt(inputState.values[2], 10) || 0,
-  };
-  console.log('제출된 답:', inputState.userAnswer); // 추후 정답 판정 연동
+  checkAnswer();
 }
 
 /**
