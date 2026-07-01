@@ -1,6 +1,7 @@
 // v0.1.0 : 최초 생성 - setClock(hour, minute, second) 시계 바늘 회전 기능
 // v0.1.1 : object 로드 타이밍 문제 수정 (contentDocument 즉시/지연 분기)
 // v0.1.2 : SVG 내부 요소 null 오류 수정 - id 존재 여부로 파싱 완료 판단
+// v0.1.3 : generateRandomTime() 추가 - 무작위 시각 생성 및 setClock 호출
 
 /**
  * SVG 내부 바늘 요소에 실제로 transform을 적용하는 내부 함수
@@ -58,5 +59,18 @@ function setClock(hour, minute, second) {
   tryApply();
 }
 
-// 동작 확인용 호출: 7시 9분 2초
-setClock(7, 9, 2);
+/**
+ * 무작위 시각을 생성하여 setClock()에 전달하는 함수
+ * - hour:   1~12
+ * - minute: 0~59
+ * - second: 0~59
+ */
+function generateRandomTime() {
+  const hour   = Math.floor(Math.random() * 12) + 1;  // 1~12
+  const minute = Math.floor(Math.random() * 60);       // 0~59
+  const second = Math.floor(Math.random() * 60);       // 0~59
+  setClock(hour, minute, second);
+}
+
+// 페이지 로드 시 한 번 실행
+generateRandomTime();
