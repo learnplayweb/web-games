@@ -6,6 +6,7 @@
 // v0.1.5 : 정답 판정 기능 추가 - checkAnswer(), 정답/오답 처리
 // v0.1.6 : 버그 수정 - 판정 중 키패드 차단(isJudging), 빈값 제출 방어, 정답/오답 시각 피드백
 // v0.1.7 : 골드/콤보 시스템 추가 - gold, currentCombo, maxCombo, 표시 갱신 함수
+// v0.1.8 : 아이콘 표시 변경(🪙/🔥), CSS min-width로 위치 고정
 
 /**
  * SVG 내부 바늘 요소에 실제로 transform을 적용하는 내부 함수
@@ -80,12 +81,12 @@ let maxCombo     = 0;  // 최고 콤보 기록
 
 /** Gold 표시를 현재 gold 값으로 갱신한다. */
 function updateGoldDisplay() {
-  document.getElementById('display-gold').textContent = `Gold ${gold}`;
+  document.getElementById('display-gold').textContent = `🪙 ${gold}`;
 }
 
 /** Combo 표시를 현재 currentCombo 값으로 갱신한다. */
 function updateComboDisplay() {
-  document.getElementById('display-combo').textContent = `Combo ${currentCombo}`;
+  document.getElementById('display-combo').textContent = `🔥 ${currentCombo}`;
 }
 
 /**
