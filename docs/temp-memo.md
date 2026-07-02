@@ -1,31 +1,15 @@
-docs/
-├── ai-rules.md      ← AI에게 항상 적용할 규칙
-├── workflow.md      ← 개발자의 절차와 습관
-├── roadmap.md       ← 개발 순서
-├── ideas.md         ← 아이디어 메모
-└── todo.md          ← 할 일
-
-
-
-커밋 서머리
-Implement Main Page
-Implement Clock Game UI
-Create SVG clock
-Add clock hand rotation
-Generate random time
-Implement keypad input
-Add answer validation
-Implement gold and combo system
-
 
 Clock Game 완성
-공통 저장 구조
-캐릭터 시스템(표정 제외 기본 구조)
-게임 화면 내 캐릭터 배치
-표정 시스템
-진화 시스템
-Number Connect
-이후 다른 게임 추가
+
+Gold / Combo / 별 / 단계 완료까지 구현
+
+ui-ux-system.md 작성
+
+이 시점에서 캐릭터 구상 세부 내용 정리
+
+그다음 character-system.md 작성
+
+캐릭터 구조가 확정되면 save-system.md 작성
 
 
 

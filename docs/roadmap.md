@@ -1,15 +1,94 @@
-커밋 서머리
-Implement Clock Game UI
-Create SVG clock
-Add clock hand rotation
-Generate random time
-Implement keypad input
-Add answer validation
-골드&콤보 시스템 구현
-단계 종료
-별 계산
-콤보 보너스 지급
-단계 보너스
-캐릭터 구매
-저장 기능
-최고 기록
+# Development Roadmap
+
+## Phase 0. 프로젝트 기반 구축
+
+* [x] 프로젝트 폴더 구조 구성
+* [x] GitHub 저장소 생성
+* [x] GitHub Pages 배포
+* [x] 개발 문서(docs) 구성
+
+---
+
+## Phase 1. 메인 화면
+
+* [x] 메인 UI
+* [x] 게임 카드
+* [x] Mobile First 적용
+
+---
+
+## Phase 2. Clock Game
+
+### UI
+
+* [x] 기본 화면 구성
+* [x] 키패드
+* [x] 입력 영역
+* [x] 시계 SVG
+
+### 게임 기능
+
+* [x] 랜덤 시각 생성
+* [x] 입력 시스템
+* [x] 정답 판정
+* [x] 정답/오답 피드백
+* [ ] Gold 시스템
+* [ ] Combo 시스템
+* [ ] 단계 완료
+* [ ] 별점 시스템
+* [ ] 보상 계산
+* [ ] 난이도 선택 화면
+* [ ] 저장 연동
+* [ ] 최종 테스트
+
+---
+
+## Phase 3. 공통 시스템
+
+* [ ] SaveManager
+* [ ] Gold 저장
+* [ ] 최고 별점 저장
+* [ ] 설정 관리
+
+---
+
+## Phase 4. 캐릭터 시스템
+
+* [ ] 캐릭터 생성
+* [ ] 이름 설정
+* [ ] 메인 화면 표시
+* [ ] 게임 화면 표시
+* [ ] 표정 시스템
+* [ ] 성장 시스템
+* [ ] 진화&조합 시스템
+* [ ] 상점 및 획득
+
+---
+
+## Phase 5. Number Connect
+
+* [ ] 게임 UI
+* [ ] 게임 기능
+* [ ] Gold 연동
+* [ ] 캐릭터 연동
+* [ ] 저장 연동
+
+---
+
+## Phase 6. 콘텐츠 확장
+
+* [ ] 추가 게임
+* [ ] 캐릭터 추가
+* [ ] 상점
+* [ ] 업적
+* [ ] 배경 확장
+
+---
+
+## Phase 7. 정식 공개
+
+* [ ] 전체 밸런스 조정
+* [ ] UI 개선
+* [ ] 성능 최적화
+* [ ] 버그 수정
+* [ ] Version 1.0 Release
