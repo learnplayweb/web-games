@@ -7,6 +7,8 @@
 // v0.1.6 : 버그 수정 - 판정 중 키패드 차단(isJudging), 빈값 제출 방어, 정답/오답 시각 피드백
 // v0.1.7 : 골드/콤보 시스템 추가 - gold, currentCombo, maxCombo, 표시 갱신 함수
 // v0.1.8 : 아이콘 표시 변경(🪙/🔥), CSS min-width로 위치 고정
+// v0.1.9 : 콤보 버그 수정 - 오답 낸 문제 재도전 정답 시 콤보 미증가 (wrongOnCurrentProblem)
+// v0.2.0 : 오답 시 즉시 다음 문제로 이동, wrongOnCurrentProblem 플래그 제거
 
 /**
  * SVG 내부 바늘 요소에 실제로 transform을 적용하는 내부 함수
@@ -117,11 +119,10 @@ function handleWrongAnswer() {
  * - second: 0~59
  */
 function generateRandomTime() {
-  const hour   = Math.floor(Math.random() * 12) + 1;  // 1~12
-  const minute = Math.floor(Math.random() * 60);       // 0~59
-  const second = Math.floor(Math.random() * 60);       // 0~59
+  const hour   = Math.floor(Math.random() * 12) + 1;
+  const minute = Math.floor(Math.random() * 60);
+  const second = Math.floor(Math.random() * 60);
 
-  // 정답 저장
   currentAnswer.hour   = hour;
   currentAnswer.minute = minute;
   currentAnswer.second = second;
@@ -248,8 +249,8 @@ function resetInput() {
  * - 입력값을 숫자로 변환하여 currentAnswer와 비교한다.
  * - 앞의 0 유무는 영향 없음 ("07" === 7, "7" === 7)
  * - 입력값이 하나라도 비어 있으면 판정하지 않는다.
- * - 정답: 새 문제 생성 + 입력 초기화
- * - 오답: 현재 문제 유지 + 입력 초기화
+ * - 정답: Gold +10, Combo +1, 새 문제 생성
+ * - 오답: Combo 초기화, 바로 다음 문제로 넘어감
  */
 function checkAnswer() {
   if (inputState.values.some(v => v === '')) {
@@ -273,7 +274,7 @@ function checkAnswer() {
 
   if (isCorrect) {
     console.log('Correct!');
-    handleCorrectAnswer(); // Gold +10, Combo +1, 표시 갱신
+    handleCorrectAnswer();
     inputArea.classList.add('input-area--correct');
     setTimeout(() => {
       inputArea.classList.remove('input-area--correct');
@@ -283,11 +284,12 @@ function checkAnswer() {
     }, 600);
   } else {
     console.log('Wrong!');
-    handleWrongAnswer();   // Combo 초기화, 표시 갱신
+    handleWrongAnswer();
     inputArea.classList.add('input-area--wrong');
     setTimeout(() => {
       inputArea.classList.remove('input-area--wrong');
       resetInput();
+      generateRandomTime(); // 오답 시에도 다음 문제로 넘어감
       isJudging = false;
     }, 600);
   }
