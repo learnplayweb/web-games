@@ -75,3 +75,5 @@
 * svg를 html 내 inline (원본 svg도 보존) > 해결
 
 ### Implement stage progression system
+* Prevent duplicate questions in a stage
+* Implement stage reward system

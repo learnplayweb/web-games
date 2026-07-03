@@ -11,6 +11,7 @@
 // v0.2.0 : 오답 시 즉시 다음 문제로 이동, wrongOnCurrentProblem 플래그 제거
 // v0.2.1 : 분침 각도 계산에서 초 영향 제거 (분당 6도 고정)
 // v0.2.2 : <object> → inline SVG로 전환, setClock 단순화 (로드 타이밍 로직 제거)
+// v0.3.1 : 중복 출제 방지 - 레벨별 문제 pool 생성 후 셔플, 순서대로 출제
 
 /**
  * 시계 바늘을 지정한 시:분:초로 회전시키는 함수
@@ -80,15 +81,12 @@ function handleWrongAnswer() {
 }
 
 /**
- * 무작위 시각을 생성하여 setClock()에 전달하는 함수
- * - hour:   1~12
- * - minute: 0~59
- * - second: 0~59
+ * 현재 문제를 pool에서 꺼내 시계에 표시하는 함수
+ * - stageState.questionPool[questionIndex] 를 순서대로 사용
+ * - 중복 없이 출제되며, 단계 재시작 시 pool이 새로 생성된다.
  */
 function generateRandomTime() {
-  const hour   = Math.floor(Math.random() * 12) + 1;
-  const minute = Math.floor(Math.random() * 60);
-  const second = Math.floor(Math.random() * 60);
+  const { hour, minute, second } = stageState.questionPool[stageState.questionIndex];
 
   currentAnswer.hour   = hour;
   currentAnswer.minute = minute;
@@ -97,7 +95,125 @@ function generateRandomTime() {
   setClock(hour, minute, second);
 }
 
-// 페이지 로드 시 한 번 실행
+/* ===========================
+   단계(Level) 진행 시스템
+=========================== */
+
+/**
+ * 배열을 무작위로 섞는 함수 (Fisher-Yates 알고리즘)
+ * 원본 배열을 직접 수정하고 반환한다.
+ *
+ * @param {Array} arr - 섞을 배열
+ * @returns {Array}   - 섞인 배열 (같은 참조)
+ */
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * 레벨 정의 데이터
+ * - level:          레벨 번호
+ * - totalQuestions: 출제 문제 수
+ * - buildPool():    출제 가능한 전체 문제 목록을 배열로 반환하는 함수
+ *                   이 배열을 셔플한 뒤 앞에서부터 순서대로 출제한다.
+ *                   Lv.2~Lv.8은 데이터 구조만 준비, buildPool 실제 구현은 추후 진행
+ */
+const LEVELS = [
+  {
+    level: 1,
+    totalQuestions: 5,
+    buildPool() {
+      // 1시~12시, 분·초 고정 0 → 12가지 문제 전체 목록
+      const pool = [];
+      for (let hour = 1; hour <= 12; hour++) {
+        pool.push({ hour, minute: 0, second: 0 });
+      }
+      return pool; // 호출 측에서 셔플 후 앞 5개 사용
+    },
+  },
+  { level: 2, totalQuestions: 10, buildPool: null }, // 정각/30분 - 추후 구현
+  { level: 3, totalQuestions: 10, buildPool: null }, // 5분 단위 - 추후 구현
+  { level: 4, totalQuestions: 10, buildPool: null }, // 모든 분 - 추후 구현
+  { level: 5, totalQuestions: 10, buildPool: null }, // 시·분·초 - 추후 구현
+  { level: 6, totalQuestions: 10, buildPool: null }, // 단일 단위 계산 - 추후 구현
+  { level: 7, totalQuestions: 10, buildPool: null }, // 두 단위 계산 - 추후 구현
+  { level: 8, totalQuestions: 10, buildPool: null }, // 세 단위 계산 - 추후 구현
+];
+
+/**
+ * 현재 단계 진행 상태
+ * - currentLevel:    현재 플레이 중인 레벨 번호 (1~8)
+ * - questionIndex:   현재 문제 번호 (0부터 시작)
+ * - totalQuestions:  현재 레벨의 전체 문제 수
+ * - correctCount:    정답 개수
+ * - questionPool:    셔플된 문제 목록 (이 순서대로 출제)
+ */
+const stageState = {
+  currentLevel:   1,
+  questionIndex:  0,
+  totalQuestions: LEVELS[0].totalQuestions,
+  correctCount:   0,
+  questionPool:   [],
+};
+
+/**
+ * 단계 시작 시 문제 pool을 생성하고 셔플하여 stageState에 저장한다.
+ * - buildPool()로 전체 목록 생성 → shuffleArray()로 무작위 정렬
+ * - 단계를 다시 시작할 때도 이 함수를 호출하면 pool이 새로 생성된다.
+ *
+ * @param {number} level - 시작할 레벨 번호 (1~8)
+ */
+function initStage(level) {
+  const levelDef = LEVELS[level - 1];
+
+  stageState.currentLevel   = level;
+  stageState.questionIndex  = 0;
+  stageState.totalQuestions = levelDef.totalQuestions;
+  stageState.correctCount   = 0;
+
+  // 전체 목록 생성 후 셔플, totalQuestions 개수만큼 잘라서 사용
+  const pool = shuffleArray(levelDef.buildPool());
+  stageState.questionPool = pool.slice(0, levelDef.totalQuestions);
+}
+
+/**
+ * 단계 종료 처리 및 결과 화면 표시
+ * - 정답률, 최고 콤보를 계산하여 결과 화면에 표시한다.
+ * - 보상 계산 및 저장은 추후 구현 예정
+ */
+function finishStage() {
+  const { currentLevel, correctCount, totalQuestions } = stageState;
+  const rate = Math.round((correctCount / totalQuestions) * 100);
+
+  document.getElementById('result-level').textContent = `Lv.${currentLevel} 완료!`;
+  document.getElementById('result-score').textContent = `${correctCount} / ${totalQuestions}`;
+  document.getElementById('result-rate').textContent  = `정답률 ${rate}%`;
+  document.getElementById('result-combo').textContent = `최고 콤보 🔥 ${maxCombo}`;
+
+  document.getElementById('result-screen').classList.remove('result-screen--hidden');
+}
+
+/**
+ * 다음 문제로 이동하거나 단계를 종료한다.
+ * - 남은 문제가 있으면 다음 문제를 생성한다.
+ * - 모든 문제가 끝나면 finishStage()를 호출한다.
+ */
+function nextQuestion() {
+  stageState.questionIndex += 1;
+
+  if (stageState.questionIndex < stageState.totalQuestions) {
+    generateRandomTime();
+  } else {
+    finishStage();
+  }
+}
+
+// 페이지 로드 시 Lv.1 초기화 후 첫 문제 출제
+initStage(1);
 generateRandomTime();
 
 /* ===========================
@@ -242,11 +358,12 @@ function checkAnswer() {
   if (isCorrect) {
     console.log('Correct!');
     handleCorrectAnswer();
+    stageState.correctCount += 1; // 정답 카운트
     inputArea.classList.add('input-area--correct');
     setTimeout(() => {
       inputArea.classList.remove('input-area--correct');
       resetInput();
-      generateRandomTime();
+      nextQuestion();
       isJudging = false;
     }, 600);
   } else {
@@ -256,7 +373,7 @@ function checkAnswer() {
     setTimeout(() => {
       inputArea.classList.remove('input-area--wrong');
       resetInput();
-      generateRandomTime(); // 오답 시에도 다음 문제로 넘어감
+      nextQuestion();
       isJudging = false;
     }, 600);
   }
