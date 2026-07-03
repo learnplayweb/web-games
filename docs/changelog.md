@@ -69,3 +69,9 @@
 * 관련 버그 수정
 
 ### Fix hand position on mobile by switching from <object> to inline SVG
+
+* 분침 위치에 초침 영향 배제(단순 분당 6도 이동)
+* 모바일에서 적용 안되는 문제 발생
+* svg를 html 내 inline (원본 svg도 보존) > 해결
+
+### Implement stage progression system
