@@ -10,61 +10,27 @@
 // v0.1.9 : 콤보 버그 수정 - 오답 낸 문제 재도전 정답 시 콤보 미증가 (wrongOnCurrentProblem)
 // v0.2.0 : 오답 시 즉시 다음 문제로 이동, wrongOnCurrentProblem 플래그 제거
 // v0.2.1 : 분침 각도 계산에서 초 영향 제거 (분당 6도 고정)
-
-/**
- * SVG 내부 바늘 요소에 실제로 transform을 적용하는 내부 함수
- * setClock에서 SVG 로드 타이밍에 맞춰 호출된다.
- *
- * @param {Document} svgDoc     - object.contentDocument (SVG 내부 문서)
- * @param {number}   hourAngle   - 시침 회전 각도
- * @param {number}   minuteAngle - 분침 회전 각도
- * @param {number}   secondAngle - 초침 회전 각도
- */
-function applyHands(svgDoc, hourAngle, minuteAngle, secondAngle) {
-  // SVG id로 각 바늘 그룹 선택
-  const hourHand   = svgDoc.getElementById('hour-hand');
-  const minuteHand = svgDoc.getElementById('minute-hand');
-  const secondHand = svgDoc.getElementById('second-hand');
-
-  // 시계 중심(200,200) 기준으로 회전
-  hourHand.setAttribute('transform',   `rotate(${hourAngle} 200 200)`);
-  minuteHand.setAttribute('transform', `rotate(${minuteAngle} 200 200)`);
-  secondHand.setAttribute('transform', `rotate(${secondAngle} 200 200)`);
-}
+// v0.2.2 : <object> → inline SVG로 전환, setClock 단순화 (로드 타이밍 로직 제거)
 
 /**
  * 시계 바늘을 지정한 시:분:초로 회전시키는 함수
- * - 시침: 시 + 분의 영향을 반영 (1분마다 0.5도씩 미세하게 이동)
- * - 분침: 분당 6도씩 회전 (초 영향 없음)
- * - 초침: 초 단위로 6도씩 회전
+ * - inline SVG이므로 document.getElementById로 직접 접근 (로드 대기 불필요)
+ * - 시침: 30도/시 + 0.5도/분
+ * - 분침: 6도/분
+ * - 초침: 6도/초
  *
- * @param {number} hour   0~23
+ * @param {number} hour   1~12
  * @param {number} minute 0~59
  * @param {number} second 0~59
  */
 function setClock(hour, minute, second) {
-  // 각도 계산
   const hourAngle   = (hour % 12) * 30 + minute * 0.5;  // 시침: 30도/시 + 0.5도/분
   const minuteAngle = minute * 6;                        // 분침: 6도/분
   const secondAngle = second * 6;                        // 초침: 6도/초
 
-  const clockObject = document.getElementById('clock-object');
-
-  // SVG 내부 요소까지 완전히 파싱됐는지 확인하는 함수
-  // contentDocument만으로는 내부 요소가 없을 수 있어 id로 직접 검사
-  function tryApply() {
-    const doc = clockObject.contentDocument;
-    if (doc && doc.getElementById('hour-hand')) {
-      applyHands(doc, hourAngle, minuteAngle, secondAngle);
-    } else {
-      // 아직 준비 안 됐으면 load 이벤트 대기
-      clockObject.addEventListener('load', () => {
-        applyHands(clockObject.contentDocument, hourAngle, minuteAngle, secondAngle);
-      });
-    }
-  }
-
-  tryApply();
+  document.getElementById('hour-hand').setAttribute('transform',   `rotate(${hourAngle} 200 200)`);
+  document.getElementById('minute-hand').setAttribute('transform', `rotate(${minuteAngle} 200 200)`);
+  document.getElementById('second-hand').setAttribute('transform', `rotate(${secondAngle} 200 200)`);
 }
 
 /**

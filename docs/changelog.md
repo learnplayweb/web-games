@@ -67,3 +67,5 @@
 * Max Combo 관리
 * Gold/Combo UI 갱신
 * 관련 버그 수정
+
+### Fix hand position on mobile by switching from <object> to inline SVG
