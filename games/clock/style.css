@@ -5,7 +5,8 @@
    v0.1.4 : .input-area--correct / --wrong 정답/오답 피드백 스타일 추가
    v0.1.5 : info-bar 항목 min-width 고정, 아이콘 대응 정렬
    v0.1.6 : clock-svg 크기를 정수 고정 + max-width로 변경 (모바일 소수점 픽셀 방지)
-   v0.1.7 : 결과 화면 스타일 추가 */
+   v0.1.7 : 결과 화면 스타일 추가
+   v0.1.8 : 결과 화면 별점·구분선·gold 행 스타일 추가 */
 
 /* ===========================
    1. 전역 초기화 & 변수
@@ -287,4 +288,33 @@ body {
   font-size: 1rem;
   font-weight: 700;
   color: var(--color-primary-dark);
+}
+
+.result-stars {
+  font-size: 1.75rem;
+  letter-spacing: 0.1em;
+  color: #d4a017;
+}
+
+.result-divider {
+  border: none;
+  border-top: 1px solid #e8edf5;
+  margin: 0.25rem 0;
+}
+
+/* gold 세부 행: 항목명 왼쪽, 금액 오른쪽 */
+.result-gold-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.result-gold-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #d4a017;
+  margin-top: 0.25rem;
 }

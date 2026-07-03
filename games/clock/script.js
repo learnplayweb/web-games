@@ -11,7 +11,7 @@
 // v0.2.0 : 오답 시 즉시 다음 문제로 이동, wrongOnCurrentProblem 플래그 제거
 // v0.2.1 : 분침 각도 계산에서 초 영향 제거 (분당 6도 고정)
 // v0.2.2 : <object> → inline SVG로 전환, setClock 단순화 (로드 타이밍 로직 제거)
-// v0.3.1 : 중복 출제 방지 - 레벨별 문제 pool 생성 후 셔플, 순서대로 출제
+// v0.3.2 : Implement_Stage reward system - star rating, quiz/combo/star gold
 
 /**
  * 시계 바늘을 지정한 시:분:초로 회전시키는 함수
@@ -180,19 +180,73 @@ function initStage(level) {
   stageState.questionPool = pool.slice(0, levelDef.totalQuestions);
 }
 
+/* ===========================
+   보상 시스템 상수
+=========================== */
+
+// 콤보 보너스 배율 (maxCombo × COMBO_MULTIPLIER)
+const COMBO_MULTIPLIER = 4;
+
+// 별점별 보너스 Gold
+const STAR_BONUS = { 0: 0, 1: 10, 2: 30, 3: 50 };
+
+// 문제당 기본 Gold (최고 별점 '없음' 가정)
+const GOLD_PER_CORRECT = 10;
+
+/**
+ * 정답률에 따라 별점(0~3)을 반환한다.
+ * ★★★ : 100%
+ * ★★  : 2/3 이상
+ * ★   : 1/3 이상
+ * 없음 : 1/3 미만
+ *
+ * @param {number} correct - 정답 수
+ * @param {number} total   - 전체 문제 수
+ * @returns {number} 0~3
+ */
+function calcStars(correct, total) {
+  const ratio = correct / total;
+  if (ratio >= 1)         return 3;
+  if (ratio >= 2 / 3)    return 2;
+  if (ratio >= 1 / 3)    return 1;
+  return 0;
+}
+
+/**
+ * 별점 숫자를 별 문자열로 변환한다.
+ * @param {number} stars - 0~3
+ * @returns {string} 예: '★★☆'
+ */
+function starsToString(stars) {
+  return '★'.repeat(stars) + '☆'.repeat(3 - stars);
+}
+
 /**
  * 단계 종료 처리 및 결과 화면 표시
- * - 정답률, 최고 콤보를 계산하여 결과 화면에 표시한다.
- * - 보상 계산 및 저장은 추후 구현 예정
+ * - 별점, 문제 정답 Gold, 콤보 보너스, 별점 보너스, 총 Gold를 계산한다.
+ * - 저장·최고 별점 갱신은 추후 구현
  */
 function finishStage() {
   const { currentLevel, correctCount, totalQuestions } = stageState;
-  const rate = Math.round((correctCount / totalQuestions) * 100);
+  const rate  = Math.round((correctCount / totalQuestions) * 100);
+  const stars = calcStars(correctCount, totalQuestions);
 
-  document.getElementById('result-level').textContent = `Lv.${currentLevel} 완료!`;
-  document.getElementById('result-score').textContent = `${correctCount} / ${totalQuestions}`;
-  document.getElementById('result-rate').textContent  = `정답률 ${rate}%`;
-  document.getElementById('result-combo').textContent = `최고 콤보 🔥 ${maxCombo}`;
+  // Gold 계산
+  const goldQuiz  = correctCount * GOLD_PER_CORRECT;
+  const goldCombo = maxCombo * COMBO_MULTIPLIER;
+  const goldStar  = STAR_BONUS[stars];
+  const goldTotal = goldQuiz + goldCombo + goldStar;
+
+  // 결과 화면 갱신
+  document.getElementById('result-level').textContent      = `Lv.${currentLevel} 완료!`;
+  document.getElementById('result-stars').textContent      = starsToString(stars);
+  document.getElementById('result-score').textContent      = `${correctCount} / ${totalQuestions}`;
+  document.getElementById('result-rate').textContent       = `정답률 ${rate}%`;
+  document.getElementById('result-combo').textContent      = `최고 콤보 🔥 ${maxCombo}`;
+  document.getElementById('result-gold-quiz').textContent  = `문제 정답  🪙 ${goldQuiz}`;
+  document.getElementById('result-gold-combo').textContent = `콤보 보너스  🪙 ${goldCombo}`;
+  document.getElementById('result-gold-star').textContent  = `별점 보너스  🪙 ${goldStar}`;
+  document.getElementById('result-gold-total').textContent = `총 획득  🪙 ${goldTotal}`;
 
   document.getElementById('result-screen').classList.remove('result-screen--hidden');
 }
