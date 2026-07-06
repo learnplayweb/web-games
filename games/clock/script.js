@@ -268,6 +268,7 @@ function startStage(level) {
   hideStageSelect();
   initStage(level);
   generateRandomTime();
+  updateFocus(); // 게임 시작 시 입력 포커스 초기화
 }
 
 /* ===========================
@@ -419,5 +420,4 @@ document.querySelector('.keypad-area').addEventListener('click', (e) => {
 const _save = loadSave();
 gold = _save.gold;
 updateGoldDisplay();
-updateFocus();
 showStageSelect();

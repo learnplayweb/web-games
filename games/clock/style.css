@@ -345,7 +345,7 @@ body {
   background: var(--color-bg);
   z-index: 200; /* 결과 화면보다 위 */
   overflow-y: auto;
-  display: flex;
+  display: none; /* 기본 숨김, showStageSelect()에서 flex로 전환 */
   flex-direction: column;
   align-items: center;
 }
