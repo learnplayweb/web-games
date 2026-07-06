@@ -12,6 +12,8 @@
 // v0.2.1 : 분침 각도 계산에서 초 영향 제거 (분당 6도 고정)
 // v0.2.2 : <object> → inline SVG로 전환, setClock 단순화 (로드 타이밍 로직 제거)
 // v0.3.2 : Implement_Stage reward system - star rating, quiz/combo/star gold
+// v0.3.3 : Polish_Remove emoji from quiz/combo/star gold rows in result screen
+// v0.3.4 : Implement_Save and unlock system - localStorage, best stars, gold accumulation, level unlock
 
 /**
  * 시계 바늘을 지정한 시:분:초로 회전시키는 함수
@@ -45,9 +47,88 @@ const currentAnswer = { hour: 0, minute: 0, second: 0 };
 =========================== */
 
 // 게임 상태 변수
-let gold         = 0;  // 누적 골드
+let gold         = 0;  // 누적 골드 (저장 데이터에서 불러온 값으로 초기화)
 let currentCombo = 0;  // 현재 연속 정답 수
 let maxCombo     = 0;  // 최고 콤보 기록
+
+/* ===========================
+   저장 시스템 (localStorage)
+=========================== */
+
+const SAVE_KEY = 'clockGame_save'; // localStorage 키
+
+/**
+ * 기본 저장 데이터를 반환한다.
+ * - Lv.1만 해금, Gold 0, 모든 최고 별점 없음(0)
+ */
+function getDefaultSave() {
+  return {
+    gold:        0,
+    unlockedLevel: 1,                   // 해금된 최고 레벨
+    bestStars:   new Array(8).fill(0),  // 인덱스 0 = Lv.1, ..., 인덱스 7 = Lv.8
+  };
+}
+
+/**
+ * localStorage에서 저장 데이터를 불러온다.
+ * 저장 데이터가 없으면 기본 데이터를 반환한다.
+ *
+ * @returns {Object} 저장 데이터
+ */
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw ? JSON.parse(raw) : getDefaultSave();
+  } catch {
+    return getDefaultSave();
+  }
+}
+
+/**
+ * 저장 데이터를 localStorage에 기록한다.
+ *
+ * @param {Object} saveData - 저장할 데이터
+ */
+function writeSave(saveData) {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+  } catch {
+    console.warn('저장 실패: localStorage를 사용할 수 없습니다.');
+  }
+}
+
+/**
+ * 단계 종료 시 저장 데이터를 갱신한다.
+ * - 최고 별점: 기존보다 높을 때만 갱신
+ * - Gold: 총 획득 Gold를 누적
+ * - 단계 해금: ★★ 이상이면 다음 단계 해금
+ *
+ * @param {number} level    - 완료한 레벨 번호
+ * @param {number} stars    - 이번 플레이 별점 (0~3)
+ * @param {number} goldEarned - 이번 플레이 총 획득 Gold
+ */
+function saveResult(level, stars, goldEarned) {
+  const save = loadSave();
+
+  // 최고 별점 갱신 (더 높을 때만)
+  if (stars > save.bestStars[level - 1]) {
+    save.bestStars[level - 1] = stars;
+  }
+
+  // Gold 누적
+  save.gold += goldEarned;
+
+  // 단계 해금: ★★ 이상이고 다음 레벨이 존재하면 해금
+  if (stars >= 2 && level < LEVELS.length) {
+    const nextLevel = level + 1;
+    if (nextLevel > save.unlockedLevel) {
+      save.unlockedLevel = nextLevel;
+    }
+  }
+
+  writeSave(save);
+  return save;
+}
 
 /** Gold 표시를 현재 gold 값으로 갱신한다. */
 function updateGoldDisplay() {
@@ -223,8 +304,8 @@ function starsToString(stars) {
 
 /**
  * 단계 종료 처리 및 결과 화면 표시
- * - 별점, 문제 정답 Gold, 콤보 보너스, 별점 보너스, 총 Gold를 계산한다.
- * - 저장·최고 별점 갱신은 추후 구현
+ * - 별점, 보상 Gold 계산
+ * - 저장 데이터 갱신 (최고 별점, 누적 Gold, 단계 해금)
  */
 function finishStage() {
   const { currentLevel, correctCount, totalQuestions } = stageState;
@@ -237,6 +318,11 @@ function finishStage() {
   const goldStar  = STAR_BONUS[stars];
   const goldTotal = goldQuiz + goldCombo + goldStar;
 
+  // 저장 및 누적 Gold 갱신
+  saveResult(currentLevel, stars, goldTotal);
+  gold += goldTotal;
+  updateGoldDisplay();
+
   // 결과 화면 갱신
   document.getElementById('result-level').textContent      = `Lv.${currentLevel} 완료!`;
   document.getElementById('result-stars').textContent      = starsToString(stars);
@@ -244,11 +330,11 @@ function finishStage() {
   document.getElementById('result-rate').textContent       = `정답률 ${rate}%`;
   document.getElementById('result-combo').textContent      = `최고 콤보 🔥 ${maxCombo}`;
 
-  // gold 행: label/value 분리 구조 → value span만 갱신
-  document.querySelector('#result-gold-quiz  .result-gold-value').textContent = `${goldQuiz}`;
-  document.querySelector('#result-gold-combo .result-gold-value').textContent = `${goldCombo}`;
-  document.querySelector('#result-gold-star  .result-gold-value').textContent = `${goldStar}`;
-  document.querySelector('#result-gold-total .result-gold-value').textContent = ` 💎${goldTotal}`;
+  // gold 행: 숫자만 표시 (quiz/combo/star 이모지 없음, total만 💎 유지)
+  document.querySelector('#result-gold-quiz  .result-gold-value').textContent = goldQuiz;
+  document.querySelector('#result-gold-combo .result-gold-value').textContent = goldCombo;
+  document.querySelector('#result-gold-star  .result-gold-value').textContent = goldStar;
+  document.querySelector('#result-gold-total .result-gold-value').textContent = `💎 ${goldTotal}`;
 
   document.getElementById('result-screen').classList.remove('result-screen--hidden');
 }
@@ -268,7 +354,11 @@ function nextQuestion() {
   }
 }
 
-// 페이지 로드 시 Lv.1 초기화 후 첫 문제 출제
+// 페이지 로드 시 저장 데이터 불러오기 → gold 초기화 → Lv.1 시작
+const _save = loadSave();
+gold = _save.gold;
+updateGoldDisplay();
+
 initStage(1);
 generateRandomTime();
 
