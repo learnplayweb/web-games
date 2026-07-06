@@ -51,12 +51,12 @@ let maxCombo     = 0;  // 최고 콤보 기록
 
 /** Gold 표시를 현재 gold 값으로 갱신한다. */
 function updateGoldDisplay() {
-  document.getElementById('display-gold').textContent = `🪙 ${gold}`;
+  document.getElementById('display-gold').textContent = gold;
 }
 
 /** Combo 표시를 현재 currentCombo 값으로 갱신한다. */
 function updateComboDisplay() {
-  document.getElementById('display-combo').textContent = `🔥 ${currentCombo}`;
+  document.getElementById('display-combo').textContent = currentCombo;
 }
 
 /**
@@ -243,10 +243,12 @@ function finishStage() {
   document.getElementById('result-score').textContent      = `${correctCount} / ${totalQuestions}`;
   document.getElementById('result-rate').textContent       = `정답률 ${rate}%`;
   document.getElementById('result-combo').textContent      = `최고 콤보 🔥 ${maxCombo}`;
-  document.getElementById('result-gold-quiz').textContent  = `문제 정답  🪙 ${goldQuiz}`;
-  document.getElementById('result-gold-combo').textContent = `콤보 보너스  🪙 ${goldCombo}`;
-  document.getElementById('result-gold-star').textContent  = `별점 보너스  🪙 ${goldStar}`;
-  document.getElementById('result-gold-total').textContent = `총 획득  🪙 ${goldTotal}`;
+
+  // gold 행: label/value 분리 구조 → value span만 갱신
+  document.querySelector('#result-gold-quiz  .result-gold-value').textContent = `${goldQuiz}`;
+  document.querySelector('#result-gold-combo .result-gold-value').textContent = `${goldCombo}`;
+  document.querySelector('#result-gold-star  .result-gold-value').textContent = `${goldStar}`;
+  document.querySelector('#result-gold-total .result-gold-value').textContent = ` 💎${goldTotal}`;
 
   document.getElementById('result-screen').classList.remove('result-screen--hidden');
 }

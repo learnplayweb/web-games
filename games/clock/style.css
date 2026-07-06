@@ -6,7 +6,8 @@
    v0.1.5 : info-bar 항목 min-width 고정, 아이콘 대응 정렬
    v0.1.6 : clock-svg 크기를 정수 고정 + max-width로 변경 (모바일 소수점 픽셀 방지)
    v0.1.7 : 결과 화면 스타일 추가
-   v0.1.8 : 결과 화면 별점·구분선·gold 행 스타일 추가 */
+   v0.1.8 : 결과 화면 별점·구분선·gold 행 스타일 추가
+   v0.1.9 : Gold 아이콘(💎)·색상 통일, result 레이아웃 개선, info-bar 아이콘 위치 고정 */
 
 /* ===========================
    1. 전역 초기화 & 변수
@@ -73,17 +74,19 @@ body {
   font-size: 0.95rem;
 }
 
-/* 각 항목은 min-width를 고정하여 숫자 자릿수가 늘어도 위치가 변하지 않는다 */
+/* 각 항목: 아이콘은 고정, 숫자만 자연스럽게 늘어나도록 flex 구조 사용 */
 .info-bar__gold {
-  color: #d4a017;
-  min-width: 6rem;   /* 🪙 9999 수준까지 수용 */
-  text-align: left;
+  color: var(--color-primary-dark); /* Combo와 동일한 강조 색상 */
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 .info-bar__combo {
   color: var(--color-primary-dark);
-  min-width: 5rem;   /* 🔥 999 수준까지 수용 */
-  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 /* ===========================
@@ -259,12 +262,12 @@ body {
   background: var(--color-surface);
   border-radius: 1.25rem;
   box-shadow: 0 8px 32px rgba(91, 141, 238, 0.18);
-  padding: 2.5rem 2rem;
+  padding: 2rem 1.75rem;
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  min-width: 240px;
+  gap: 0.6rem;
+  width: min(320px, 88vw); /* 내용에 맞는 적절한 폭 */
 }
 
 .result-level {
@@ -302,19 +305,30 @@ body {
   margin: 0.25rem 0;
 }
 
-/* gold 세부 행: 항목명 왼쪽, 금액 오른쪽 */
+/* gold 세부 행: 항목명 왼쪽, 금액 오른쪽, 과도한 간격 없이 */
 .result-gold-row {
   display: flex;
   justify-content: space-between;
+  gap: 1rem; /* 항목·숫자 간 최소 간격만 */
   font-size: 0.9rem;
   color: var(--color-text-muted);
+  text-align: left;
+}
+
+/* 숫자 부분: 우측 정렬, 일의 자리 세로선 통일 */
+.result-gold-value {
+  text-align: right;
+  white-space: nowrap; /* 줄바꿈 방지 */
+  font-variant-numeric: tabular-nums; /* 숫자 폭 고정으로 세로 정렬 */
 }
 
 .result-gold-total {
   display: flex;
   justify-content: space-between;
+  gap: 1rem;
   font-size: 1rem;
   font-weight: 700;
-  color: #d4a017;
+  color: var(--color-primary-dark); /* Combo와 동일한 강조 색상 */
   margin-top: 0.25rem;
+  text-align: left;
 }
