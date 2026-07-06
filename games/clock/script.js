@@ -14,6 +14,7 @@
 // v0.3.2 : Implement_Stage reward system - star rating, quiz/combo/star gold
 // v0.3.3 : Polish_Remove emoji from quiz/combo/star gold rows in result screen
 // v0.3.4 : Implement_Save and unlock system - localStorage, best stars, gold accumulation, level unlock
+// v0.3.5 : Implement_Stage selection screen
 
 /**
  * 시계 바늘을 지정한 시:분:초로 회전시키는 함수
@@ -337,6 +338,13 @@ function finishStage() {
   document.querySelector('#result-gold-total .result-gold-value').textContent = `💎 ${goldTotal}`;
 
   document.getElementById('result-screen').classList.remove('result-screen--hidden');
+
+  // 결과 화면 탭/클릭 시 단계 선택 화면으로 이동
+  document.getElementById('result-screen').addEventListener('click', function onResultClick() {
+    document.getElementById('result-screen').classList.add('result-screen--hidden');
+    document.getElementById('result-screen').removeEventListener('click', onResultClick);
+    showStageSelect();
+  }, { once: true });
 }
 
 /**
@@ -354,13 +362,81 @@ function nextQuestion() {
   }
 }
 
-// 페이지 로드 시 저장 데이터 불러오기 → gold 초기화 → Lv.1 시작
+/* ===========================
+   단계 선택 화면
+=========================== */
+
+/**
+ * 단계 선택 화면을 표시한다.
+ * - 저장 데이터를 불러와 각 레벨의 해금 여부와 최고 별점을 카드로 렌더링한다.
+ */
+function showStageSelect() {
+  const save = loadSave();
+  const list = document.getElementById('stage-card-list');
+  list.innerHTML = ''; // 기존 카드 초기화
+
+  LEVELS.forEach((levelDef, i) => {
+    const levelNum = levelDef.level;
+    const isUnlocked = levelNum <= save.unlockedLevel;
+    const bestStars  = save.bestStars[i];
+
+    const card = document.createElement('div');
+    card.className = `stage-card ${isUnlocked ? 'stage-card--unlocked' : 'stage-card--locked'}`;
+
+    const levelLabel = document.createElement('p');
+    levelLabel.className = 'stage-card__level';
+    levelLabel.textContent = isUnlocked ? `Lv.${levelNum}` : `🔒 Lv.${levelNum}`;
+
+    const starsLabel = document.createElement('p');
+    starsLabel.className = 'stage-card__stars';
+    starsLabel.textContent = starsToString(bestStars);
+
+    card.appendChild(levelLabel);
+    card.appendChild(starsLabel);
+
+    // 해금된 단계만 클릭 시 게임 시작
+    if (isUnlocked) {
+      card.addEventListener('click', () => startStage(levelNum));
+    }
+
+    list.appendChild(card);
+  });
+
+  document.getElementById('stage-select-screen').style.display = 'flex';
+}
+
+/**
+ * 단계 선택 화면을 숨긴다.
+ */
+function hideStageSelect() {
+  document.getElementById('stage-select-screen').style.display = 'none';
+}
+
+/**
+ * 선택한 레벨로 게임을 시작한다.
+ * - 콤보·maxCombo 초기화
+ * - 단계 선택 화면 숨김
+ * - 해당 레벨로 initStage 후 첫 문제 출제
+ *
+ * @param {number} level - 시작할 레벨 번호
+ */
+function startStage(level) {
+  // 게임 내 콤보 초기화
+  currentCombo = 0;
+  maxCombo     = 0;
+  updateComboDisplay();
+
+  hideStageSelect();
+  initStage(level);
+  generateRandomTime();
+}
+
+// 페이지 로드 시 저장 데이터 불러오기 → gold 초기화 → 단계 선택 화면 표시
 const _save = loadSave();
 gold = _save.gold;
 updateGoldDisplay();
 
-initStage(1);
-generateRandomTime();
+showStageSelect();
 
 /* ===========================
    키패드 입력 기능
