@@ -1,5 +1,7 @@
 // v0.3.5 : Implement_Stage selection screen
 // v0.4.0 : Refactor_Split into script.js / save.js / data/levels.js
+// v0.4.1 : Refactor_Remove stage select logic, use URL param for level, redirect to select.html
+// v0.4.2 : Implement_Level rules Lv.1~Lv.5, input UI show/hide, fields-based answer check
 // 의존: data/levels.js (LEVELS, shuffleArray), save.js (loadSave, saveResult)
 
 /* ===========================
@@ -122,6 +124,9 @@ function initStage(level) {
 
   const pool = shuffleArray(levelDef.buildPool());
   stageState.questionPool = pool.slice(0, levelDef.totalQuestions);
+
+  // 현재 레벨에 맞는 입력 UI 표시/숨김
+  initInputUI(levelDef.fields);
 }
 
 /**
@@ -203,94 +208,67 @@ function finishStage() {
   document.getElementById('result-screen').classList.remove('result-screen--hidden');
 
   // 결과 화면 탭/클릭 시 단계 선택 화면으로 이동
-  document.getElementById('result-screen').addEventListener('click', function onResultClick() {
-    document.getElementById('result-screen').classList.add('result-screen--hidden');
-    showStageSelect();
+  document.getElementById('result-screen').addEventListener('click', () => {
+    window.location.href = 'select.html';
   }, { once: true });
 }
 
 /* ===========================
-   단계 선택 화면
+   초기화
 =========================== */
 
-/**
- * 단계 선택 화면을 표시한다.
- */
-function showStageSelect() {
-  const save = loadSave();
-  const list = document.getElementById('stage-card-list');
-  list.innerHTML = '';
+// URL 파라미터에서 레벨 번호를 읽어 게임 시작
+// 예: index.html?level=1
+const _params = new URLSearchParams(window.location.search);
+const _level  = parseInt(_params.get('level'), 10) || 1;
 
-  LEVELS.forEach((levelDef, i) => {
-    const levelNum   = levelDef.level;
-    const isUnlocked = levelNum <= save.unlockedLevel;
-    const bestStars  = save.bestStars[i];
+const _save = loadSave();
+gold = _save.gold;
+updateGoldDisplay();
 
-    const card = document.createElement('div');
-    card.className = `stage-card ${isUnlocked ? 'stage-card--unlocked' : 'stage-card--locked'}`;
+currentCombo = 0;
+maxCombo     = 0;
+updateComboDisplay();
 
-    const levelLabel = document.createElement('p');
-    levelLabel.className   = 'stage-card__level';
-    levelLabel.textContent = isUnlocked ? `Lv.${levelNum}` : `🔒 Lv.${levelNum}`;
-
-    const starsLabel = document.createElement('p');
-    starsLabel.className   = 'stage-card__stars';
-    starsLabel.textContent = starsToString(bestStars);
-
-    card.appendChild(levelLabel);
-    card.appendChild(starsLabel);
-
-    if (isUnlocked) {
-      card.addEventListener('click', () => startStage(levelNum));
-    }
-
-    list.appendChild(card);
-  });
-
-  document.getElementById('stage-select-screen').style.display = 'flex';
-}
-
-/**
- * 단계 선택 화면을 숨긴다.
- */
-function hideStageSelect() {
-  document.getElementById('stage-select-screen').style.display = 'none';
-}
-
-/**
- * 선택한 레벨로 게임을 시작한다.
- */
-function startStage(level) {
-  currentCombo = 0;
-  maxCombo     = 0;
-  updateComboDisplay();
-
-  hideStageSelect();
-  initStage(level);
-  generateRandomTime();
-  updateFocus(); // 게임 시작 시 입력 포커스 초기화
-}
-
-/* ===========================
-   키패드 입력
-=========================== */
+initStage(_level);
+generateRandomTime();
+updateFocus();
 
 const inputState = {
-  fields:  ['input-hour', 'input-minute', 'input-second'],
-  values:  ['', '', ''],
-  current: 0,
+  fields:       ['input-hour', 'input-minute', 'input-second'], // 전체 필드 id
+  activeCount:  1,    // 현재 레벨에서 사용하는 필드 수 (initInputUI에서 설정)
+  values:       ['', '', ''],
+  current:      0,
 };
+
+/**
+ * 현재 레벨의 fields에 맞게 입력 UI를 표시/숨김 처리한다.
+ * - 사용하지 않는 입력 그룹은 숨긴다.
+ * @param {string[]} fields - 현재 레벨의 활성 필드 배열 (예: ['hour'], ['hour','minute'])
+ */
+function initInputUI(fields) {
+  const fieldMap = { hour: 0, minute: 1, second: 2 };
+  const groups   = document.querySelectorAll('.input-group');
+
+  groups.forEach((group, i) => {
+    // 현재 레벨 fields에 해당 인덱스가 포함되는지 확인
+    const isActive = fields.some(f => fieldMap[f] === i);
+    group.style.display = isActive ? '' : 'none';
+  });
+
+  inputState.activeCount = fields.length;
+}
 
 /** 현재 선택된 입력칸을 시각적으로 표시한다. */
 function updateFocus() {
-  inputState.fields.forEach((id, i) => {
-    const el = document.getElementById(id);
+  for (let i = 0; i < inputState.activeCount; i++) {
+    const el = document.getElementById(inputState.fields[i]);
     if (i === inputState.current) {
       el.classList.add('input-box--active');
     } else {
       el.classList.remove('input-box--active');
     }
-  });
+  }
 }
 
 /**
@@ -325,9 +303,9 @@ function handleBack() {
   }
 }
 
-/** 다음(→) 버튼 처리 */
+/** 다음(→) 버튼 처리 - activeCount 기준으로 마지막 필드 여부 판단 */
 function handleNext() {
-  if (inputState.current < 2) {
+  if (inputState.current < inputState.activeCount - 1) {
     inputState.current += 1;
     updateFocus();
   } else {
@@ -339,7 +317,7 @@ function handleNext() {
 function resetInput() {
   inputState.values  = ['', '', ''];
   inputState.current = 0;
-  inputState.fields.forEach((id, i) => updateDisplay(i));
+  for (let i = 0; i < inputState.activeCount; i++) updateDisplay(i);
   updateFocus();
 }
 
@@ -356,19 +334,23 @@ let isJudging = false;
  * - 오답: Combo 초기화, 다음 문제
  */
 function checkAnswer() {
-  if (inputState.values.some(v => v === '')) {
+  // 활성 필드만 빈값 체크
+  const activeValues = inputState.values.slice(0, inputState.activeCount);
+  if (activeValues.some(v => v === '')) {
     console.log('입력값이 비어 있습니다.');
     return;
   }
 
-  const userHour   = parseInt(inputState.values[0], 10);
-  const userMinute = parseInt(inputState.values[1], 10);
-  const userSecond = parseInt(inputState.values[2], 10);
+  const userHour   = parseInt(inputState.values[0], 10) || 0;
+  const userMinute = inputState.activeCount >= 2 ? parseInt(inputState.values[1], 10) : 0;
+  const userSecond = inputState.activeCount >= 3 ? parseInt(inputState.values[2], 10) : 0;
 
+  // 활성 필드만 비교 (숨겨진 필드는 정답과 무관하게 일치로 처리)
+  const levelFields = LEVELS[stageState.currentLevel - 1].fields;
   const isCorrect =
-    userHour   === currentAnswer.hour   &&
-    userMinute === currentAnswer.minute &&
-    userSecond === currentAnswer.second;
+    (!levelFields.includes('hour')   || userHour   === currentAnswer.hour)   &&
+    (!levelFields.includes('minute') || userMinute === currentAnswer.minute) &&
+    (!levelFields.includes('second') || userSecond === currentAnswer.second);
 
   const inputArea = document.querySelector('.input-area');
   isJudging = true;

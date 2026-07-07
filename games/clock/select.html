@@ -1,0 +1,64 @@
+<!-- v0.1.0 : 최초 생성 - 단계 선택 화면 (index.html에서 분리)
+     v0.1.1 : select.js 제거, 카드 렌더링 로직을 인라인 스크립트로 통합
+     v0.1.2 : Fix_loadSave not defined - save.js/levels.js 의존을 인라인으로 통합 -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clock Game - 단계 선택</title>
+  <link rel="stylesheet" href="select.css" />
+</head>
+<body>
+
+  <div class="stage-select-wrapper">
+    <h2 class="stage-select-title">단계 선택</h2>
+    <div id="stage-card-list" class="stage-card-list"></div>
+  </div>
+
+  <!-- 의존 파일을 순서대로 로드: levels → save → 인라인 렌더링 -->
+  <script src="data/levels.js"></script>
+  <script src="save.js"></script>
+  <script>
+    function starsToString(stars) {
+      return '★'.repeat(stars) + '☆'.repeat(3 - stars);
+    }
+
+    function renderStageCards() {
+      const save = loadSave();
+      const list = document.getElementById('stage-card-list');
+
+      LEVELS.forEach((levelDef, i) => {
+        const levelNum   = levelDef.level;
+        const isUnlocked = levelNum <= save.unlockedLevel;
+        const bestStars  = save.bestStars[i];
+
+        const card = document.createElement('div');
+        card.className = `stage-card ${isUnlocked ? 'stage-card--unlocked' : 'stage-card--locked'}`;
+
+        const levelLabel = document.createElement('p');
+        levelLabel.className   = 'stage-card__level';
+        levelLabel.textContent = isUnlocked ? `Lv.${levelNum}` : `🔒 Lv.${levelNum}`;
+
+        const starsLabel = document.createElement('p');
+        starsLabel.className   = 'stage-card__stars';
+        starsLabel.textContent = starsToString(bestStars);
+
+        card.appendChild(levelLabel);
+        card.appendChild(starsLabel);
+
+        if (isUnlocked) {
+          card.addEventListener('click', () => {
+            window.location.href = `index.html?level=${levelNum}`;
+          });
+        }
+
+        list.appendChild(card);
+      });
+    }
+
+    // DOMContentLoaded 이후에 실행하여 스크립트 로드 순서 보장
+    document.addEventListener('DOMContentLoaded', renderStageCards);
+  </script>
+</body>
+</html>
