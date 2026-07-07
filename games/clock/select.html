@@ -1,6 +1,7 @@
 <!-- v0.1.0 : 최초 생성 - 단계 선택 화면 (index.html에서 분리)
      v0.1.1 : select.js 제거, 카드 렌더링 로직을 인라인 스크립트로 통합
-     v0.1.2 : Fix_loadSave not defined - save.js/levels.js 의존을 인라인으로 통합 -->
+     v0.1.2 : Fix_loadSave not defined - save.js/levels.js 의존을 인라인으로 통합
+     v0.1.3 : Fix_Make select.html self-contained, remove external script dependencies -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -16,10 +17,40 @@
     <div id="stage-card-list" class="stage-card-list"></div>
   </div>
 
-  <!-- 의존 파일을 순서대로 로드: levels → save → 인라인 렌더링 -->
-  <script src="data/levels.js"></script>
-  <script src="save.js"></script>
   <script>
+    /* --- 저장 데이터 (save.js 중 select.html에 필요한 부분만 인라인) --- */
+    const SAVE_KEY = 'clockGame_save';
+
+    function getDefaultSave() {
+      return {
+        gold:          0,
+        unlockedLevel: 1,
+        bestStars:     new Array(8).fill(0),
+      };
+    }
+
+    function loadSave() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        return raw ? JSON.parse(raw) : getDefaultSave();
+      } catch {
+        return getDefaultSave();
+      }
+    }
+
+    /* --- 레벨 목록 (levels.js 중 select.html에 필요한 부분만 인라인) --- */
+    const LEVEL_NAMES = [
+      'Lv.1 : 시',
+      'Lv.2 : 정각 / 30분',
+      'Lv.3 : 5분 단위',
+      'Lv.4 : 모든 분',
+      'Lv.5 : 시·분·초',
+      'Lv.6 : 시간 계산 (1단위)',
+      'Lv.7 : 시간 계산 (2단위)',
+      'Lv.8 : 시간 계산 (전체)',
+    ];
+
+    /* --- 카드 렌더링 --- */
     function starsToString(stars) {
       return '★'.repeat(stars) + '☆'.repeat(3 - stars);
     }
@@ -28,8 +59,8 @@
       const save = loadSave();
       const list = document.getElementById('stage-card-list');
 
-      LEVELS.forEach((levelDef, i) => {
-        const levelNum   = levelDef.level;
+      LEVEL_NAMES.forEach((name, i) => {
+        const levelNum   = i + 1;
         const isUnlocked = levelNum <= save.unlockedLevel;
         const bestStars  = save.bestStars[i];
 
@@ -38,7 +69,7 @@
 
         const levelLabel = document.createElement('p');
         levelLabel.className   = 'stage-card__level';
-        levelLabel.textContent = isUnlocked ? `Lv.${levelNum}` : `🔒 Lv.${levelNum}`;
+        levelLabel.textContent = isUnlocked ? name : `🔒 ${name}`;
 
         const starsLabel = document.createElement('p');
         starsLabel.className   = 'stage-card__stars';
@@ -57,8 +88,7 @@
       });
     }
 
-    // DOMContentLoaded 이후에 실행하여 스크립트 로드 순서 보장
-    document.addEventListener('DOMContentLoaded', renderStageCards);
+    renderStageCards();
   </script>
 </body>
 </html>
