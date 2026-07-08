@@ -41,11 +41,12 @@ const LEVELS = [
     totalQuestions: 10,
     fields: ['hour', 'minute'],
     buildPool() {
-      // 정각(분=0)과 30분, 1~12시 × 2 = 24가지
+      // 15분 단위(15, 30, 45분), 정각 제외, 1~12시 × 3 = 36가지
       const pool = [];
       for (let hour = 1; hour <= 12; hour++) {
-        pool.push({ hour, minute: 0,  second: 0 });
-        pool.push({ hour, minute: 30, second: 0 });
+        for (const minute of [15, 30, 45]) {
+          pool.push({ hour, minute, second: 0 });
+        }
       }
       return pool;
     },
