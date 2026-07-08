@@ -4,6 +4,7 @@
 // v0.4.2 : Implement_Level rules Lv.1~Lv.5, input UI show/hide, fields-based answer check
 // v0.4.3 : Fix_Initialization still calling showStageSelect instead of URL param startup
 // v0.4.4 : Fix_initInputUI called before declaration / Update_Lv.2 to 15min intervals
+// v0.4.5 : Implement_Time calculation levels Lv.6~8, calc-area show/hide
 // 의존: data/levels.js (LEVELS, shuffleArray), save.js (loadSave, saveResult)
 
 /* ===========================
@@ -158,14 +159,38 @@ function initStage(level) {
   initInputUI(levelDef.fields);
 }
 
+/** 계산식 영역 표시 (Lv.6~8) */
+function showCalcArea(expression) {
+  const area = document.getElementById('calc-area');
+  area.classList.remove('calc-area--hidden');
+  document.getElementById('calc-expression').textContent = expression;
+}
+
+/** 계산식 영역 숨김 (Lv.1~5) */
+function hideCalcArea() {
+  document.getElementById('calc-area').classList.add('calc-area--hidden');
+}
+
+/**
+ * 현재 문제를 pool에서 꺼내 시계에 표시한다.
+ * - Lv.1~5: 정답 시각을 시계에 표시
+ * - Lv.6~8: 기준 시각(base*)을 시계에, 계산식(expression)을 별도 영역에 표시
+ *           정답은 계산 결과(hour/minute/second)
+ */
 function generateRandomTime() {
-  const { hour, minute, second } = stageState.questionPool[stageState.questionIndex];
+  const q = stageState.questionPool[stageState.questionIndex];
 
-  currentAnswer.hour   = hour;
-  currentAnswer.minute = minute;
-  currentAnswer.second = second;
+  currentAnswer.hour   = q.hour;
+  currentAnswer.minute = q.minute;
+  currentAnswer.second = q.second;
 
-  setClock(hour, minute, second);
+  if (q.expression !== undefined) {
+    setClock(q.baseHour, q.baseMinute, q.baseSecond);
+    showCalcArea(q.expression);
+  } else {
+    setClock(q.hour, q.minute, q.second);
+    hideCalcArea();
+  }
 }
 
 function nextQuestion() {
