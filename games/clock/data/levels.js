@@ -1,6 +1,7 @@
 // v0.1.0 : 최초 생성 - 레벨 데이터 및 shuffleArray (script.js에서 분리)
 // v0.2.0 : Implement_Level rules Lv.1~Lv.5 buildPool 구현
 // v0.3.0 : Implement_Time calculation levels Lv.6~Lv.8
+// v0.3.1 : Polish_Unified sign for Lv.7~8, expression format with leading sign + space
 
 /**
  * 배열을 무작위로 섞는 함수 (Fisher-Yates 알고리즘)
@@ -135,14 +136,24 @@ function addTime(hour, minute, second, dh, dm, ds) {
 
 /**
  * 델타값으로 계산식 텍스트를 만든다.
- * 예: "+2시간 -35분", "-14분 +20초"
+ * - 부호는 맨 앞에 한 번만 표시하고 그 뒤에 공백을 추가한다.
+ * - 단위들은 모두 같은 방향(부호 통일)임을 전제로 한다.
+ * 예) "+ 2시간 30분", "- 35분 15초", "+ 1시간 20분 15초"
+ *
+ * @param {number} dh - 시간 델타 (부호 통일된 값)
+ * @param {number} dm - 분 델타
+ * @param {number} ds - 초 델타
  */
 function makeExpression(dh, dm, ds) {
+  // 사용된 델타 중 하나로 부호 결정 (모두 같은 방향이므로 첫 번째 비영값 사용)
+  const sign = (dh || dm || ds) > 0 ? '+ ' : '- ';
+
   const parts = [];
-  if (dh !== 0) parts.push(`${dh > 0 ? '+' : ''}${dh}시간`);
-  if (dm !== 0) parts.push(`${dm > 0 ? '+' : ''}${dm}분`);
-  if (ds !== 0) parts.push(`${ds > 0 ? '+' : ''}${ds}초`);
-  return parts.join(' ');
+  if (dh !== 0) parts.push(`${Math.abs(dh)}시간`);
+  if (dm !== 0) parts.push(`${Math.abs(dm)}분`);
+  if (ds !== 0) parts.push(`${Math.abs(ds)}초`);
+
+  return sign + parts.join(' ');
 }
 
 /**
@@ -151,14 +162,17 @@ function makeExpression(dh, dm, ds) {
  * - hour/minute/second: 정답(계산 결과)
  * - base*: 시계에 표시할 기준 시각
  * - expression: 화면에 표시할 계산식
+ *
+ * Lv.7·8: 여러 단위를 하나의 연산으로 표시하기 위해 부호를 통일한다.
+ * (예: + 2시간 30분 / - 35분 15초. 단위별로 다른 부호는 사용하지 않는다.)
  */
 function buildCalcPool(level) {
   const pool = [];
   const used = new Set();
 
-  const hourDeltas   = [-5,-4,-3,-2,-1,1,2,3,4,5];
-  const minuteDeltas = [-55,-45,-35,-25,-15,-10,-5,5,10,15,25,35,45,55];
-  const secondDeltas = [-55,-45,-35,-25,-15,-10,-5,5,10,15,25,35,45,55];
+  const hourMags   = [1,2,3,4,5];
+  const minuteMags = [5,10,15,25,35,45,55];
+  const secondMags = [5,10,15,25,35,45,55];
 
   const baseHours   = [1,2,3,4,5,6,7,8,9,10,11,12];
   const baseMinutes = [0,5,10,15,20,25,30,35,40,45,50,55];
@@ -171,7 +185,8 @@ function buildCalcPool(level) {
     8: [[true,true,true]],
   };
 
-  const rand = arr => arr[Math.floor(Math.random() * arr.length)];
+  const rand    = arr => arr[Math.floor(Math.random() * arr.length)];
+  const randSign = ()  => Math.random() < 0.5 ? 1 : -1;
 
   while (pool.length < 50) {
     const [useH, useM, useS] = rand(combos[level]);
@@ -180,9 +195,11 @@ function buildCalcPool(level) {
     const bm = (useM || useS) ? rand(baseMinutes) : 0;
     const bs = useS            ? rand(baseSeconds)  : 0;
 
-    const dh = useH ? rand(hourDeltas)   : 0;
-    const dm = useM ? rand(minuteDeltas) : 0;
-    const ds = useS ? rand(secondDeltas) : 0;
+    // Lv.7·8: 부호를 하나로 통일 (모든 단위에 같은 부호 적용)
+    const sign = level === 6 ? randSign() : randSign();
+    const dh = useH ? sign * rand(hourMags)   : 0;
+    const dm = useM ? sign * rand(minuteMags) : 0;
+    const ds = useS ? sign * rand(secondMags) : 0;
 
     const key = `${bh}-${bm}-${bs}-${dh}-${dm}-${ds}`;
     if (used.has(key)) continue;
