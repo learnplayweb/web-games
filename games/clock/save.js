@@ -1,5 +1,6 @@
 // v0.1.0 : 최초 생성 - 저장 시스템 (script.js에서 분리)
 // 의존: data/levels.js (LEVELS.length 참조)
+// v0.1.1 : Lv.8 별점 저장 제외 (마지막 단계 예외 처리)
 
 const SAVE_KEY = 'clockGame_save'; // localStorage 키
 
@@ -57,8 +58,8 @@ function writeSave(saveData) {
 function saveResult(level, stars, goldEarned) {
   const save = loadSave();
 
-  // 최고 별점 갱신 (더 높을 때만)
-  if (stars > save.bestStars[level - 1]) {
+  // 최고 별점 갱신 (더 높을 때만, Lv.8은 마지막 단계이므로 저장하지 않음)
+  if (level !== 8 && stars > save.bestStars[level - 1]) {
     save.bestStars[level - 1] = stars;
   }
 

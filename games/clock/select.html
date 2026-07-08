@@ -81,7 +81,8 @@
 
         const starsLabel = document.createElement('p');
         starsLabel.className   = 'stage-card__stars';
-        starsLabel.textContent = starsToString(bestStars);
+        // Lv.8은 마지막 단계이므로 별점 표시 없음
+        starsLabel.textContent = levelNum === 8 ? '' : starsToString(bestStars);
 
         card.appendChild(levelLabel);
         card.appendChild(starsLabel);

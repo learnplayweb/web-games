@@ -5,6 +5,7 @@
 // v0.4.3 : Fix_Initialization still calling showStageSelect instead of URL param startup
 // v0.4.4 : Fix_initInputUI called before declaration / Update_Lv.2 to 15min intervals
 // v0.4.5 : Implement_Time calculation levels Lv.6~8, calc-area show/hide
+// v0.4.6 : Implement_Dynamic quiz reward based on previous best stars
 // 의존: data/levels.js (LEVELS, shuffleArray), save.js (loadSave, saveResult)
 
 /* ===========================
@@ -31,6 +32,25 @@ let gold         = 0;
 let currentCombo = 0;
 let maxCombo     = 0;
 
+// 플레이 시작 시점의 이전 최고 별점 (플레이 중 변경되지 않음)
+let prevBestStars = 0;
+
+/**
+ * 이전 최고 별점을 기준으로 문제당 지급 Gold를 반환한다.
+ * - 없음(0) : +10
+ * - ★(1)   : +7
+ * - ★★(2)  : +4
+ * - ★★★(3) : +1
+ * Lv.8은 예외 없이 항상 bestStars=0 기준(+10)으로 계산하므로
+ * 초기화 시 prevBestStars=0으로 고정된다.
+ *
+ * @returns {number} 지급 Gold
+ */
+function getQuizRewardGold() {
+  const table = { 0: 10, 1: 7, 2: 4, 3: 1 };
+  return table[prevBestStars] ?? 10;
+}
+
 function updateGoldDisplay() {
   document.getElementById('display-gold').textContent = gold;
 }
@@ -40,7 +60,7 @@ function updateComboDisplay() {
 }
 
 function handleCorrectAnswer() {
-  gold += 10;
+  gold += getQuizRewardGold(); // 이전 최고 별점 기준 차등 지급
   currentCombo += 1;
   if (currentCombo > maxCombo) maxCombo = currentCombo;
   updateGoldDisplay();
@@ -334,6 +354,10 @@ const _level  = parseInt(_params.get('level'), 10) || 1;
 const _save = loadSave();
 gold = _save.gold;
 updateGoldDisplay();
+
+// 플레이 시작 시점의 이전 최고 별점 저장
+// Lv.8은 예외: 항상 0(별 없음 기준, +10 지급)
+prevBestStars = _level === 8 ? 0 : (_save.bestStars[_level - 1] ?? 0);
 
 currentCombo = 0;
 maxCombo     = 0;
