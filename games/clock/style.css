@@ -127,7 +127,7 @@ body {
 
 /* 계산식 텍스트: 크고 굵게, 중앙 정렬 */
 .calc-expression {
-  font-size: 1.3rem;
+  font-size: 1.8rem;
   font-weight: 700;
   color: var(--color-primary-dark);
   text-align: center;
