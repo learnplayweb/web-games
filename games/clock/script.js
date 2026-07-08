@@ -2,6 +2,7 @@
 // v0.4.0 : Refactor_Split into script.js / save.js / data/levels.js
 // v0.4.1 : Refactor_Remove stage select logic, use URL param for level, redirect to select.html
 // v0.4.2 : Implement_Level rules Lv.1~Lv.5, input UI show/hide, fields-based answer check
+// v0.4.3 : Fix_Initialization still calling showStageSelect instead of URL param startup
 // 의존: data/levels.js (LEVELS, shuffleArray), save.js (loadSave, saveResult)
 
 /* ===========================
@@ -398,8 +399,19 @@ document.querySelector('.keypad-area').addEventListener('click', (e) => {
    초기화
 =========================== */
 
-// 저장 데이터 불러오기 → gold 초기화 → 단계 선택 화면 표시
+// URL 파라미터에서 레벨 번호를 읽어 게임 시작
+// 예: index.html?level=2
+const _params = new URLSearchParams(window.location.search);
+const _level  = parseInt(_params.get('level'), 10) || 1;
+
 const _save = loadSave();
 gold = _save.gold;
 updateGoldDisplay();
-showStageSelect();
+
+currentCombo = 0;
+maxCombo     = 0;
+updateComboDisplay();
+
+initStage(_level);
+generateRandomTime();
+updateFocus();
