@@ -33,6 +33,15 @@ docs/
 7. Commit
 8. Push
 
+## 개발 테스트
+
+1. 개발 중에는 ?debug=1 URL 파라미터를 사용하여 해금 여부와 관계없이 원하는 레벨을 바로 테스트한다.
+예)
+index.html?level=7&debug=1
+
+2. 제목(예:단계 선택)을 (7번 터치)하면 모든 단계가 해금되는 개발자 모드 구현.
+🔧 Debug Mode Enabled
+
 
 # 커밋 서머리
 - Implement : 새로운 기능
