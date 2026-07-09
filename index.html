@@ -1,4 +1,5 @@
-<!-- v0.1.0 : 최초 생성 - Web Games 허브 메인 화면 -->
+<!-- v0.1.0 : 최초 생성 - Web Games 허브 메인 화면
+     v0.1.1 : 우상단 Gold 표시 추가 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -8,6 +9,14 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
+  <!-- 우상단 Gold 표시 (항상 고정) -->
+  <div class="global-gold">
+    <span class="global-gold__value">
+      <span id="display-gold-main"></span>
+      <span class="global-gold__icon">💎</span>
+    </span>
+  </div>
 
   <!-- 전체 페이지를 감싸는 래퍼 (PC 가운데 정렬용) -->
   <div class="wrapper">
@@ -40,6 +49,16 @@
     </main>
 
   </div><!-- /.wrapper -->
+
+  <script>
+    // localStorage에서 Gold를 읽어 우상단에 표시
+    try {
+      const save = JSON.parse(localStorage.getItem('clockGame_save') || '{}');
+      document.getElementById('display-gold-main').textContent = save.gold ?? 0;
+    } catch {
+      document.getElementById('display-gold-main').textContent = 0;
+    }
+  </script>
 
 </body>
 </html>

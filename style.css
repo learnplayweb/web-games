@@ -1,4 +1,5 @@
-/* v0.1.0 : 최초 생성 - Web Games 허브 메인 스타일 */
+/* v0.1.0 : 최초 생성 - Web Games 허브 메인 스타일
+   v0.1.1 : 우상단 Gold 표시 스타일 추가 */
 
 /* ===========================
    1. 전역 초기화 & 기본 변수
@@ -193,4 +194,27 @@ body {
 .card__badge--soon {
   background: var(--color-badge-soon);
   color: var(--color-soon-text);
+}
+
+/* ===========================
+   7. 우상단 Gold 표시
+=========================== */
+
+/* 뷰포트 우상단에 고정 */
+.global-gold {
+  position: fixed;
+  top: 0.9rem;
+  right: 1.1rem;
+  z-index: 100;
+  font-family: var(--font-base);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-primary-dark);
+}
+
+/* 숫자 왼쪽, 아이콘 오른쪽 */
+.global-gold__value {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
