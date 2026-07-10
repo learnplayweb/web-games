@@ -1,6 +1,7 @@
 // v0.1.0 : 최초 생성 - 저장 시스템 (script.js에서 분리)
 // 의존: data/levels.js (LEVELS.length 참조)
 // v0.1.1 : Lv.8 별점 저장 제외 (마지막 단계 예외 처리)
+// v0.1.2 : saveGold 추가 - 게임 중 문제당 골드 즉시 저장
 
 const SAVE_KEY = 'clockGame_save'; // localStorage 키
 
@@ -42,6 +43,16 @@ function writeSave(saveData) {
   } catch {
     console.warn('저장 실패: localStorage를 사용할 수 없습니다.');
   }
+}
+
+/**
+ * 골드만 즉시 저장한다. (게임 중 문제당 지급 시 호출)
+ * @param {number} amount - 추가할 골드 양
+ */
+function saveGold(amount) {
+  const save = loadSave();
+  save.gold += amount;
+  writeSave(save);
 }
 
 /**
