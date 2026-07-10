@@ -1,0 +1,209 @@
+<!-- v0.1.0 : 최초 생성 - 캐릭터 상점 화면 (UI만, 기능 미구현) -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>캐릭터 상점</title>
+  <link rel="stylesheet" href="character-shop.css" />
+</head>
+<body>
+
+  <!-- 우상단 Gold 표시 -->
+  <div class="global-gold">
+    <span class="global-gold__value">
+      <span id="display-gold" class="global-gold__number">0</span>
+      <span class="global-gold__icon">💎</span>
+    </span>
+  </div>
+
+  <div class="shop-wrapper">
+
+    <!-- ① 캐릭터 영역 -->
+    <section class="character-area">
+      <!-- 더미 플레이스홀더 SVG (추후 실제 캐릭터로 교체) -->
+      <svg class="character-placeholder" viewBox="0 0 160 200" xmlns="http://www.w3.org/2000/svg">
+        <!-- 머리 (찌글찌글한 원형) -->
+        <path d="M80,20 C105,18 125,35 126,58 C127,82 110,100 85,102 C60,104 42,88 40,64 C38,40 55,22 80,20 Z"
+              fill="none" stroke="#b0bac6" stroke-width="3" stroke-linecap="round"/>
+        <!-- 눈 -->
+        <circle cx="66" cy="58" r="3.5" fill="#b0bac6"/>
+        <circle cx="94" cy="58" r="3.5" fill="#b0bac6"/>
+        <!-- 입 -->
+        <path d="M69,76 Q80,84 91,76" fill="none" stroke="#b0bac6" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- 플레이스홀더 안내 -->
+        <text x="80" y="148" font-size="11" fill="#b0bac6" text-anchor="middle">파츠를 구매하세요</text>
+      </svg>
+      <p class="character-name">이름 없음</p>
+    </section>
+
+    <!-- ② 기능 버튼 섹션 -->
+    <section class="shop-section">
+      <div class="shop-section__header" style="padding-bottom:0;"></div>
+      <div class="shop-section__body">
+        <ul class="action-list">
+          <li class="action-item">
+            <button type="button" class="action-item__btn" id="btn-combine">조합</button>
+            <span class="action-item__price">💎 50</span>
+          </li>
+          <li class="action-item">
+            <button type="button" class="action-item__btn" id="btn-dismantle">해체</button>
+            <span class="action-item__price">💎 80</span>
+          </li>
+          <li class="action-item">
+            <button type="button" class="action-item__btn" id="btn-rename">이름 변경</button>
+            <span class="action-item__price">💎 20</span>
+          </li>
+          <li class="action-item action-item--save">
+            <button type="button" class="action-item__btn" id="btn-save">캐릭터 저장하기</button>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ③ 파츠 섹션 (기본 펼침) -->
+    <section class="shop-section">
+      <div class="shop-section__header">파츠</div>
+      <div class="shop-section__body" id="parts-body">
+
+        <div class="parts-grid">
+
+          <!-- 슬롯 1: 원 -->
+          <div class="part-slot part-slot--locked">
+            <svg class="part-slot__svg" viewBox="0 0 56 56">
+              <path d="M28,6 C42,5 51,14 51,28 C51,42 41,51 27,51 C13,51 5,41 5,28 C5,14 14,6 28,6 Z"
+                    fill="none" stroke="#b0bac6" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <!-- 슬롯 2: 세모 (둥근) -->
+          <div class="part-slot part-slot--locked">
+            <svg class="part-slot__svg" viewBox="0 0 56 56">
+              <path d="M28,6 C31,6 50,44 51,47 C52,50 47,52 44,52 C38,52 18,52 12,52 C9,52 4,50 5,47 C6,44 25,6 28,6 Z"
+                    fill="none" stroke="#b0bac6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <!-- 슬롯 3: 네모 (둥근) -->
+          <div class="part-slot part-slot--locked">
+            <svg class="part-slot__svg" viewBox="0 0 56 56">
+              <rect x="7" y="7" width="42" height="42" rx="10" ry="10"
+                    fill="none" stroke="#b0bac6" stroke-width="2.5"/>
+            </svg>
+          </div>
+
+          <!-- 슬롯 4: 마름모 (둥근) -->
+          <div class="part-slot part-slot--locked">
+            <svg class="part-slot__svg" viewBox="0 0 56 56">
+              <path d="M28,5 C31,5 51,26 51,29 C51,32 31,51 28,51 C25,51 5,32 5,29 C5,26 25,5 28,5 Z"
+                    fill="none" stroke="#b0bac6" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <!-- 슬롯 5: 별 -->
+          <div class="part-slot part-slot--locked">
+            <svg class="part-slot__svg" viewBox="0 0 56 56">
+              <path d="M28,5 L33,20 L49,20 L36,30 L41,46 L28,37 L15,46 L20,30 L7,20 L23,20 Z"
+                    fill="none" stroke="#b0bac6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <!-- 슬롯 6: 럭비공형 -->
+          <div class="part-slot part-slot--locked">
+            <svg class="part-slot__svg" viewBox="0 0 56 56">
+              <path d="M28,6 C42,6 52,16 52,28 C52,40 42,50 28,50 C14,50 4,40 4,28 C4,16 14,6 28,6 Z"
+                    transform="rotate(45 28 28)"
+                    fill="none" stroke="#b0bac6" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <!-- 슬롯 7: 역세모 (둥근) -->
+          <div class="part-slot part-slot--locked">
+            <svg class="part-slot__svg" viewBox="0 0 56 56">
+              <path d="M5,9 C8,9 48,9 51,9 C54,9 52,12 50,15 C44,24 33,44 28,50 C25,54 23,50 21,47 C16,38 7,18 5,13 C3,10 2,9 5,9 Z"
+                    fill="none" stroke="#b0bac6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <!-- 슬롯 8: 랜덤 박스 (실선, 동일 색상) -->
+          <div class="part-slot" id="slot-random">
+            <svg class="part-slot__svg" viewBox="0 0 56 56">
+              <rect x="7" y="7" width="42" height="42" rx="8"
+                    fill="none" stroke="#b0bac6" stroke-width="2.5"/>
+              <text x="28" y="34" font-size="18" text-anchor="middle" fill="#b0bac6">?</text>
+            </svg>
+          </div>
+
+        </div><!-- /.parts-grid -->
+
+        <!-- 구매 버튼 -->
+        <div class="parts-buy">
+          <button type="button" class="parts-buy__btn parts-buy__btn--select">
+            선택 구매
+            <span class="parts-buy__label">💎 100</span>
+          </button>
+          <button type="button" class="parts-buy__btn parts-buy__btn--random">
+            랜덤 박스
+            <span class="parts-buy__label">💎 60</span>
+          </button>
+        </div>
+
+      </div><!-- /#parts-body -->
+    </section>
+
+    <!-- ④ 색상 섹션 (기본 접힘) -->
+    <section class="shop-section">
+      <div class="shop-section__header">
+        색상
+        <button type="button" class="shop-section__toggle" id="toggle-color"
+                aria-expanded="false" aria-controls="color-body">▼</button>
+      </div>
+      <div class="shop-section__body shop-section__body--hidden" id="color-body">
+        <!-- 파스텔 12색 -->
+        <div class="color-grid">
+          <div class="color-slot" style="background:#ffb3ba;"></div>
+          <div class="color-slot" style="background:#ffdfba;"></div>
+          <div class="color-slot" style="background:#ffffba;"></div>
+          <div class="color-slot" style="background:#baffc9;"></div>
+          <div class="color-slot" style="background:#bae1ff;"></div>
+          <div class="color-slot" style="background:#d4baff;"></div>
+          <div class="color-slot" style="background:#ffbaee;"></div>
+          <div class="color-slot" style="background:#c9f0e0;"></div>
+          <div class="color-slot" style="background:#ffd6a5;"></div>
+          <div class="color-slot" style="background:#caffbf;"></div>
+          <div class="color-slot" style="background:#a0c4ff;"></div>
+          <div class="color-slot" style="background:#ffc6ff;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ⑤ 꾸밈 섹션 (기본 접힘, 기능 예약) -->
+    <section class="shop-section">
+      <div class="shop-section__header">
+        꾸밈
+        <button type="button" class="shop-section__toggle" id="toggle-decoration"
+                aria-expanded="false" aria-controls="decoration-body">▼</button>
+      </div>
+      <div class="shop-section__body shop-section__body--hidden" id="decoration-body">
+        <p style="color:var(--color-text-muted); font-size:0.9rem; padding: 0.5rem 0;">
+          꾸밈 기능은 추후 업데이트 예정입니다.
+        </p>
+      </div>
+    </section>
+
+  </div><!-- /.shop-wrapper -->
+
+  <!-- 저장 확인 모달 -->
+  <div id="save-modal" class="modal-overlay modal-overlay--hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <p class="modal-card__msg">캐릭터의 정보를<br>기기에 저장합니다.</p>
+      <div class="modal-card__actions">
+        <button type="button" class="modal-card__btn modal-card__btn--confirm" id="modal-confirm">저장</button>
+        <button type="button" class="modal-card__btn modal-card__btn--cancel" id="modal-cancel">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="character-shop.js"></script>
+</body>
+</html>

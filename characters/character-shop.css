@@ -1,0 +1,341 @@
+/* v0.1.0 : 최초 생성 - 캐릭터 상점 화면 스타일
+   v0.1.1 : 폰트 경로 로컬로 수정, 기능버튼 카드형, 파츠 슬롯 실선, 색상 12개 6열 */
+
+/* ===========================
+   1. 전역 초기화 & 변수
+=========================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-bg:           #f0f4ff;
+  --color-surface:      #ffffff;
+  --color-primary:      #5b8dee;
+  --color-primary-dark: #3a6fdb;
+  --color-text:         #2d3a4a;
+  --color-text-muted:   #7a8fa6;
+  --color-border:       #e0e8f5;
+  --color-soon-bg:      #f5f5f5;
+  --color-soon-text:    #b0bac6;
+  --card-radius:        1rem;
+  --font-base:          'Segoe UI', system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-base);
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+  touch-action: manipulation;
+}
+
+/* ===========================
+   2. 우상단 Gold 표시
+=========================== */
+.global-gold {
+  position: fixed;
+  top: 0.9rem;
+  right: 1.1rem;
+  z-index: 200;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-primary-dark);
+}
+
+.global-gold__value {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-direction: row-reverse; /* 숫자 왼쪽, 아이콘 오른쪽 */
+}
+
+/* ===========================
+   3. 전체 레이아웃
+=========================== */
+.shop-wrapper {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 0 4rem;
+}
+
+/* ===========================
+   4. 캐릭터 영역
+=========================== */
+.character-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem 1.5rem;
+  min-height: 40vh;
+}
+
+/* 더미 플레이스홀더 SVG 컨테이너 */
+.character-placeholder {
+  width: 160px;
+  height: 200px;
+}
+
+/* 학교안심 그림일기 폰트 - 로컬 파일 사용 */
+@font-face {
+  font-family: 'HakgyoansimGeurimilgi';
+  src: url('assets/fonts/HakgyoansimGeurimilgi.woff2') format('woff2');
+  font-weight: normal;
+}
+
+.character-name {
+  margin-top: 0.75rem;
+  font-family: 'HakgyoansimGeurimilgi', '학교안심 그림일기', cursive;
+  font-size: 1.4rem;
+  color: var(--color-text);
+  text-align: center;
+}
+
+/* ===========================
+   5. 섹션 공통
+=========================== */
+.shop-section {
+  margin: 0 1rem 0.75rem;
+  background: var(--color-surface);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(91,141,238,0.08);
+}
+
+/* 섹션 헤더 (접기/펼치기 포함) */
+.shop-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  cursor: default;
+}
+
+.shop-section__toggle {
+  font-size: 1.1rem;
+  cursor: pointer;
+  user-select: none;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  padding: 0.2rem 0.4rem;
+}
+
+.shop-section__body {
+  padding: 0 1.1rem 1.1rem;
+}
+
+.shop-section__body--hidden {
+  display: none;
+}
+
+/* ===========================
+   6. 기능 버튼 목록
+=========================== */
+.action-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.action-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-soon-bg);
+}
+
+.action-item__btn {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.action-item__price {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  white-space: nowrap;
+}
+
+/* 저장 버튼 (가격 없음) */
+.action-item--save .action-item__btn {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+/* ===========================
+   7. 파츠 그리드
+=========================== */
+.parts-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 0.9rem;
+}
+
+.part-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  position: relative;
+  cursor: pointer;
+}
+
+/* 미보유: 흐릿하게 */
+.part-slot--locked {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.part-slot__svg {
+  width: 56px;
+  height: 56px;
+}
+
+/* 보유 개수 배지 */
+.part-slot__badge {
+  position: absolute;
+  top: -4px;
+  right: 2px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 1px 5px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* 파츠 구매 버튼 영역 */
+.parts-buy {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.parts-buy__btn {
+  flex: 1;
+  padding: 0.65rem 0;
+  border-radius: 0.75rem;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.parts-buy__btn--select {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.parts-buy__btn--random {
+  background: var(--color-soon-bg);
+  color: var(--color-text);
+  border: 1.5px solid var(--color-border);
+}
+
+.parts-buy__label {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+/* ===========================
+   8. 색상 슬롯
+=========================== */
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
+}
+
+.color-slot {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.color-slot:active {
+  transform: scale(0.9);
+}
+
+/* ===========================
+   9. 저장 모달
+=========================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(45, 58, 74, 0.45);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay--hidden {
+  display: none;
+}
+
+.modal-card {
+  background: var(--color-surface);
+  border-radius: 1.25rem;
+  padding: 2rem 1.75rem;
+  width: min(320px, 88vw);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  text-align: center;
+}
+
+.modal-card__msg {
+  font-size: 1rem;
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.modal-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modal-card__btn {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  border: none;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.modal-card__btn--confirm {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.modal-card__btn--cancel {
+  background: var(--color-soon-bg);
+  color: var(--color-text-muted);
+}

@@ -17,6 +17,17 @@ docs/
     ├── number-connect.md  # 숫자 잇기
     ├── ...
 
+web-games/
+└── assets/
+    ├── fonts/      # 폰트
+    ├── svg/        # 공통 SVG(💎, 별, 화살표, UI 아이콘 등)
+    ├── icons/      # favicon, PWA 앱 아이콘 등
+    ├── sounds/     # 정답, 오답, 버튼 클릭 등 효과음(BGM은 필요 시)
+    └── images/     # 공통 이미지(배경, 로고 등)
+
+
+
+
 # 개발 습관
 1. 기능 구현
 2. Ctrl + Shift + S (모든 파일 저장)
