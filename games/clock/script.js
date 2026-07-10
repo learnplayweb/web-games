@@ -6,6 +6,7 @@
 // v0.4.4 : Fix_initInputUI called before declaration / Update_Lv.2 to 15min intervals
 // v0.4.5 : Implement_Time calculation levels Lv.6~8, calc-area show/hide
 // v0.4.6 : Implement_Dynamic quiz reward based on previous best stars
+// v0.4.7 : Fix_Gold double payment - quiz gold saved immediately, bonus gold at finishStage only
 // 의존: data/levels.js (LEVELS, shuffleArray), save.js (loadSave, saveResult)
 
 /* ===========================
@@ -60,7 +61,9 @@ function updateComboDisplay() {
 }
 
 function handleCorrectAnswer() {
-  gold += getQuizRewardGold(); // 이전 최고 별점 기준 차등 지급
+  const reward = getQuizRewardGold();
+  gold += reward;
+  saveGold(reward); // 게임 중 지급분 즉시 저장
   currentCombo += 1;
   if (currentCombo > maxCombo) maxCombo = currentCombo;
   updateGoldDisplay();
@@ -252,13 +255,19 @@ function finishStage() {
   const rate  = Math.round((correctCount / totalQuestions) * 100);
   const stars = calcStars(correctCount, totalQuestions);
 
-  const goldQuiz  = correctCount * GOLD_PER_CORRECT;
+  // 게임 중 이미 지급된 문제 정답 골드 (getQuizRewardGold() 기준)
+  const goldQuiz  = correctCount * getQuizRewardGold();
+
+  // 결과 화면에서 추가 지급할 콤보 보너스 + 별점 보너스
   const goldCombo = maxCombo * COMBO_MULTIPLIER;
   const goldStar  = STAR_BONUS[stars];
-  const goldTotal = goldQuiz + goldCombo + goldStar;
+  const goldBonus = goldCombo + goldStar; // 결과 화면에서 추가 지급분
 
-  saveResult(currentLevel, stars, goldTotal);
-  gold += goldTotal;
+  const goldTotal = goldQuiz + goldBonus;
+
+  // 저장 (최고 별점 갱신, 누적 골드)
+  saveResult(currentLevel, stars, goldBonus); // 추가 지급분만 저장에 반영
+  gold += goldBonus;                          // 게임 중 지급분(goldQuiz)은 이미 반영됨
   updateGoldDisplay();
 
   document.getElementById('result-level').textContent = `Lv.${currentLevel} 완료!`;
@@ -274,8 +283,10 @@ function finishStage() {
 
   document.getElementById('result-screen').classList.remove('result-screen--hidden');
 
+  // 결과 화면 탭/클릭 시 단계 선택 화면으로 복귀
+  // history.back()으로 select.html이 자연스럽게 복원됨
   document.getElementById('result-screen').addEventListener('click', () => {
-    window.location.href = 'select.html';
+    history.back();
   }, { once: true });
 }
 
