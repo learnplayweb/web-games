@@ -1,4 +1,5 @@
-<!-- v0.1.0 : 최초 생성 - 캐릭터 상점 화면 (UI만, 기능 미구현) -->
+<!-- v0.1.0 : 최초 생성 - 캐릭터 상점 화면 (UI만, 기능 미구현)
+     v0.1.1 : 파츠 슬롯 클릭 모달 추가 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -69,31 +70,31 @@
         <div class="parts-grid">
 
           <!-- 슬롯 1: 원 -->
-          <div class="part-slot part-slot--locked">
+          <div class="part-slot part-slot--locked" data-part="1" data-name="원" data-owned="0">
             <svg class="part-slot__svg" viewBox="0 0 56 56">
               <path d="M28,6 C42,5 51,14 51,28 C51,42 41,51 27,51 C13,51 5,41 5,28 C5,14 14,6 28,6 Z"
                     fill="none" stroke="#b0bac6" stroke-width="2.5" stroke-linecap="round"/>
             </svg>
           </div>
 
-          <!-- 슬롯 2: 세모 (둥근) -->
-          <div class="part-slot part-slot--locked">
+          <!-- 슬롯 2: 세모 -->
+          <div class="part-slot part-slot--locked" data-part="2" data-name="세모" data-owned="0">
             <svg class="part-slot__svg" viewBox="0 0 56 56">
               <path d="M28,6 C31,6 50,44 51,47 C52,50 47,52 44,52 C38,52 18,52 12,52 C9,52 4,50 5,47 C6,44 25,6 28,6 Z"
                     fill="none" stroke="#b0bac6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
 
-          <!-- 슬롯 3: 네모 (둥근) -->
-          <div class="part-slot part-slot--locked">
+          <!-- 슬롯 3: 네모 -->
+          <div class="part-slot part-slot--locked" data-part="3" data-name="네모" data-owned="0">
             <svg class="part-slot__svg" viewBox="0 0 56 56">
               <rect x="7" y="7" width="42" height="42" rx="10" ry="10"
                     fill="none" stroke="#b0bac6" stroke-width="2.5"/>
             </svg>
           </div>
 
-          <!-- 슬롯 4: 마름모 (둥근) -->
-          <div class="part-slot part-slot--locked">
+          <!-- 슬롯 4: 마름모 -->
+          <div class="part-slot part-slot--locked" data-part="4" data-name="마름모" data-owned="0">
             <svg class="part-slot__svg" viewBox="0 0 56 56">
               <path d="M28,5 C31,5 51,26 51,29 C51,32 31,51 28,51 C25,51 5,32 5,29 C5,26 25,5 28,5 Z"
                     fill="none" stroke="#b0bac6" stroke-width="2.5" stroke-linecap="round"/>
@@ -101,7 +102,7 @@
           </div>
 
           <!-- 슬롯 5: 별 -->
-          <div class="part-slot part-slot--locked">
+          <div class="part-slot part-slot--locked" data-part="5" data-name="별" data-owned="0">
             <svg class="part-slot__svg" viewBox="0 0 56 56">
               <path d="M28,5 L33,20 L49,20 L36,30 L41,46 L28,37 L15,46 L20,30 L7,20 L23,20 Z"
                     fill="none" stroke="#b0bac6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -109,7 +110,7 @@
           </div>
 
           <!-- 슬롯 6: 럭비공형 -->
-          <div class="part-slot part-slot--locked">
+          <div class="part-slot part-slot--locked" data-part="6" data-name="럭비공" data-owned="0">
             <svg class="part-slot__svg" viewBox="0 0 56 56">
               <path d="M28,6 C42,6 52,16 52,28 C52,40 42,50 28,50 C14,50 4,40 4,28 C4,16 14,6 28,6 Z"
                     transform="rotate(45 28 28)"
@@ -117,16 +118,16 @@
             </svg>
           </div>
 
-          <!-- 슬롯 7: 역세모 (둥근) -->
-          <div class="part-slot part-slot--locked">
+          <!-- 슬롯 7: 역세모 -->
+          <div class="part-slot part-slot--locked" data-part="7" data-name="역세모" data-owned="0">
             <svg class="part-slot__svg" viewBox="0 0 56 56">
               <path d="M5,9 C8,9 48,9 51,9 C54,9 52,12 50,15 C44,24 33,44 28,50 C25,54 23,50 21,47 C16,38 7,18 5,13 C3,10 2,9 5,9 Z"
                     fill="none" stroke="#b0bac6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
 
-          <!-- 슬롯 8: 랜덤 박스 (실선, 동일 색상) -->
-          <div class="part-slot" id="slot-random">
+          <!-- 슬롯 8: 랜덤 박스 -->
+          <div class="part-slot" data-part="random" data-name="랜덤 박스">
             <svg class="part-slot__svg" viewBox="0 0 56 56">
               <rect x="7" y="7" width="42" height="42" rx="8"
                     fill="none" stroke="#b0bac6" stroke-width="2.5"/>
@@ -135,18 +136,6 @@
           </div>
 
         </div><!-- /.parts-grid -->
-
-        <!-- 구매 버튼 -->
-        <div class="parts-buy">
-          <button type="button" class="parts-buy__btn parts-buy__btn--select">
-            선택 구매
-            <span class="parts-buy__label">💎 100</span>
-          </button>
-          <button type="button" class="parts-buy__btn parts-buy__btn--random">
-            랜덤 박스
-            <span class="parts-buy__label">💎 60</span>
-          </button>
-        </div>
 
       </div><!-- /#parts-body -->
     </section>
@@ -192,6 +181,16 @@
     </section>
 
   </div><!-- /.shop-wrapper -->
+
+  <!-- 파츠 모달 -->
+  <div id="part-modal" class="modal-overlay modal-overlay--hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <!-- 선택한 파츠 SVG를 크게 표시 -->
+      <div id="part-modal-svg" class="part-modal__preview"></div>
+      <p id="part-modal-name" class="part-modal__name"></p>
+      <div id="part-modal-actions" class="modal-card__actions"></div>
+    </div>
+  </div>
 
   <!-- 저장 확인 모달 -->
   <div id="save-modal" class="modal-overlay modal-overlay--hidden" role="dialog" aria-modal="true">

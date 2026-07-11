@@ -1,4 +1,5 @@
 // v0.1.0 : 최초 생성 - 캐릭터 상점 UI 동작 (기능 미구현)
+// v0.1.1 : 파츠 슬롯 클릭 모달 추가
 
 /* ===========================
    Gold 표시
@@ -32,6 +33,88 @@ function setupToggle(toggleId, bodyId) {
 
 setupToggle('toggle-color',      'color-body');
 setupToggle('toggle-decoration', 'decoration-body');
+
+/* ===========================
+   파츠 슬롯 클릭 → 모달
+=========================== */
+
+const partModal        = document.getElementById('part-modal');
+const partModalSvg     = document.getElementById('part-modal-svg');
+const partModalName    = document.getElementById('part-modal-name');
+const partModalActions = document.getElementById('part-modal-actions');
+
+// 현재 적용 중인 파츠 id (더미 상태: 없음)
+let currentHeadPart = null;
+
+/**
+ * 파츠 모달을 열고 내용을 구성한다.
+ * @param {HTMLElement} slot - 클릭된 파츠 슬롯 요소
+ */
+function openPartModal(slot) {
+  const partId   = slot.dataset.part;
+  const partName = slot.dataset.name;
+  const owned    = parseInt(slot.dataset.owned ?? '0', 10);
+  const isRandom = partId === 'random';
+
+  // SVG 복사하여 크게 표시
+  const svgEl = slot.querySelector('svg').cloneNode(true);
+  partModalSvg.innerHTML = '';
+  partModalSvg.appendChild(svgEl);
+
+  // 이름 표시
+  partModalName.textContent = partName;
+
+  // 버튼 구성
+  partModalActions.innerHTML = '';
+
+  // 구매 버튼 (항상 표시)
+  const buyBtn = document.createElement('button');
+  buyBtn.type      = 'button';
+  buyBtn.className = 'modal-card__btn modal-card__btn--confirm';
+  buyBtn.textContent = isRandom ? '구매 💎 60' : '구매 💎 100';
+  // TODO: 구매 기능 구현
+  partModalActions.appendChild(buyBtn);
+
+  // 적용 버튼 (랜덤 박스 제외)
+  if (!isRandom) {
+    if (currentHeadPart === partId) {
+      // 현재 적용 중인 파츠
+      const appliedMsg = document.createElement('p');
+      appliedMsg.className   = 'part-modal__applied';
+      appliedMsg.textContent = '적용 중';
+      partModalActions.appendChild(appliedMsg);
+    } else {
+      const applyBtn = document.createElement('button');
+      applyBtn.type      = 'button';
+      applyBtn.className = 'modal-card__btn modal-card__btn--cancel';
+      applyBtn.textContent = '적용 💎 10';
+      // 미보유 시 비활성화
+      if (owned <= 0) {
+        applyBtn.disabled = true;
+        applyBtn.style.opacity = '0.4';
+        applyBtn.style.cursor  = 'default';
+      }
+      // TODO: 적용 기능 구현
+      partModalActions.appendChild(applyBtn);
+    }
+  }
+
+  partModal.classList.remove('modal-overlay--hidden');
+}
+
+// 파츠 슬롯 이벤트 위임
+document.querySelector('.parts-grid').addEventListener('click', (e) => {
+  const slot = e.target.closest('[data-part]');
+  if (!slot) return;
+  openPartModal(slot);
+});
+
+// 파츠 모달 배경 클릭 시 닫기
+partModal.addEventListener('click', (e) => {
+  if (e.target === partModal) {
+    partModal.classList.add('modal-overlay--hidden');
+  }
+});
 
 /* ===========================
    저장 모달
