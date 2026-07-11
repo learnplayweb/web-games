@@ -46,6 +46,7 @@ body {
   background-color: var(--color-bg);
   min-height: 100vh;
   padding: 2rem var(--padding-x) 3rem;
+  touch-action: manipulation;
 }
 
 /* PC에서 가운데 정렬: 최대 너비 제한 후 auto margin */

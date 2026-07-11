@@ -1,5 +1,21 @@
 // v0.1.0 : 최초 생성 - 캐릭터 상점 UI 동작 (기능 미구현)
 // v0.1.1 : 파츠 슬롯 클릭 모달 추가
+// v0.1.2 : 더블탭 확대 방지
+
+/* ===========================
+   더블탭 확대 방지
+=========================== */
+let lastTouchEnd = 0;
+
+document.addEventListener('touchend', (event) => {
+  const now = Date.now();
+
+  if (now - lastTouchEnd <= 300) {
+    event.preventDefault();
+  }
+
+  lastTouchEnd = now;
+}, { passive: false });
 
 /* ===========================
    Gold 표시

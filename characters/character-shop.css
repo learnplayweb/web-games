@@ -82,7 +82,7 @@ body {
 /* 학교안심 그림일기 폰트 - 로컬 파일 사용 */
 @font-face {
   font-family: 'HakgyoansimGeurimilgi';
-  src: url('assets/fonts/HakgyoansimGeurimilgi.woff2') format('woff2');
+  src: url('../assets/fonts/HakgyoansimGeurimilgi.woff2') format('woff2');
   font-weight: normal;
 }
 
