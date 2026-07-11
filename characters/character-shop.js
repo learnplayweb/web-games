@@ -5,16 +5,6 @@
 
 
 /* ===========================
-   Gold 표시
-=========================== */
-try {
-  const save = JSON.parse(localStorage.getItem('clockGame_save') || '{}');
-  document.getElementById('display-gold').textContent = save.gold ?? 0;
-} catch {
-  document.getElementById('display-gold').textContent = 0;
-}
-
-/* ===========================
    접기/펼치기 토글
 =========================== */
 

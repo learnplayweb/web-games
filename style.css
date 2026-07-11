@@ -37,6 +37,12 @@
   --card-shadow-hover: 0 8px 24px rgba(91, 141, 238, 0.20);
 }
 
+@font-face {
+  font-family: 'KERISKEDU';
+  src: url('assets/fonts/KERISKEDU_B.woff2') format('woff2');
+  font-weight: 700;
+}
+
 /* ===========================
    2. 기본 바디 & 레이아웃
 =========================== */
@@ -46,7 +52,7 @@ body {
   color: var(--color-text);
   background-color: var(--color-bg);
   min-height: 100vh;
-  padding: 2rem var(--padding-x) 3rem;
+  padding: calc(8.33vh + 2rem) var(--padding-x) 3rem;
   touch-action: manipulation;
 }
 
@@ -65,11 +71,14 @@ body {
 }
 
 .site-title {
+  font-family: 'KERISKEDU', var(--font-base);
   font-size: 2rem;
   font-weight: 800;
   letter-spacing: -0.5px;
   color: var(--color-primary);
   line-height: 1.2;
+  -webkit-text-stroke: 0.5rem #fff;
+  paint-order: stroke fill;
 }
 
 .site-desc {
