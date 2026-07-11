@@ -36,4 +36,5 @@ Web Games
 
 ## License
 
-This project is licensed under the MIT License.
+All Rights Reserved.
+Commercial use, redistribution, and modification are not permitted without prior written permission.
