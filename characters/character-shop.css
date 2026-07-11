@@ -246,11 +246,15 @@ body {
 .color-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 0.5rem;
+  column-gap: 0.5rem;   /* 좌우 간격 */
+  row-gap: 1rem;      /* 위아래 간격 */
 }
 
 .color-slot {
+  width: 80%; 
   aspect-ratio: 1;
+  justify-self: center;
+  align-self: center;
   border-radius: 50%;
   border: 2px solid var(--color-border);
   cursor: pointer;

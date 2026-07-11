@@ -118,11 +118,11 @@ function openPartModal(slot) {
   partModal.classList.remove('modal-overlay--hidden');
 }
 
-// 파츠 슬롯 이벤트 위임
-document.querySelector('.parts-grid').addEventListener('click', (e) => {
-  const slot = e.target.closest('[data-part]');
-  if (!slot) return;
-  openPartModal(slot);
+// 각 파츠 슬롯에 직접 이벤트를 연결해 SVG 내부를 클릭해도 동일하게 처리
+document.querySelectorAll('.part-slot[data-part]').forEach((slot) => {
+  slot.addEventListener('click', () => {
+    openPartModal(slot);
+  });
 });
 
 // 파츠 모달 배경 클릭 시 닫기
