@@ -1,5 +1,6 @@
 /* v0.1.0 : 최초 생성 - 캐릭터 상점 화면 스타일
-   v0.1.1 : 폰트 경로 로컬로 수정, 기능버튼 카드형, 파츠 슬롯 실선, 색상 12개 6열 */
+   v0.1.1 : 폰트 경로 로컬로 수정, 기능버튼 카드형, 파츠 슬롯 실선, 색상 12개 6열
+   v0.1.2 : global-gold 제거 (공통 헤더로 이전) */
 
 /* ===========================
    1. 전역 초기화 & 변수
@@ -33,26 +34,6 @@ body {
 }
 
 /* ===========================
-   2. 우상단 Gold 표시
-=========================== */
-.global-gold {
-  position: fixed;
-  top: 0.9rem;
-  right: 1.1rem;
-  z-index: 200;
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--color-primary-dark);
-}
-
-.global-gold__value {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  flex-direction: row-reverse; /* 숫자 왼쪽, 아이콘 오른쪽 */
-}
-
-/* ===========================
    3. 전체 레이아웃
 =========================== */
 .shop-wrapper {
@@ -82,7 +63,7 @@ body {
 /* 학교안심 그림일기 폰트 - 로컬 파일 사용 */
 @font-face {
   font-family: 'HakgyoansimGeurimilgi';
-  src: url('../assets/fonts/HakgyoansimGeurimilgi.woff2') format('woff2');
+  src: url('assets/fonts/HakgyoansimGeurimilgi.woff2') format('woff2');
   font-weight: normal;
 }
 
@@ -265,15 +246,11 @@ body {
 .color-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  column-gap: 0.5rem;   /* 좌우 간격 */
-  row-gap: 1rem;      /* 위아래 간격 */
+  gap: 0.5rem;
 }
 
 .color-slot {
-  width: 80%; 
   aspect-ratio: 1;
-  justify-self: center;
-  align-self: center;
   border-radius: 50%;
   border: 2px solid var(--color-border);
   cursor: pointer;

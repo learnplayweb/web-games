@@ -54,6 +54,7 @@ function getQuizRewardGold() {
 
 function updateGoldDisplay() {
   document.getElementById('display-gold').textContent = gold;
+  if (typeof updateHeaderGold === 'function') updateHeaderGold(gold);
 }
 
 function updateComboDisplay() {

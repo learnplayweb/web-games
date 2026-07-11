@@ -1,0 +1,36 @@
+/* v0.1.0 : 최초 생성 - 공통 Sticky Header 스타일 */
+
+/* ===========================
+   공통 Sticky Header
+=========================== */
+
+.shared-header {
+  position: sticky;
+  top: 0;
+  z-index: 500;
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 1.1rem;
+  background: rgba(240, 244, 255, 0.85); /* #f0f4ff 반투명 */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-sizing: border-box;
+}
+
+/* Gold 표시: 숫자 왼쪽, 아이콘 오른쪽 */
+.shared-header__gold {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #3a6fdb; /* --color-primary-dark */
+  flex-direction: row-reverse;
+}
+
+.shared-header__gold-value {
+  font-variant-numeric: tabular-nums;
+}

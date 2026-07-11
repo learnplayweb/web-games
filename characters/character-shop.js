@@ -77,8 +77,8 @@ function openPartModal(slot) {
   partModalSvg.innerHTML = '';
   partModalSvg.appendChild(svgEl);
 
-  // 이름 표시
-  partModalName.textContent = partName;
+  // 이름 제거 (표시 안 함)
+  partModalName.textContent = '';
 
   // 버튼 구성
   partModalActions.innerHTML = '';
@@ -87,7 +87,7 @@ function openPartModal(slot) {
   const buyBtn = document.createElement('button');
   buyBtn.type      = 'button';
   buyBtn.className = 'modal-card__btn modal-card__btn--confirm';
-  buyBtn.textContent = isRandom ? '구매 💎 60' : '구매 💎 100';
+  buyBtn.textContent = isRandom ? '구매 💎 70' : '구매 💎 100';
   // TODO: 구매 기능 구현
   partModalActions.appendChild(buyBtn);
 
