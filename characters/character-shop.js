@@ -110,6 +110,55 @@ partModal.addEventListener('click', (e) => {
 });
 
 /* ===========================
+   색상 슬롯 클릭 → 모달
+=========================== */
+const colorModal        = document.getElementById('color-modal');
+const colorModalPreview = document.getElementById('color-modal-preview');
+const colorModalActions = document.getElementById('color-modal-actions');
+const characterPreview  = document.querySelector('.character-placeholder');
+
+function openColorModal(color) {
+  const previewSvg = characterPreview.cloneNode(true);
+
+  previewSvg.querySelectorAll('path, line').forEach((element) => {
+    element.setAttribute('stroke', color);
+  });
+  previewSvg.querySelectorAll('circle').forEach((element) => {
+    element.setAttribute('fill', color);
+  });
+
+  colorModalPreview.innerHTML = '';
+  colorModalPreview.appendChild(previewSvg);
+  colorModalActions.innerHTML = '';
+
+  const buyBtn = document.createElement('button');
+  buyBtn.type = 'button';
+  buyBtn.className = 'modal-card__btn modal-card__btn--confirm';
+  buyBtn.textContent = '구매 💎 100';
+  colorModalActions.appendChild(buyBtn);
+
+  const applyBtn = document.createElement('button');
+  applyBtn.type = 'button';
+  applyBtn.className = 'modal-card__btn modal-card__btn--cancel';
+  applyBtn.textContent = '적용 💎 10';
+  colorModalActions.appendChild(applyBtn);
+
+  colorModal.classList.remove('modal-overlay--hidden');
+}
+
+document.querySelectorAll('.color-slot[data-color]').forEach((slot) => {
+  slot.addEventListener('click', () => {
+    openColorModal(slot.dataset.color);
+  });
+});
+
+colorModal.addEventListener('click', (e) => {
+  if (e.target === colorModal) {
+    colorModal.classList.add('modal-overlay--hidden');
+  }
+});
+
+/* ===========================
    저장 모달
 =========================== */
 const saveModal   = document.getElementById('save-modal');

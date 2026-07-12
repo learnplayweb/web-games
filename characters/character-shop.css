@@ -127,6 +127,11 @@ body {
 }
 
 .action-item {
+  list-style: none;
+}
+
+.action-item__btn {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -134,16 +139,10 @@ body {
   border: 1.5px solid var(--color-border);
   border-radius: 0.75rem;
   background: var(--color-soon-bg);
-}
-
-.action-item__btn {
   font-size: 1rem;
   font-weight: 600;
   color: var(--color-text);
-  background: none;
-  border: none;
   cursor: pointer;
-  padding: 0;
   text-align: left;
 }
 
@@ -258,11 +257,32 @@ body {
   border-radius: 50%;
   border: 2px solid var(--color-border);
   cursor: pointer;
+  padding: 0;
   transition: transform 0.15s;
 }
 
 .color-slot:active {
   transform: scale(0.9);
+}
+
+.color-mix-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.25rem;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-soon-bg);
+  color: #2d3a4a;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.color-mix-btn span {
+  margin-left: 0.3rem;
 }
 
 /* ===========================

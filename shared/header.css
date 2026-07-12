@@ -13,7 +13,7 @@
   height: 8.33vh;
   display: flex;
   align-items: center;
-  background: rgba(240, 244, 255, 0.85); /* #f0f4ff 반투명 */
+  background: rgba(240, 244, 255, 0.1); /* #f0f4ff 반투명 */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   box-sizing: border-box;

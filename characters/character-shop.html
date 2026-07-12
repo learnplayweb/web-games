@@ -38,16 +38,19 @@
       <div class="shop-section__body">
         <ul class="action-list">
           <li class="action-item">
-            <button type="button" class="action-item__btn" id="btn-combine">조합</button>
-            <span class="action-item__price">💎 50</span>
+            <button type="button" class="action-item__btn" id="btn-combine">
+              <span>조합</span><span class="action-item__price">💎 50</span>
+            </button>
           </li>
           <li class="action-item">
-            <button type="button" class="action-item__btn" id="btn-dismantle">해체</button>
-            <span class="action-item__price">💎 50</span>
+            <button type="button" class="action-item__btn" id="btn-dismantle">
+              <span>해체</span><span class="action-item__price">💎 50</span>
+            </button>
           </li>
           <li class="action-item">
-            <button type="button" class="action-item__btn" id="btn-rename">이름 변경</button>
-            <span class="action-item__price">💎 10</span>
+            <button type="button" class="action-item__btn" id="btn-rename">
+              <span>이름 변경</span><span class="action-item__price">💎 10</span>
+            </button>
           </li>
           <li class="action-item action-item--save">
             <button type="button" class="action-item__btn" id="btn-save">캐릭터 저장하기</button>
@@ -144,19 +147,20 @@
       <div class="shop-section__body shop-section__body--hidden" id="color-body">
         <!-- 파스텔 12색 -->
         <div class="color-grid">
-          <div class="color-slot" style="background:#ffb3ba;"></div>
-          <div class="color-slot" style="background:#ffdfba;"></div>
-          <div class="color-slot" style="background:#ffffba;"></div>
-          <div class="color-slot" style="background:#baffc9;"></div>
-          <div class="color-slot" style="background:#bae1ff;"></div>
-          <div class="color-slot" style="background:#d4baff;"></div>
-          <div class="color-slot" style="background:#ffbaee;"></div>
-          <div class="color-slot" style="background:#c9f0e0;"></div>
-          <div class="color-slot" style="background:#ffd6a5;"></div>
-          <div class="color-slot" style="background:#caffbf;"></div>
-          <div class="color-slot" style="background:#a0c4ff;"></div>
-          <div class="color-slot" style="background:#ffc6ff;"></div>
+          <button type="button" class="color-slot" data-color="#ffb3ba" style="background:#ffb3ba;" aria-label="분홍색"></button>
+          <button type="button" class="color-slot" data-color="#ffdfba" style="background:#ffdfba;" aria-label="복숭아색"></button>
+          <button type="button" class="color-slot" data-color="#ffffba" style="background:#ffffba;" aria-label="노란색"></button>
+          <button type="button" class="color-slot" data-color="#baffc9" style="background:#baffc9;" aria-label="연두색"></button>
+          <button type="button" class="color-slot" data-color="#bae1ff" style="background:#bae1ff;" aria-label="하늘색"></button>
+          <button type="button" class="color-slot" data-color="#d4baff" style="background:#d4baff;" aria-label="보라색"></button>
+          <button type="button" class="color-slot" data-color="#ffbaee" style="background:#ffbaee;" aria-label="분홍보라색"></button>
+          <button type="button" class="color-slot" data-color="#c9f0e0" style="background:#c9f0e0;" aria-label="민트색"></button>
+          <button type="button" class="color-slot" data-color="#ffd6a5" style="background:#ffd6a5;" aria-label="주황색"></button>
+          <button type="button" class="color-slot" data-color="#caffbf" style="background:#caffbf;" aria-label="연두색"></button>
+          <button type="button" class="color-slot" data-color="#a0c4ff" style="background:#a0c4ff;" aria-label="파란색"></button>
+          <button type="button" class="color-slot" data-color="#ffc6ff" style="background:#ffc6ff;" aria-label="연보라색"></button>
         </div>
+        <button type="button" class="color-mix-btn">색 섞기 <span>💎 50</span></button>
       </div>
     </section>
 
@@ -183,6 +187,14 @@
       <div id="part-modal-svg" class="part-modal__preview"></div>
       <p id="part-modal-name" class="part-modal__name"></p>
       <div id="part-modal-actions" class="modal-card__actions"></div>
+    </div>
+  </div>
+
+  <!-- 색상 모달 -->
+  <div id="color-modal" class="modal-overlay modal-overlay--hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div id="color-modal-preview" class="part-modal__preview"></div>
+      <div id="color-modal-actions" class="modal-card__actions"></div>
     </div>
   </div>
 
