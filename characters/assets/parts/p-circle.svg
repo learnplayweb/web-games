@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+
+  <!-- 채워지는 영역 -->
+  <path
+    class="fill-part"
+    d="M80,20 C105,18 125,35 126,58 C127,82 110,100 85,102 C60,104 42,88 40,64 C38,40 55,22 80,20 Z"
+    fill="#f0f4ff"/>
+
+  <!-- 외곽선 -->
+  <path
+    class="outline-part"
+    d="M80,20 C105,18 125,35 126,58 C127,82 110,100 85,102 C60,104 42,88 40,64 C38,40 55,22 80,20 Z"
+    fill="none"
+    stroke="#b0bac6"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
+
+</svg>
