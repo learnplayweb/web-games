@@ -63,7 +63,7 @@ export const PARTS_BY_CATEGORY = Object.freeze({
 export const CHARACTER_COLORS = Object.freeze([
   '#FFCCBC', '#FCE8B2', '#ffffba', '#C4E2A0',
   '#ACC9FE', '#C4C3F7', '#FAE5EA', '#F6E1CF',
-  '#A2E8F1', '#8CD3CD', '#BBC8CE, '#ffffff',
+  '#A2E8F1', '#8CD3CD', '#BBC8CE', '#ffffff',
 ]);
 
 /**
