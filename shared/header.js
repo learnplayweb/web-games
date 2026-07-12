@@ -14,13 +14,15 @@ function createHeader() {
   const header = document.createElement('header');
   header.className = 'shared-header';
   header.innerHTML = `
-    <span class="shared-header__gold">
-      <span class="shared-header__gold-value" id="shared-gold-value">${gold}</span>
-      <span>💎</span>
-    </span>
+    <div class="shared-header__content">
+      <span class="shared-header__gold">
+        <span>💎</span>
+        <span class="shared-header__gold-value" id="shared-gold-value">${gold}</span>
+      </span>
+    </div>
   `;
 
-  // body 최상단에 삽입 (문서 흐름 안에 배치)
+  // 화면 상단에 고정 표시
   document.body.insertBefore(header, document.body.firstChild);
 }
 

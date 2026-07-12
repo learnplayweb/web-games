@@ -5,22 +5,30 @@
 =========================== */
 
 .shared-header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
   z-index: 500;
   width: 100%;
-  min-height: 44px;
+  height: 8.33vh;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  padding: 0 1.1rem;
   background: rgba(240, 244, 255, 0.85); /* #f0f4ff 반투명 */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   box-sizing: border-box;
 }
 
-/* Gold 표시: 숫자 왼쪽, 아이콘 오른쪽 */
+.shared-header__content {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Gold 표시: 아이콘 왼쪽, 숫자 오른쪽 */
 .shared-header__gold {
   display: flex;
   align-items: center;
@@ -28,7 +36,6 @@
   font-weight: 700;
   font-size: 0.95rem;
   color: #3a6fdb; /* --color-primary-dark */
-  flex-direction: row-reverse;
 }
 
 .shared-header__gold-value {

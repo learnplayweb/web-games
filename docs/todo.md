@@ -2,51 +2,16 @@
 설명: 게임을 하며 [     ] 을/를 키워 보세요! 
 * 을/를 자동 적용 가능?
 ----------------
-사용자가 이미 수정한 내용. 반영하되 제공할 필요 없음.
+# 메인 캐릭터 이름 적용 (구매 후)
+function 을를(이름) {
+  const 마지막글자 = 이름.trim().at(-1);
+  const 코드 = 마지막글자?.charCodeAt(0) - 0xAC00;
 
-# 모든 화면 더블탭 확대 없앰(앞으로 만들 화면에서도 항상)
-## 특정요소에서 확대되는 현상 막기 위해 더블탭을 감지해 두 번째 탭의 기본 동작만 취소하는 코드를 추가함.
-
-# 눈, 입 좌표 수정 (앞으로 모든 파츠에서 유지할 것)
-눈
-    circle cx="66" cy="64" 
-    circle cx="94" cy="64" 
-입 (곧은 선)
-    line x1="74" y1="76" x2="86" y2="76" 
-
-# 사용자 용어 파츠 > 꼬무리 변경
-- 개발 시에는 파츠로 지칭
-- 꼬무리는 캐릭터의 종 이름임
-
-## 플레이스홀더 메세지 수정
-파츠를 구매하세요 > 아직 꼬무리가 없어요
-
-## 섹션 헤드 '꼬무리'로 수정
+  return 코드 >= 0 && 코드 <= 11171 && 코드 % 28 !== 0 ? '을' : '를';
+}
 
 # 파츠 svg 수정
 ## 원
-
-
-
-
-# 컬러 슬롯 수정 
-.color-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  column-gap: 0.5rem;   /* 좌우 간격 */
-  row-gap: 1rem;      /* 위아래 간격 */
-}
-
-.color-slot {
-  width: 80%; 
-  aspect-ratio: 1;
-  justify-self: center;
-  align-self: center;
-  border-radius: 50%;
-  border: 2px solid var(--color-border);
-  cursor: pointer;
-  transition: transform 0.15s;
-}
 
 ---------------
 
