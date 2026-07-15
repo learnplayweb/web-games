@@ -4,7 +4,6 @@
 // 기존 저장 데이터(clockGame_save) 구조/키를 그대로 유지하여 호환성 보장
 // 향후 다른 게임/캐릭터 시스템 저장 기능 추가 시 이 파일에 함수를 확장한다.
 
-const SaveManager = (() => {
   const SAVE_KEY = 'clockGame_save'; // localStorage 키 (기존 키 유지)
 
   // 기본 저장 데이터 (기존 save.js getDefaultSave와 동일 구조)
@@ -17,14 +16,18 @@ const SaveManager = (() => {
     };
   }
 
-  function load() {
+function load() {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
       return raw ? JSON.parse(raw) : getDefaultSave();
     } catch {
       return getDefaultSave();
     }
-  }
+}
+
+export function getClockSave() {
+  return load();
+}
 
   function write(saveData) {
     try {
@@ -115,15 +118,14 @@ const SaveManager = (() => {
     return save;
   }
 
-  return {
-    getGold,
-    addGold,
-    getClockBestStars,
-    getClockCurrentStars,
-    saveClockResult,
-    resetSave,
-    setGold,
-    unlockAllClockLevels,
-    setAllClockStars,
-  };
-})();
+export {
+  getGold,
+  addGold,
+  getClockBestStars,
+  getClockCurrentStars,
+  saveClockResult,
+  resetSave,
+  setGold,
+  unlockAllClockLevels,
+  setAllClockStars,
+};

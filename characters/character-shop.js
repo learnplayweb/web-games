@@ -1,190 +1,104 @@
-// v0.1.0 : 최초 생성 - 캐릭터 상점 UI 동작 (기능 미구현)
-// v0.1.1 : 파츠 슬롯 클릭 모달 추가
-// v0.1.2 : 더블탭 확대 방지
+import { createHeader } from '../shared/header.js';
 
+createHeader();
 
-
-/* ===========================
-   접기/펼치기 토글
-=========================== */
-
-/**
- * 섹션 헤더 토글 버튼 동작
- * @param {string} toggleId - 토글 버튼 id
- * @param {string} bodyId   - 토글 대상 body id
- */
 function setupToggle(toggleId, bodyId) {
-  const btn  = document.getElementById(toggleId);
+  const button = document.getElementById(toggleId);
   const body = document.getElementById(bodyId);
-
-  btn.addEventListener('click', () => {
+  button.addEventListener('click', () => {
     const isHidden = body.classList.toggle('shop-section__body--hidden');
-    btn.textContent    = isHidden ? '▼' : '▲';
-    btn.setAttribute('aria-expanded', String(!isHidden));
+    button.textContent = isHidden ? '\u25b6' : '\u25bc';
+    button.setAttribute('aria-expanded', String(!isHidden));
   });
 }
 
-setupToggle('toggle-color',      'color-body');
+setupToggle('toggle-color', 'color-body');
 setupToggle('toggle-decoration', 'decoration-body');
 
-/* ===========================
-   파츠 슬롯 클릭 → 모달
-=========================== */
-
-const partModal        = document.getElementById('part-modal');
-const partModalSvg     = document.getElementById('part-modal-svg');
-const partModalName    = document.getElementById('part-modal-name');
+const partModal = document.getElementById('part-modal');
+const partModalSvg = document.getElementById('part-modal-svg');
+const partModalName = document.getElementById('part-modal-name');
 const partModalActions = document.getElementById('part-modal-actions');
-
-// 현재 적용 중인 파츠 id (더미 상태: 없음)
 let currentHeadPart = null;
 
-/**
- * 파츠 모달을 열고 내용을 구성한다.
- * @param {HTMLElement} slot - 클릭된 파츠 슬롯 요소
- */
 function openPartModal(slot) {
-  const partId   = slot.dataset.part;
-  const partName = slot.dataset.name;
-  const owned    = parseInt(slot.dataset.owned ?? '0', 10);
+  const partId = slot.dataset.part;
+  const owned = parseInt(slot.dataset.owned ?? '0', 10);
   const isRandom = partId === 'random';
-
-  // SVG 복사하여 크게 표시
-  const svgEl = slot.querySelector('svg').cloneNode(true);
-  partModalSvg.innerHTML = '';
-  partModalSvg.appendChild(svgEl);
-
-  // 이름 제거 (표시 안 함)
+  partModalSvg.replaceChildren(slot.querySelector('svg').cloneNode(true));
   partModalName.textContent = '';
+  partModalActions.replaceChildren();
 
-  // 버튼 구성
-  partModalActions.innerHTML = '';
+  const buyButton = document.createElement('button');
+  buyButton.type = 'button';
+  buyButton.className = 'modal-card__btn modal-card__btn--confirm';
+  buyButton.textContent = isRandom ? '\uad6c\ub9e4 \ud83e\ude99 70' : '\uad6c\ub9e4 \ud83e\ude99 100';
+  partModalActions.appendChild(buyButton);
 
-  // 구매 버튼 (항상 표시)
-  const buyBtn = document.createElement('button');
-  buyBtn.type      = 'button';
-  buyBtn.className = 'modal-card__btn modal-card__btn--confirm';
-  buyBtn.textContent = isRandom ? '구매 💎 70' : '구매 💎 100';
-  // TODO: 구매 기능 구현
-  partModalActions.appendChild(buyBtn);
-
-  // 적용 버튼 (랜덤 박스 제외)
   if (!isRandom) {
     if (currentHeadPart === partId) {
-      // 현재 적용 중인 파츠
-      const appliedMsg = document.createElement('p');
-      appliedMsg.className   = 'part-modal__applied';
-      appliedMsg.textContent = '적용 중';
-      partModalActions.appendChild(appliedMsg);
+      const appliedMessage = document.createElement('p');
+      appliedMessage.className = 'part-modal__applied';
+      appliedMessage.textContent = '\uc801\uc6a9 \uc911';
+      partModalActions.appendChild(appliedMessage);
     } else {
-      const applyBtn = document.createElement('button');
-      applyBtn.type      = 'button';
-      applyBtn.className = 'modal-card__btn modal-card__btn--cancel';
-      applyBtn.textContent = '적용 💎 10';
-      // 미보유 시 비활성화
+      const applyButton = document.createElement('button');
+      applyButton.type = 'button';
+      applyButton.className = 'modal-card__btn modal-card__btn--cancel';
+      applyButton.textContent = '\uc801\uc6a9 \ud83e\ude99 10';
       if (owned <= 0) {
-        applyBtn.disabled = true;
-        applyBtn.style.opacity = '0.4';
-        applyBtn.style.cursor  = 'default';
+        applyButton.disabled = true;
+        applyButton.style.opacity = '0.4';
+        applyButton.style.cursor = 'default';
       }
-      // TODO: 적용 기능 구현
-      partModalActions.appendChild(applyBtn);
+      partModalActions.appendChild(applyButton);
     }
   }
-
   partModal.classList.remove('modal-overlay--hidden');
 }
 
-// 각 파츠 슬롯에 직접 이벤트를 연결해 SVG 내부를 클릭해도 동일하게 처리
 document.querySelectorAll('.part-slot[data-part]').forEach((slot) => {
-  slot.addEventListener('click', () => {
-    openPartModal(slot);
-  });
+  slot.addEventListener('click', () => openPartModal(slot));
+});
+partModal.addEventListener('click', (event) => {
+  if (event.target === partModal) partModal.classList.add('modal-overlay--hidden');
 });
 
-// 파츠 모달 배경 클릭 시 닫기
-partModal.addEventListener('click', (e) => {
-  if (e.target === partModal) {
-    partModal.classList.add('modal-overlay--hidden');
-  }
-});
-
-/* ===========================
-   색상 슬롯 클릭 → 모달
-=========================== */
-const colorModal        = document.getElementById('color-modal');
+const colorModal = document.getElementById('color-modal');
 const colorModalPreview = document.getElementById('color-modal-preview');
 const colorModalActions = document.getElementById('color-modal-actions');
-const characterPreview  = document.querySelector('.character-placeholder');
+const characterPreview = document.querySelector('.character-placeholder');
 
 function openColorModal(color) {
   const previewSvg = characterPreview.cloneNode(true);
+  previewSvg.querySelectorAll('path, line').forEach((element) => element.setAttribute('stroke', color));
+  previewSvg.querySelectorAll('circle').forEach((element) => element.setAttribute('fill', color));
+  colorModalPreview.replaceChildren(previewSvg);
+  colorModalActions.replaceChildren();
 
-  previewSvg.querySelectorAll('path, line').forEach((element) => {
-    element.setAttribute('stroke', color);
-  });
-  previewSvg.querySelectorAll('circle').forEach((element) => {
-    element.setAttribute('fill', color);
-  });
-
-  colorModalPreview.innerHTML = '';
-  colorModalPreview.appendChild(previewSvg);
-  colorModalActions.innerHTML = '';
-
-  const buyBtn = document.createElement('button');
-  buyBtn.type = 'button';
-  buyBtn.className = 'modal-card__btn modal-card__btn--confirm';
-  buyBtn.textContent = '구매 💎 100';
-  colorModalActions.appendChild(buyBtn);
-
-  const applyBtn = document.createElement('button');
-  applyBtn.type = 'button';
-  applyBtn.className = 'modal-card__btn modal-card__btn--cancel';
-  applyBtn.textContent = '적용 💎 10';
-  colorModalActions.appendChild(applyBtn);
-
+  const buyButton = document.createElement('button');
+  buyButton.type = 'button';
+  buyButton.className = 'modal-card__btn modal-card__btn--confirm';
+  buyButton.textContent = '\uad6c\ub9e4 \ud83e\ude99 100';
+  const applyButton = document.createElement('button');
+  applyButton.type = 'button';
+  applyButton.className = 'modal-card__btn modal-card__btn--cancel';
+  applyButton.textContent = '\uc801\uc6a9 \ud83e\ude99 10';
+  colorModalActions.append(buyButton, applyButton);
   colorModal.classList.remove('modal-overlay--hidden');
 }
 
 document.querySelectorAll('.color-slot[data-color]').forEach((slot) => {
-  slot.addEventListener('click', () => {
-    openColorModal(slot.dataset.color);
-  });
+  slot.addEventListener('click', () => openColorModal(slot.dataset.color));
+});
+colorModal.addEventListener('click', (event) => {
+  if (event.target === colorModal) colorModal.classList.add('modal-overlay--hidden');
 });
 
-colorModal.addEventListener('click', (e) => {
-  if (e.target === colorModal) {
-    colorModal.classList.add('modal-overlay--hidden');
-  }
-});
-
-/* ===========================
-   저장 모달
-=========================== */
-const saveModal   = document.getElementById('save-modal');
-const btnSave     = document.getElementById('btn-save');
-const modalCancel = document.getElementById('modal-cancel');
-const modalConfirm = document.getElementById('modal-confirm');
-
-// 저장하기 버튼 → 모달 표시
-btnSave.addEventListener('click', () => {
-  saveModal.classList.remove('modal-overlay--hidden');
-});
-
-// 취소 버튼 → 모달 닫기
-modalCancel.addEventListener('click', () => {
-  saveModal.classList.add('modal-overlay--hidden');
-});
-
-// 저장 버튼 → 추후 구현 (현재는 모달만 닫음)
-modalConfirm.addEventListener('click', () => {
-  saveModal.classList.add('modal-overlay--hidden');
-  // TODO: 캐릭터 저장 기능 구현
-});
-
-// 모달 배경 클릭 시 닫기
-saveModal.addEventListener('click', (e) => {
-  if (e.target === saveModal) {
-    saveModal.classList.add('modal-overlay--hidden');
-  }
+const saveModal = document.getElementById('save-modal');
+document.getElementById('btn-save').addEventListener('click', () => saveModal.classList.remove('modal-overlay--hidden'));
+document.getElementById('modal-cancel').addEventListener('click', () => saveModal.classList.add('modal-overlay--hidden'));
+document.getElementById('modal-confirm').addEventListener('click', () => saveModal.classList.add('modal-overlay--hidden'));
+saveModal.addEventListener('click', (event) => {
+  if (event.target === saveModal) saveModal.classList.add('modal-overlay--hidden');
 });

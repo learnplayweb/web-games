@@ -8,7 +8,7 @@
  * @param {Array} arr - 섞을 배열
  * @returns {Array}   - 섞인 배열 (같은 참조)
  */
-function shuffleArray(arr) {
+export function shuffleArray(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
@@ -24,7 +24,7 @@ function shuffleArray(arr) {
  * - buildPool():    출제 가능한 전체 문제 목록 배열 반환
  *                   Lv.6~Lv.8은 추후 구현
  */
-const LEVELS = [
+export const LEVELS = [
   {
     level: 1,
     totalQuestions: 5,

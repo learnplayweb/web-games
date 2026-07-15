@@ -8,8 +8,10 @@
  * Gold 값은 localStorage에서 읽는다.
  * 게임 화면 등 각 화면에서 gold가 변경되면 updateHeaderGold()를 호출해 갱신한다.
  */
+import { getGold } from '../core/saveManager.js';
+
 function createHeader() {
-  const gold = readGoldFromStorage();
+  const gold = getGold();
 
   const header = document.createElement('header');
   header.className = 'shared-header';
@@ -40,11 +42,4 @@ function updateHeaderGold(amount) {
  * localStorage에서 보유 Gold를 읽어 반환한다.
  * @returns {number}
  */
-function readGoldFromStorage() {
-  try {
-    const save = JSON.parse(localStorage.getItem('clockGame_save') || '{}');
-    return save.gold ?? 0;
-  } catch {
-    return 0;
-  }
-}
+export { createHeader, updateHeaderGold };

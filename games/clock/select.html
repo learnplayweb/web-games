@@ -1,10 +1,3 @@
-<!-- v0.1.0 : 최초 생성 - 단계 선택 화면 (index.html에서 분리)
-     v0.1.1 : select.js 제거, 카드 렌더링 로직을 인라인 스크립트로 통합
-     v0.1.2 : Fix_loadSave not defined - save.js/levels.js 의존을 인라인으로 통합
-     v0.1.3 : Fix_Make select.html self-contained, remove external script dependencies
-     v0.1.4 : Implement_Dev mode unlock all levels with 7 taps on title
-     v0.1.5 : Refactor_공통 Sticky Header 적용
-     v0.1.6 : Implement_7탭 시 Debug 메뉴 표시 (기존 즉시 전체해금 동작을 메뉴로 교체) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -15,168 +8,24 @@
   <link rel="stylesheet" href="select.css" />
 </head>
 <body>
-
   <div class="stage-select-wrapper">
     <h2 id="stage-select-title" class="stage-select-title">단계 선택</h2>
     <div id="stage-card-list" class="stage-card-list"></div>
   </div>
-
-  <script>
-    /* --- 저장 데이터 (save.js 중 select.html에 필요한 부분만 인라인) --- */
-    const SAVE_KEY = 'clockGame_save';
-
-    function getDefaultSave() {
-      return {
-        gold:          0,
-        unlockedLevel: 1,
-        bestStars:     new Array(8).fill(0),
-        currentStars:  0,
-      };
-    }
-
-    function loadSave() {
-      try {
-        const raw = localStorage.getItem(SAVE_KEY);
-        return raw ? JSON.parse(raw) : getDefaultSave();
-      } catch {
-        return getDefaultSave();
-      }
-    }
-
-    function writeSave(saveData) {
-      try {
-        localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
-      } catch {}
-    }
-
-    /* --- 레벨 목록 (levels.js 중 select.html에 필요한 부분만 인라인) --- */
-    const LEVEL_NAMES = [
-      'Lv.1 : 시',
-      'Lv.2 : 15분 단위',
-      'Lv.3 : 5분 단위',
-      'Lv.4 : 모든 분',
-      'Lv.5 : 시·분·초',
-      'Lv.6 : 시간 계산 (1단위)',
-      'Lv.7 : 시간 계산 (2단위)',
-      'Lv.8 : 시간 계산 (전체)',
-    ];
-
-    /* --- 카드 렌더링 --- */
-    function starsToString(stars) {
-      return '★'.repeat(stars) + '☆'.repeat(3 - stars);
-    }
-
-    function renderStageCards() {
-      const save = loadSave();
-      const list = document.getElementById('stage-card-list');
-      list.innerHTML = '';
-
-      LEVEL_NAMES.forEach((name, i) => {
-        const levelNum   = i + 1;
-        const isUnlocked = levelNum <= save.unlockedLevel;
-        const bestStars  = save.bestStars[i];
-        const currentStars = save.currentStars ?? 0;
-
-        const card = document.createElement('div');
-        card.className = `stage-card ${isUnlocked ? 'stage-card--unlocked' : 'stage-card--locked'}`;
-
-        const levelLabel = document.createElement('p');
-        levelLabel.className   = 'stage-card__level';
-        levelLabel.textContent = isUnlocked ? name : `🔒 ${name}`;
-
-        const starsLabel = document.createElement('p');
-        starsLabel.className   = 'stage-card__stars';
-        // Lv.8은 마지막 단계이므로 직전 플레이 결과 표시
-        starsLabel.textContent = levelNum === 8
-        ? starsToString(currentStars)
-        : starsToString(bestStars);
-
-        card.appendChild(levelLabel);
-        card.appendChild(starsLabel);
-
-        if (isUnlocked) {
-          card.addEventListener('click', () => {
-            window.location.href = `index.html?level=${levelNum}`;
-          });
-        }
-
-        list.appendChild(card);
-      });
-    }
-
-    /* --- 개발자 모드: 제목 7번 탭 시 Debug 메뉴 표시 --- */
-    let devTapCount = 0;
-    let devTapTimer = null;
-
-    document.getElementById('stage-select-title').addEventListener('click', () => {
-      devTapCount += 1;
-
-      // 2초 안에 7번 탭하지 않으면 초기화
-      clearTimeout(devTapTimer);
-      devTapTimer = setTimeout(() => { devTapCount = 0; }, 2000);
-
-      if (devTapCount >= 7) {
-        devTapCount = 0;
-        clearTimeout(devTapTimer);
-        openDebugMenu(); // core/debug.js DEBUG ONLY 블록에서 정의
-      }
-    });
-
-    renderStageCards();
-  </script>
-
-  <!-- ===================================================================
-       DEBUG ONLY: 정식 배포 시 이 블록 전체(스크립트 태그 2개 + div + script)만
-       삭제하면 디버그 기능이 완전히 제거됨. 정식 게임 로직과 무관.
-  =================================================================== -->
-  <script src="../../core/saveManager.js"></script>
-  <script src="../../core/debug.js"></script>
 
   <div id="debug-menu" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
     <div style="background:#fff; border-radius:8px; padding:16px; min-width:220px; display:flex; flex-direction:column; gap:8px; font-family:inherit;">
       <p style="font-weight:bold; margin:0 0 4px;">🔧 Debug Menu</p>
       <button type="button" data-debug="resetAll">전체 저장 초기화</button>
       <button type="button" data-debug="grantMaxGold">Gold 99999 지급</button>
-      <button type="button" data-debug="unlockAllClockLevels">Clock 전 단계 해금</button>
-      <button type="button" data-debug="star1">모든 별 ★</button>
-      <button type="button" data-debug="star2">모든 별 ★★</button>
-      <button type="button" data-debug="star3">모든 별 ★★★</button>
+      <button type="button" data-debug="unlockAllClockLevels">Clock 모든 단계 해금</button>
+      <button type="button" data-debug="star1">모든 별 1개</button>
+      <button type="button" data-debug="star2">모든 별 2개</button>
+      <button type="button" data-debug="star3">모든 별 3개</button>
       <button type="button" id="debug-menu-close">닫기</button>
     </div>
   </div>
 
-  <script>
-    function openDebugMenu()  { document.getElementById('debug-menu').style.display = 'flex'; }
-    function closeDebugMenu() { document.getElementById('debug-menu').style.display = 'none'; }
-
-    // Debug 동작 후 화면 갱신 (카드 재렌더링 + 헤더 Gold 표시 갱신)
-    function refreshAfterDebug() {
-      renderStageCards();
-      if (typeof updateHeaderGold === 'function') updateHeaderGold(SaveManager.getGold());
-    }
-
-    document.getElementById('debug-menu-close').addEventListener('click', closeDebugMenu);
-
-    document.querySelectorAll('#debug-menu [data-debug]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        switch (btn.dataset.debug) {
-          case 'resetAll':               DebugTools.resetAll(); break;
-          case 'grantMaxGold':           DebugTools.grantMaxGold(); break;
-          case 'unlockAllClockLevels':   DebugTools.unlockAllClockLevels(); break;
-          case 'star1':                  DebugTools.setAllClockStars(1); break;
-          case 'star2':                  DebugTools.setAllClockStars(2); break;
-          case 'star3':                  DebugTools.setAllClockStars(3); break;
-        }
-        refreshAfterDebug();
-        closeDebugMenu();
-      });
-    });
-  </script>
-  <!-- ===================================================================
-       /DEBUG ONLY
-  =================================================================== -->
-
-  <script src="../../shared/header.js"></script>
-  <script>createHeader();</script>
+  <script type="module" src="select.js"></script>
 </body>
 </html>
