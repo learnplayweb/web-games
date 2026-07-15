@@ -3,7 +3,8 @@
      v0.1.2 : Fix_loadSave not defined - save.js/levels.js 의존을 인라인으로 통합
      v0.1.3 : Fix_Make select.html self-contained, remove external script dependencies
      v0.1.4 : Implement_Dev mode unlock all levels with 7 taps on title
-     v0.1.5 : Refactor_공통 Sticky Header 적용 -->
+     v0.1.5 : Refactor_공통 Sticky Header 적용
+     v0.1.6 : Implement_7탭 시 Debug 메뉴 표시 (기존 즉시 전체해금 동작을 메뉴로 교체) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -103,7 +104,7 @@
       });
     }
 
-    /* --- 개발자 모드: 제목 7번 탭 시 모든 레벨 해금 --- */
+    /* --- 개발자 모드: 제목 7번 탭 시 Debug 메뉴 표시 --- */
     let devTapCount = 0;
     let devTapTimer = null;
 
@@ -117,24 +118,64 @@
       if (devTapCount >= 7) {
         devTapCount = 0;
         clearTimeout(devTapTimer);
-
-        // 모든 레벨 해금
-        const save = loadSave();
-        save.unlockedLevel = LEVEL_NAMES.length;
-        writeSave(save);
-
-        // 피드백 표시 후 카드 재렌더링
-        const title = document.getElementById('stage-select-title');
-        title.textContent = '🔧 Debug Mode Enabled';
-        setTimeout(() => {
-          title.textContent = '단계 선택';
-          renderStageCards();
-        }, 1200);
+        openDebugMenu(); // core/debug.js DEBUG ONLY 블록에서 정의
       }
     });
 
     renderStageCards();
   </script>
+
+  <!-- ===================================================================
+       DEBUG ONLY: 정식 배포 시 이 블록 전체(스크립트 태그 2개 + div + script)만
+       삭제하면 디버그 기능이 완전히 제거됨. 정식 게임 로직과 무관.
+  =================================================================== -->
+  <script src="../../core/saveManager.js"></script>
+  <script src="../../core/debug.js"></script>
+
+  <div id="debug-menu" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:8px; padding:16px; min-width:220px; display:flex; flex-direction:column; gap:8px; font-family:inherit;">
+      <p style="font-weight:bold; margin:0 0 4px;">🔧 Debug Menu</p>
+      <button type="button" data-debug="resetAll">전체 저장 초기화</button>
+      <button type="button" data-debug="grantMaxGold">Gold 99999 지급</button>
+      <button type="button" data-debug="unlockAllClockLevels">Clock 전 단계 해금</button>
+      <button type="button" data-debug="star1">모든 별 ★</button>
+      <button type="button" data-debug="star2">모든 별 ★★</button>
+      <button type="button" data-debug="star3">모든 별 ★★★</button>
+      <button type="button" id="debug-menu-close">닫기</button>
+    </div>
+  </div>
+
+  <script>
+    function openDebugMenu()  { document.getElementById('debug-menu').style.display = 'flex'; }
+    function closeDebugMenu() { document.getElementById('debug-menu').style.display = 'none'; }
+
+    // Debug 동작 후 화면 갱신 (카드 재렌더링 + 헤더 Gold 표시 갱신)
+    function refreshAfterDebug() {
+      renderStageCards();
+      if (typeof updateHeaderGold === 'function') updateHeaderGold(SaveManager.getGold());
+    }
+
+    document.getElementById('debug-menu-close').addEventListener('click', closeDebugMenu);
+
+    document.querySelectorAll('#debug-menu [data-debug]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        switch (btn.dataset.debug) {
+          case 'resetAll':               DebugTools.resetAll(); break;
+          case 'grantMaxGold':           DebugTools.grantMaxGold(); break;
+          case 'unlockAllClockLevels':   DebugTools.unlockAllClockLevels(); break;
+          case 'star1':                  DebugTools.setAllClockStars(1); break;
+          case 'star2':                  DebugTools.setAllClockStars(2); break;
+          case 'star3':                  DebugTools.setAllClockStars(3); break;
+        }
+        refreshAfterDebug();
+        closeDebugMenu();
+      });
+    });
+  </script>
+  <!-- ===================================================================
+       /DEBUG ONLY
+  =================================================================== -->
+
   <script src="../../shared/header.js"></script>
   <script>createHeader();</script>
 </body>

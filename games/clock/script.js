@@ -7,7 +7,8 @@
 // v0.4.5 : Implement_Time calculation levels Lv.6~8, calc-area show/hide
 // v0.4.6 : Implement_Dynamic quiz reward based on previous best stars
 // v0.4.7 : Fix_Gold double payment - quiz gold saved immediately, bonus gold at finishStage only
-// 의존: data/levels.js (LEVELS, shuffleArray), save.js (loadSave, saveResult)
+// v0.4.8 : Refactor_Centralize save system into SaveManager (LocalStorage 직접/간접 접근 제거)
+// 의존: data/levels.js (LEVELS, shuffleArray), core/saveManager.js (SaveManager)
 
 /* ===========================
    시계 표시
@@ -64,7 +65,7 @@ function updateComboDisplay() {
 function handleCorrectAnswer() {
   const reward = getQuizRewardGold();
   gold += reward;
-  saveGold(reward); // 게임 중 지급분 즉시 저장
+  SaveManager.addGold(reward); // 게임 중 지급분 즉시 저장 (SaveManager 경유)
   currentCombo += 1;
   if (currentCombo > maxCombo) maxCombo = currentCombo;
   updateGoldDisplay();
@@ -266,8 +267,8 @@ function finishStage() {
 
   const goldTotal = goldQuiz + goldBonus;
 
-  // 저장 (최고 별점 갱신, 누적 골드)
-  saveResult(currentLevel, stars, goldBonus); // 추가 지급분만 저장에 반영
+  // 저장 (최고 별점/Lv.8 최근 별점 갱신, 누적 골드, 단계 해금) - SaveManager 경유
+  SaveManager.saveClockResult(currentLevel, stars, goldBonus, LEVELS.length); // 추가 지급분만 저장에 반영
   gold += goldBonus;                          // 게임 중 지급분(goldQuiz)은 이미 반영됨
   updateGoldDisplay();
 
@@ -363,13 +364,12 @@ document.querySelector('.keypad-area').addEventListener('click', (e) => {
 const _params = new URLSearchParams(window.location.search);
 const _level  = parseInt(_params.get('level'), 10) || 1;
 
-const _save = loadSave();
-gold = _save.gold;
+gold = SaveManager.getGold();
 updateGoldDisplay();
 
 // 플레이 시작 시점의 이전 최고 별점 저장
 // Lv.8은 예외: 항상 0(별 없음 기준, +10 지급)
-prevBestStars = _level === 8 ? 0 : (_save.bestStars[_level - 1] ?? 0);
+prevBestStars = _level === 8 ? 0 : SaveManager.getClockBestStars(_level);
 
 currentCombo = 0;
 maxCombo     = 0;

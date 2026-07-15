@@ -6,7 +6,8 @@
      v0.1.5 : 결과 화면에 별점·보상 항목 추가
      v0.1.6 : Gold 아이콘 변경(💎), 결과 화면 레이아웃 개선
      v0.1.7 : 단계 선택 화면 select.html로 분리, game-wrapper style:none 제거
-     v0.1.8 : 계산식 표시 영역 추가 (Lv.6~8) -->
+     v0.1.8 : 계산식 표시 영역 추가 (Lv.6~8)
+     v0.1.9 : Fix_save.js 대신 core/saveManager.js 로드 (SaveManager 미정의로 저장 실패하던 문제) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -244,7 +245,7 @@
   </div>
 
   <script src="data/levels.js"></script>
-  <script src="save.js"></script>
+  <script src="../../core/saveManager.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
