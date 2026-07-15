@@ -29,6 +29,7 @@
         gold:          0,
         unlockedLevel: 1,
         bestStars:     new Array(8).fill(0),
+        currentStars:  0,
       };
     }
 
@@ -73,6 +74,7 @@
         const levelNum   = i + 1;
         const isUnlocked = levelNum <= save.unlockedLevel;
         const bestStars  = save.bestStars[i];
+        const currentStars = save.currentStars ?? 0;
 
         const card = document.createElement('div');
         card.className = `stage-card ${isUnlocked ? 'stage-card--unlocked' : 'stage-card--locked'}`;
@@ -83,8 +85,10 @@
 
         const starsLabel = document.createElement('p');
         starsLabel.className   = 'stage-card__stars';
-        // Lv.8은 마지막 단계이므로 별점 표시 없음
-        starsLabel.textContent = levelNum === 8 ? '' : starsToString(bestStars);
+        // Lv.8은 마지막 단계이므로 직전 플레이 결과 표시
+        starsLabel.textContent = levelNum === 8
+        ? starsToString(currentStars)
+        : starsToString(bestStars);
 
         card.appendChild(levelLabel);
         card.appendChild(starsLabel);

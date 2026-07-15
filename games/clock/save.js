@@ -2,6 +2,7 @@
 // 의존: data/levels.js (LEVELS.length 참조)
 // v0.1.1 : Lv.8 별점 저장 제외 (마지막 단계 예외 처리)
 // v0.1.2 : saveGold 추가 - 게임 중 문제당 골드 즉시 저장
+// v0.1.3 : currentStars 추가 - Lv.8 최근 플레이 별점 저장 (bestStars 미사용 단계용)
 
 const SAVE_KEY = 'clockGame_save'; // localStorage 키
 
@@ -14,6 +15,7 @@ function getDefaultSave() {
     gold:          0,
     unlockedLevel: 1,                   // 해금된 최고 레벨
     bestStars:     new Array(8).fill(0), // 인덱스 0 = Lv.1, ..., 인덱스 7 = Lv.8
+    currentStars:  0,                   // Lv.8 최근 플레이 별점 (최고 별점 아님, 매 플레이 덮어씀)
   };
 }
 
@@ -72,6 +74,11 @@ function saveResult(level, stars, goldEarned) {
   // 최고 별점 갱신 (더 높을 때만, Lv.8은 마지막 단계이므로 저장하지 않음)
   if (level !== 8 && stars > save.bestStars[level - 1]) {
     save.bestStars[level - 1] = stars;
+  }
+
+  // Lv.8은 최고 별점 대신 최근 플레이 별점을 항상 덮어써서 저장
+  if (level === 8) {
+    save.currentStars = stars;
   }
 
   // Gold 누적

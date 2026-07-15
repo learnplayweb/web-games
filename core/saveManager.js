@@ -1,0 +1,7 @@
+/**
+ * saveCharacter();
+loadCharacter();
+
+saveAll();
+loadAll();
+ */

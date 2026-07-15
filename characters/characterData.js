@@ -72,7 +72,7 @@ export const CHARACTER_COLORS = Object.freeze([
  */
 export function getPart(category, id) {
   return PARTS_BY_CATEGORY[category]?.find((part) => part.id === id) ?? null;
-
+}
 
 /**
  * 상점 및 캐릭터 관련 비용 전체 가격표
@@ -98,4 +98,3 @@ export const SHOP_COST = Object.freeze({
   colorMix: 50,
   colorRemix: 30,
 });
-}

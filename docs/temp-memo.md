@@ -1,18 +1,32 @@
-# 1단계
-레벨 선택 화면
-레벨 데이터 구조
-문제 수 관리
-단계 시작
-# 2단계
-단계 진행
-오답 시 다음 문제
-단계 종료
-결과 화면
-# 3단계
-별점 계산
-단계 보상
-다음 단계 해금
-저장 연동
+saveManager.js
+LocalStorage 읽기
+LocalStorage 저장
+export
+import
+
+실제 저장 기능
+
+settings.js
+BGM On/Off
+효과음 On/Off
+언어
+진동 여부
+
+같은 사용자 설정.
+
+utils.js
+
+공통 함수
+
+예를 들어
+
+clamp()
+randomInt()
+shuffle()
+debounce()
+
+등.
+---------------
 
 Clock Game 완성
 
