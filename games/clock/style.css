@@ -9,7 +9,8 @@
    v0.1.8 : 결과 화면 별점·구분선·gold 행 스타일 추가
    v0.1.9 : Gold 아이콘(💎)·색상 통일, result 레이아웃 개선, info-bar 아이콘 위치 고정
    v0.2.0 : 단계 선택 화면 스타일 select.css로 분리
-   v0.2.1 : 계산식 표시 영역 스타일 추가 */
+   v0.2.1 : 계산식 표시 영역 스타일 추가
+   v0.2.2 : 오답 시 정답 확인 모달(.answer-modal) 스타일 추가 */
 
 /* ===========================
    1. 전역 초기화 & 변수
@@ -358,4 +359,49 @@ body {
   color: var(--color-primary-dark); /* Combo와 동일한 강조 색상 */
   margin-top: 0.25rem;
   text-align: left;
+}
+
+/* ===========================
+   9. 오답 정답 확인 모달
+   - result-screen과 동일한 오버레이+카드 패턴을 재사용하되
+     오답 1회에 대한 짧은 확인용이므로 카드 크기는 더 작게 구성
+=========================== */
+
+/* 모달 오버레이: 카드 바깥(배경) 클릭 시 script.js에서 닫힘 처리 */
+.answer-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(45, 58, 74, 0.45);
+  z-index: 150; /* result-screen(100)보다 위, 게임 중 오답 확인이므로 더 높은 우선순위 */
+}
+
+.answer-modal--hidden {
+  display: none;
+}
+
+.answer-modal__card {
+  background: var(--color-surface);
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px rgba(91, 141, 238, 0.18);
+  padding: 1.5rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: min(260px, 80vw);
+}
+
+.answer-modal__label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.answer-modal__value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--color-primary-dark);
 }

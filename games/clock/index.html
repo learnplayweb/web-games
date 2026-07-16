@@ -7,7 +7,8 @@
      v0.1.6 : Gold 아이콘 변경(💎), 결과 화면 레이아웃 개선
      v0.1.7 : 단계 선택 화면 select.html로 분리, game-wrapper style:none 제거
      v0.1.8 : 계산식 표시 영역 추가 (Lv.6~8)
-     v0.1.9 : Fix_save.js 대신 core/saveManager.js 로드 (SaveManager 미정의로 저장 실패하던 문제) -->
+     v0.1.9 : Fix_save.js 대신 core/saveManager.js 로드 (SaveManager 미정의로 저장 실패하던 문제)
+     v0.1.10 : Implement_오답 시 정답 확인 모달 추가 (바깥 클릭 시 닫힘) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -241,6 +242,15 @@
       <p  id="result-gold-combo"  class="result-gold-row"><span>콤보 보너스</span><span class="result-gold-value">💎 0</span></p>
       <p  id="result-gold-star"   class="result-gold-row"><span>별점 보너스</span><span class="result-gold-value">💎 0</span></p>
       <p  id="result-gold-total"  class="result-gold-total"><span>총 획득</span><span class="result-gold-value">💎 0</span></p>
+    </div>
+  </div>
+
+  <!-- 오답 시 정답을 보여주는 모달 (기본 숨김) -->
+  <!-- 카드 바깥(오버레이) 영역을 클릭하면 script.js에서 닫고 다음 문제로 진행한다 -->
+  <div id="answer-modal" class="answer-modal answer-modal--hidden">
+    <div class="answer-modal__card">
+      <p class="answer-modal__label">정답</p>
+      <p id="answer-modal-value" class="answer-modal__value">--</p>
     </div>
   </div>
 

@@ -9,6 +9,7 @@
 // v0.4.7 : Fix_Gold double payment - quiz gold saved immediately, bonus gold at finishStage only
 // v0.4.8 : Refactor_Centralize save system into SaveManager (LocalStorage 직접/간접 접근 제거)
 // v0.4.9 : Fix_별점 보너스를 (새 최고 별 가치 - 이전 최고 별 가치) 델타 방식으로 계산 (일반 레벨), Lv.8은 매 플레이 고정 지급 유지
+// v0.4.10 : Implement_오답 시 정답 확인 모달 표시, 바깥(오버레이) 클릭 시 닫고 다음 문제로 진행
 // 의존: data/levels.js (LEVELS, shuffleArray), core/saveManager.js (SaveManager)
 
 import { getClockBestStars, getGold, addGold, saveClockResult } from '../../core/saveManager.js';
@@ -81,6 +82,43 @@ function handleWrongAnswer() {
   currentCombo = 0;
   updateComboDisplay();
 }
+
+/* ===========================
+   오답 정답 확인 모달
+=========================== */
+
+/**
+ * 현재 레벨의 fields에 해당하는 정답만 "N시/N분/N초" 형태로 조합한다.
+ * (해당 레벨에서 입력하지 않는 필드는 표시하지 않음)
+ * @returns {string}
+ */
+function formatAnswerText() {
+  const levelFields = LEVELS[stageState.currentLevel - 1].fields;
+  const parts = [];
+  if (levelFields.includes('hour'))   parts.push(`${currentAnswer.hour}시`);
+  if (levelFields.includes('minute')) parts.push(`${currentAnswer.minute}분`);
+  if (levelFields.includes('second')) parts.push(`${currentAnswer.second}초`);
+  return parts.join(' ');
+}
+
+function showAnswerModal() {
+  document.getElementById('answer-modal-value').textContent = formatAnswerText();
+  document.getElementById('answer-modal').classList.remove('answer-modal--hidden');
+}
+
+function hideAnswerModal() {
+  document.getElementById('answer-modal').classList.add('answer-modal--hidden');
+}
+
+// 모달 바깥(오버레이) 클릭 시에만 닫히도록 처리 (카드 내부 클릭은 무시)
+// 닫히는 시점에 다음 문제로 진행하며, 그 전까지는 isJudging=true 상태를 유지해 키패드 입력을 막는다.
+document.getElementById('answer-modal').addEventListener('click', (e) => {
+  if (e.target.id !== 'answer-modal') return;
+  hideAnswerModal();
+  resetInput();
+  nextQuestion();
+  isJudging = false;
+});
 
 /* ===========================
    입력 UI
@@ -351,9 +389,9 @@ function checkAnswer() {
     inputArea.classList.add('input-area--wrong');
     setTimeout(() => {
       inputArea.classList.remove('input-area--wrong');
-      resetInput();
-      nextQuestion();
-      isJudging = false;
+      // 정답 확인 모달 표시. 바깥(오버레이) 클릭 시 모달의 click 리스너에서
+      // resetInput() / nextQuestion() / isJudging 해제를 처리하므로 여기서는 호출하지 않는다.
+      showAnswerModal();
     }, 600);
   }
 }
