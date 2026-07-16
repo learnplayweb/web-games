@@ -8,6 +8,7 @@
 // v0.4.6 : Implement_Dynamic quiz reward based on previous best stars
 // v0.4.7 : Fix_Gold double payment - quiz gold saved immediately, bonus gold at finishStage only
 // v0.4.8 : Refactor_Centralize save system into SaveManager (LocalStorage 직접/간접 접근 제거)
+// v0.4.9 : Fix_별점 보너스를 (새 최고 별 가치 - 이전 최고 별 가치) 델타 방식으로 계산 (일반 레벨), Lv.8은 매 플레이 고정 지급 유지
 // 의존: data/levels.js (LEVELS, shuffleArray), core/saveManager.js (SaveManager)
 
 import { getClockBestStars, getGold, addGold, saveClockResult } from '../../core/saveManager.js';
@@ -38,6 +39,8 @@ let currentCombo = 0;
 let maxCombo     = 0;
 
 // 플레이 시작 시점의 이전 최고 별점 (플레이 중 변경되지 않음)
+// - Lv.1~7 : 결과 화면에서 별점 보너스(goldStar)를 델타 계산할 때도 이 값을 기준으로 사용
+// - Lv.8   : 항상 0으로 고정 (문제 정답 보상용, 별점 보너스는 별도로 매 플레이 고정 지급)
 let prevBestStars = 0;
 
 /**
@@ -235,6 +238,9 @@ function nextQuestion() {
 =========================== */
 
 const COMBO_MULTIPLIER = 4;
+// 별 1개당 가치 (별점 보너스 계산의 기준값)
+// - Lv.1~7 : 신규 달성 시 (새 별 가치 - 이전 최고 별 가치)만큼만 지급
+// - Lv.8   : 매 플레이 해당 stars의 값을 그대로 고정 지급 (감소/누적 없음)
 const STAR_BONUS       = { 0: 0, 1: 10, 2: 30, 3: 50 };
 const GOLD_PER_CORRECT = 10;
 
@@ -264,7 +270,15 @@ function finishStage() {
 
   // 결과 화면에서 추가 지급할 콤보 보너스 + 별점 보너스
   const goldCombo = maxCombo * COMBO_MULTIPLIER;
-  const goldStar  = STAR_BONUS[stars];
+
+  // 별점 보너스
+  // - Lv.8(최종 레벨) : 매 플레이 stars 기준 고정 지급 (최고 별점 저장/누적 없음, 감소 없음)
+  // - Lv.1~7          : 최초 도전 또는 최고 별점 갱신 시에만 (새 최고 별 가치 - 이전 최고 별 가치)만큼 지급
+  //                      별점 유지/하락 시 0 (음수 방지)
+  const goldStar = currentLevel === 8
+    ? STAR_BONUS[stars]
+    : Math.max(0, STAR_BONUS[stars] - STAR_BONUS[prevBestStars]);
+
   const goldBonus = goldCombo + goldStar; // 결과 화면에서 추가 지급분
 
   const goldTotal = goldQuiz + goldBonus;

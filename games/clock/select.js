@@ -1,3 +1,4 @@
+// select.js
 import { getClockSave, getGold } from '../../core/saveManager.js';
 import {
   grantMaxGold,
@@ -100,3 +101,16 @@ document.querySelectorAll('#debug-menu [data-debug]').forEach((button) => {
 
 createHeader();
 renderStageCards();
+
+// index.html에서 history.back()으로 select.html로 돌아올 때
+// 브라우저가 페이지를 bfcache(뒤로/앞으로 가기 캐시)에서 그대로 복원하면
+// 이 모듈 스크립트가 다시 실행되지 않아 renderStageCards()/헤더 골드가
+// 최신 저장 데이터(별점 반영, 단계 해금)를 반영하지 못하는 문제가 있었다.
+// pageshow 이벤트의 event.persisted가 true인 경우(=bfcache 복원)에만
+// 카드 목록과 헤더 골드를 다시 그려 새로고침 없이 최신 상태를 반영한다.
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) {
+    renderStageCards();
+    updateHeaderGold(getGold());
+  }
+});
