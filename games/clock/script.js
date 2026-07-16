@@ -10,6 +10,7 @@
 // v0.4.8 : Refactor_Centralize save system into SaveManager (LocalStorage 직접/간접 접근 제거)
 // v0.4.9 : Fix_별점 보너스를 (새 최고 별 가치 - 이전 최고 별 가치) 델타 방식으로 계산 (일반 레벨), Lv.8은 매 플레이 고정 지급 유지
 // v0.4.10 : Implement_오답 시 정답 확인 모달 표시, 바깥(오버레이) 클릭 시 닫고 다음 문제로 진행
+// v0.4.11 : Fix_콤보 보너스(COMBO_MULTIPLIER)가 이전 최고 별점 기준 상수 테이블로 적용되지 않던 문제 수정
 // 의존: data/levels.js (LEVELS, shuffleArray), core/saveManager.js (SaveManager)
 
 import { getClockBestStars, getGold, addGold, saveClockResult } from '../../core/saveManager.js';
@@ -275,7 +276,19 @@ function nextQuestion() {
    보상 계산
 =========================== */
 
-const COMBO_MULTIPLIER = 4;
+// 콤보 보너스 배율: 이전 최고 별점이 높을수록(=이미 잘 하는 단계일수록) 낮은 배율 적용
+// - 없음(0) : ×4
+// - ★(1)   : ×3
+// - ★★(2)  : ×2
+// - ★★★(3) : ×1
+// Lv.8은 prevBestStars가 항상 0으로 고정되므로 자동으로 ×4(감소 없음) 적용됨
+// 밸런스 테스트 결과에 따라 이 테이블 값만 조정하면 된다.
+const COMBO_MULTIPLIER_TABLE = { 0: 4, 1: 3, 2: 2, 3: 1 };
+
+function getComboMultiplier() {
+  return COMBO_MULTIPLIER_TABLE[prevBestStars] ?? 4;
+}
+
 // 별 1개당 가치 (별점 보너스 계산의 기준값)
 // - Lv.1~7 : 신규 달성 시 (새 별 가치 - 이전 최고 별 가치)만큼만 지급
 // - Lv.8   : 매 플레이 해당 stars의 값을 그대로 고정 지급 (감소/누적 없음)
@@ -307,7 +320,8 @@ function finishStage() {
   const goldQuiz  = correctCount * getQuizRewardGold();
 
   // 결과 화면에서 추가 지급할 콤보 보너스 + 별점 보너스
-  const goldCombo = maxCombo * COMBO_MULTIPLIER;
+  // 콤보 보너스 배율은 이전 최고 별점(prevBestStars) 기준 COMBO_MULTIPLIER_TABLE을 따른다.
+  const goldCombo = maxCombo * getComboMultiplier();
 
   // 별점 보너스
   // - Lv.8(최종 레벨) : 매 플레이 stars 기준 고정 지급 (최고 별점 저장/누적 없음, 감소 없음)
