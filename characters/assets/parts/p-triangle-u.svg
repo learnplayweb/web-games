@@ -1,2 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 160 200"
+   version="1.1"
+   id="svg2"
+   sodipodi:docname="p-triangle-u.svg"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs2" />
+  <sodipodi:namedview
+     id="namedview2"
+     pagecolor="#cfcfcf"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="4.035"
+     inkscape:cx="79.925651"
+     inkscape:cy="100"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2" />
+  <!-- 채워지는 영역 -->
+  <path
+     class="fill-part"
+     d="m 81.469641,19.752169 c 24.999999,-2 49.213139,47.218091 50.213139,70.218091 C 132.68278,113.97026 108,100 83,102 58,104 31.707099,113.29222 33.539034,89.27881 35.256506,66.765799 56.469641,21.752169 81.469641,19.752169 Z"
+     fill="#f0f4ff"
+     stroke="none"
+     id="path1"
+     sodipodi:nodetypes="scsss" />
+  <!-- 외곽선 -->
+  <path
+     class="outline-part"
+     d="m 81.469641,19.752169 c 24.999999,-2 49.213139,47.218091 50.213139,70.218091 C 132.68278,113.97026 108,100 83,102 58,104 31.707099,113.29222 33.539034,89.27881 35.256506,66.765799 56.469641,21.752169 81.469641,19.752169 Z"
+     fill="none"
+     stroke="#b0bac6"
+     stroke-width="2.5"
+     stroke-linecap="round"
+     stroke-linejoin="round"
+     id="path2"
+     sodipodi:nodetypes="scsss"
+     style="display:inline;fill:none;fill-opacity:1" />
 </svg>
