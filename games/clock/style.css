@@ -103,13 +103,23 @@ body {
   justify-content: center;
 }
 
-/* clock-face.svg 표시 영역 */
+/* clock-face.svg(배경) + 바늘 인라인 svg(전경)를 겹쳐 표시하는 컨테이너 */
 /* vw 단위 사용 시 소수점 픽셀 발생 → 모바일에서 바늘 위치 틀어짐 방지를 위해 정수 고정 */
 .clock-svg {
+  position: relative;
   width: 280px;
   height: 280px;
   max-width: 70vw;
   max-height: 70vw;
+}
+ 
+/* 시계 페이스(외곽선/눈금/숫자) 이미지와 바늘 svg를 동일 영역에 겹쳐 정렬 */
+.clock-face-img,
+.clock-hands-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 /* ===========================

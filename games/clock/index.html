@@ -8,7 +8,8 @@
      v0.1.7 : 단계 선택 화면 select.html로 분리, game-wrapper style:none 제거
      v0.1.8 : 계산식 표시 영역 추가 (Lv.6~8)
      v0.1.9 : Fix_save.js 대신 core/saveManager.js 로드 (SaveManager 미정의로 저장 실패하던 문제)
-     v0.1.10 : Implement_오답 시 정답 확인 모달 추가 (바깥 클릭 시 닫힘) -->
+     v0.1.10 : Implement_오답 시 정답 확인 모달 추가 (바깥 클릭 시 닫힘)
+     v0.1.11 : Refactor_시계 페이스(외곽선/눈금/숫자)를 assets/svg/clock-face.svg로 분리, 바늘은 인라인 유지 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -34,132 +35,50 @@
       </span>
     </header>
 
-    <!-- 시계 영역 (약 1/2) : inline SVG (모바일 렌더링 정확도를 위해 object 대신 직접 삽입) -->
+    <!-- 시계 영역 (약 1/2) -->
+    <!-- 시계 페이스(외곽선/눈금/숫자)는 assets/svg/clock-face.svg 외부 파일을 불러와 배경으로 표시하고,
+         바늘/중심 고정핀은 그 위에 겹쳐지는 인라인 SVG로 그대로 유지한다 (script.js가 회전시키므로 DOM에 있어야 함). -->
     <section class="clock-area">
-      <svg id="clock-svg" class="clock-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-
-        <style>
-          .clock-number {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            font-weight: 700;
-            font-size: 28px;
-            fill: #2d3a4a;
-            text-anchor: middle;
-            dominant-baseline: middle;
-          }
-        </style>
-
-        <!-- 시계판 외곽선 -->
-        <circle id="clock-outline" cx="200" cy="200" r="190" fill="none" stroke="#2d3a4a" stroke-width="4" />
-
-        <!-- 60개 눈금 (5분 단위: 굵고 길게, 1분 단위: 얇고 짧게) -->
-        <g id="clock-ticks">
-          <line x1="200.00" y1="12.00" x2="200.00" y2="30.00" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
-          <line x1="219.65" y1="13.03" x2="218.82" y2="20.99" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="239.09" y1="16.11" x2="237.42" y2="23.93" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="258.10" y1="21.20" x2="255.62" y2="28.81" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="276.47" y1="28.25" x2="273.21" y2="35.56" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="294.00" y1="37.19" x2="285.00" y2="52.78" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
-          <line x1="310.50" y1="47.90" x2="305.80" y2="54.38" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="325.80" y1="60.29" x2="320.44" y2="66.23" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="339.71" y1="74.20" x2="333.77" y2="79.56" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="352.10" y1="89.50" x2="345.62" y2="94.20" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="362.81" y1="106.00" x2="347.22" y2="115.00" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
-          <line x1="371.75" y1="123.53" x2="364.44" y2="126.79" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="378.80" y1="141.90" x2="371.19" y2="144.38" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="383.89" y1="160.91" x2="376.07" y2="162.58" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="386.97" y1="180.35" x2="379.01" y2="181.18" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="388.00" y1="200.00" x2="370.00" y2="200.00" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
-          <line x1="386.97" y1="219.65" x2="379.01" y2="218.82" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="383.89" y1="239.09" x2="376.07" y2="237.42" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="378.80" y1="258.10" x2="371.19" y2="255.62" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="371.75" y1="276.47" x2="364.44" y2="273.21" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="362.81" y1="294.00" x2="347.22" y2="285.00" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
-          <line x1="352.10" y1="310.50" x2="345.62" y2="305.80" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="339.71" y1="325.80" x2="333.77" y2="320.44" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="325.80" y1="339.71" x2="320.44" y2="333.77" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="310.50" y1="352.10" x2="305.80" y2="345.62" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="294.00" y1="362.81" x2="285.00" y2="347.22" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
-          <line x1="276.47" y1="371.75" x2="273.21" y2="364.44" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="258.10" y1="378.80" x2="255.62" y2="371.19" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="239.09" y1="383.89" x2="237.42" y2="376.07" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="219.65" y1="386.97" x2="218.82" y2="379.01" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="200.00" y1="388.00" x2="200.00" y2="370.00" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
-          <line x1="180.35" y1="386.97" x2="181.18" y2="379.01" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="160.91" y1="383.89" x2="162.58" y2="376.07" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="141.90" y1="378.80" x2="144.38" y2="371.19" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="123.53" y1="371.75" x2="126.79" y2="364.44" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="106.00" y1="362.81" x2="115.00" y2="347.22" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
-          <line x1="89.50" y1="352.10" x2="94.20" y2="345.62" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="74.20" y1="339.71" x2="79.56" y2="333.77" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="60.29" y1="325.80" x2="66.23" y2="320.44" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="47.90" y1="310.50" x2="54.38" y2="305.80" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="37.19" y1="294.00" x2="52.78" y2="285.00" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
-          <line x1="28.25" y1="276.47" x2="35.56" y2="273.21" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="21.20" y1="258.10" x2="28.81" y2="255.62" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="16.11" y1="239.09" x2="23.93" y2="237.42" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="13.03" y1="219.65" x2="20.99" y2="218.82" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="12.00" y1="200.00" x2="30.00" y2="200.00" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
-          <line x1="13.03" y1="180.35" x2="20.99" y2="181.18" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="16.11" y1="160.91" x2="23.93" y2="162.58" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="21.20" y1="141.90" x2="28.81" y2="144.38" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="28.25" y1="123.53" x2="35.56" y2="126.79" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="37.19" y1="106.00" x2="52.78" y2="115.00" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
-          <line x1="47.90" y1="89.50" x2="54.38" y2="94.20" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="60.29" y1="74.20" x2="66.23" y2="79.56" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="74.20" y1="60.29" x2="79.56" y2="66.23" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="89.50" y1="47.90" x2="94.20" y2="54.38" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="106.00" y1="37.19" x2="115.00" y2="52.78" stroke="#2d3a4a" stroke-width="3" stroke-linecap="round" />
-          <line x1="123.53" y1="28.25" x2="126.79" y2="35.56" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="141.90" y1="21.20" x2="144.38" y2="28.81" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="160.91" y1="16.11" x2="162.58" y2="23.93" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-          <line x1="180.35" y1="13.03" x2="181.18" y2="20.99" stroke="#2d3a4a" stroke-width="1.2" stroke-linecap="round" />
-        </g>
-
-        <!-- 1~12 숫자 -->
-        <g id="clock-numbers">
-          <text x="276.00" y="68.36" class="clock-number">1</text>
-          <text x="331.64" y="124.00" class="clock-number">2</text>
-          <text x="352.00" y="200.00" class="clock-number">3</text>
-          <text x="331.64" y="276.00" class="clock-number">4</text>
-          <text x="276.00" y="331.64" class="clock-number">5</text>
-          <text x="200.00" y="352.00" class="clock-number">6</text>
-          <text x="124.00" y="331.64" class="clock-number">7</text>
-          <text x="68.36" y="276.00" class="clock-number">8</text>
-          <text x="48.00" y="200.00" class="clock-number">9</text>
-          <text x="68.36" y="124.00" class="clock-number">10</text>
-          <text x="124.00" y="68.36" class="clock-number">11</text>
-          <text x="200.00" y="48.00" class="clock-number">12</text>
-        </g>
+      <div id="clock-svg" class="clock-svg">
+        <img class="clock-face-img" src="assets/svg/clock-face.svg" alt="시계 눈금과 숫자" />
+        <svg class="clock-hands-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
 
         <!-- 시침 -->
         <g id="hour-hand">
           <path
-            d="M195,200
-               C194,186 194,170 189,150
-               C186,136 191,118 200,110
-               C209,118 214,136 211,150
-               C206,170 206,186 205,200
-               Z"
-            fill="#b06a5e"
-            stroke="none"
-          />
-          <line x1="200" y1="110" x2="200" y2="45" stroke="#b06a5e" stroke-width="2" stroke-linecap="round" />
+         id="hour-hand-path"
+         fill="#b06a5e"
+         stroke="#b06a5e"
+         stroke-width="2"
+         stroke-linecap="round"
+         d="M 200.29114,109.25651 
+         V 44.256506 
+         m -5,155.000004 
+         c -1,-14 -1,-30 -6,-50 
+         -3,-14 6.08838,-26.53126 10.99916,-39.98355 
+         4.77369,13.48296 14.00084,25.98355 11.00084,39.98355 
+         -5,20 -5,36 -6,50 
+         z" />
         </g>
 
         <!-- 분침 -->
         <g id="minute-hand">
           <path
-            d="M195,200
-               C194,176 197,155 193,127
-               C190.5,108 195,77 200,70
-               C205,77 209.5,108 207,127
-               C203,155 206,176 205,200
-               Z"
-            fill="#5b7ea6"
-            stroke="none"
-          />
-          <line x1="200" y1="70" x2="200" y2="45" stroke="#5b7ea6" stroke-width="2" stroke-linecap="round" />
+          id="minute-hand-path"
+          fill="#5b7ea6"
+          stroke="#5b7ea6"
+          stroke-width="2"
+          stroke-linecap="round"
+          d="m 200,70
+          c 0,-8.333333 0,-16.666667 0,-25
+          m -5,155
+          c -0.84616,-24.32496 1.78524,-48.81858 -2,-73
+         -2.11151,-21.46944 3.81812,-42.576557 7.00486,-63.641633
+         3.30475,20.754501 8.89565,41.567173 7.10526,62.743173
+         -3.8354,24.09977 -1.37963,48.52212 -2.06613,72.77562
+         -0.1114,2.24444 -3.92398,0.63986 -5.72918,1.12284
+         -1.43827,0 -2.87654,0 -4.31481,0
+          z" />
         </g>
 
         <!-- 초침 -->
@@ -170,7 +89,8 @@
         <!-- 중심 고정핀 -->
         <circle id="clock-center-pin" cx="200" cy="200" r="7" fill="#2d3a4a" />
 
-      </svg>
+        </svg>
+      </div>
     </section>
 
     <!-- 계산식 표시 영역 (Lv.6~8에서만 표시, 기본 숨김) -->

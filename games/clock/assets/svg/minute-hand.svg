@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   id="clock-svg"
+   viewBox="0 0 400 400"
+   version="1.1"
+   sodipodi:docname="minute-hand.svg"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:zoom="5.6568543"
+     inkscape:cx="185.35036"
+     inkscape:cy="101.38143"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="clock-svg" />
+  <!-- ===========================
+       4. 바늘 (시침/분침/초침)
+       - 각 바늘은 중심(200,200)을 기준으로 위쪽(12시 방향)으로 그려서
+         transform="rotate(각도 200 200)" 형태로 회전시킬 수 있는 구조
+       - 현재는 12:00:00 정각이므로 회전 없이 고정 (transform 미적용)
+       - JS에서 회전시킬 때는 각 g 태그에 transform="rotate(...)"만 추가하면 됨
+  =========================== -->
+  <!-- 분침: 시침과 동일한 비파형 구조, 너비만 좁게 (최대 ±7, 시작 ±1.5) -->
+  <!-- 몸통 y=200→70 (길이 130), 최대 너비 지점: y=127 (약 56%) -->
+  <path
+     id="line1"
+     style="fill:#5b7ea6;fill-opacity:1;stroke:#5b7ea6;stroke-width:2;stroke-linecap:round"
+     d="m 200,70 c 0,-8.333333 0,-16.666667 0,-25 m -5,155 c -0.84616,-24.32496 1.78524,-48.81858 -2,-73 -2.11151,-21.46944 3.81812,-42.576557 7.00486,-63.641633 3.30475,20.754501 8.89565,41.567173 7.10526,62.743173 -3.8354,24.09977 -1.37963,48.52212 -2.06613,72.77562 -0.1114,2.24444 -3.92398,0.63986 -5.72918,1.12284 -1.43827,0 -2.87654,0 -4.31481,0 z" />
+</svg>
