@@ -1,6 +1,54 @@
+// v0.1.0 : 최초 생성 - 캐릭터 상점 화면 스크립트 (섹션 토글, 파츠/색상/저장 모달)
+// v0.1.1 : Refactor - placeholder 눈/입, 파츠 슬롯 아이콘을 assets fetch 기반
+//          inline SVG(svgLoader.js)로 로딩하도록 변경. 화면/기능은 동일.
+
 import { createHeader } from '../shared/header.js';
+import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
+import { FACE_ASSETS, getPart } from './characterData.js';
 
 createHeader();
+
+// ===========================
+// 캐릭터 placeholder 얼굴(눈/입) 인라인 로딩
+// - assets/face/eyes-idle.svg, mouth-idle.svg를 fetch하여
+//   character-placeholder 안의 #face-eyes-slot, #face-mouth-slot 위치에 삽입한다.
+// - 프레임(x, y, width, height)은 placeholder viewBox(0 0 160 200) 기준 좌표이며,
+//   기존 하드코딩 눈/입이 있던 자리를 참고해 잡은 값이다. 크기 조정 가능.
+// ===========================
+const faceEyesSlot = document.getElementById('face-eyes-slot');
+const faceMouthSlot = document.getElementById('face-mouth-slot');
+
+embedSvgFragment(faceEyesSlot, FACE_ASSETS.eyes.idle, { x: 20, y: 50, width: 120, height: 52 });
+embedSvgFragment(faceMouthSlot, FACE_ASSETS.mouth.idle, { x: 60, y: 72, width: 40, height: 18 });
+
+// ===========================
+// 파츠 슬롯 아이콘 인라인 로딩
+// - data-part(HTML 슬롯 번호) → characterData.js의 head 파츠 id 매핑.
+// - '원/세모/네모/마름모/별/럭비공/역세모' UI 명칭과 characterData.js의
+//   circle/triangle-up/square/diamond/star/lens/triangle-down id를 연결한다.
+// - 랜덤 박스(data-part="random")는 고정 아이콘이므로 대상에서 제외한다.
+// ===========================
+const PART_ID_BY_SLOT = {
+  1: 'circle',
+  2: 'triangle-up',
+  3: 'square',
+  4: 'diamond',
+  5: 'star',
+  6: 'lens',
+  7: 'triangle-down',
+};
+
+document.querySelectorAll('.part-slot[data-part]').forEach((slot) => {
+  const slotId = slot.dataset.part;
+  if (slotId === 'random') return;
+
+  const partId = PART_ID_BY_SLOT[slotId];
+  const part = partId ? getPart('head', partId) : null;
+  if (!part) return;
+
+  const svgElement = slot.querySelector('.part-slot__svg');
+  replaceSvgContent(svgElement, part.assetPath);
+});
 
 function setupToggle(toggleId, bodyId) {
   const button = document.getElementById(toggleId);
