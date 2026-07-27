@@ -80,7 +80,7 @@ function openPartModal(slot) {
   const buyButton = document.createElement('button');
   buyButton.type = 'button';
   buyButton.className = 'modal-card__btn modal-card__btn--confirm';
-  buyButton.textContent = isRandom ? '\uad6c\ub9e4 \ud83e\ude99 70' : '\uad6c\ub9e4 \ud83e\ude99 100';
+  buyButton.textContent = isRandom ? '💎 70' : '💎 100';
   partModalActions.appendChild(buyButton);
 
   if (!isRandom) {
@@ -93,7 +93,7 @@ function openPartModal(slot) {
       const applyButton = document.createElement('button');
       applyButton.type = 'button';
       applyButton.className = 'modal-card__btn modal-card__btn--cancel';
-      applyButton.textContent = '\uc801\uc6a9 \ud83e\ude99 10';
+      applyButton.textContent = '💎 10';
       if (owned <= 0) {
         applyButton.disabled = true;
         applyButton.style.opacity = '0.4';
@@ -127,11 +127,11 @@ function openColorModal(color) {
   const buyButton = document.createElement('button');
   buyButton.type = 'button';
   buyButton.className = 'modal-card__btn modal-card__btn--confirm';
-  buyButton.textContent = '\uad6c\ub9e4 \ud83e\ude99 100';
+  buyButton.textContent = '💎 100';
   const applyButton = document.createElement('button');
   applyButton.type = 'button';
   applyButton.className = 'modal-card__btn modal-card__btn--cancel';
-  applyButton.textContent = '\uc801\uc6a9 \ud83e\ude99 10';
+  applyButton.textContent = '💎 10';
   colorModalActions.append(buyButton, applyButton);
   colorModal.classList.remove('modal-overlay--hidden');
 }

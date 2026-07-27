@@ -33,81 +33,13 @@ function 을를(이름) {
 색상 시스템
 꾸밈 시스템
 
-
-
-
-Commit Summary
-
-Implement part purchase and inventory
-
----
-
-다음 작업은 파츠 구매 및 인벤토리 시스템만 구현한다.
-
-수정 파일
-
-- characters/character-shop.html
-- characters/character-shop.css
-- characters/character-shop.js
-- characters/data/characterData.js
-- characters/data/save.js
-
-## 목표
-
-상점에서 파츠를 구매하여 인벤토리에 저장하고, 보유 개수를 관리한다.
-
-## 요구사항
-
-### 1. 구매
-
-- 일반 파츠 구매 시 💎100 차감
-- 랜덤 박스 구매 시 💎70 차감
-- 💎이 부족하면 구매하지 않는다.
-- 동일한 파츠는 여러 번 구매할 수 있다.
-
-### 2. 인벤토리
-
-각 파츠의 보유 개수를 저장한다.
-
-예)
-
-Circle : 3
-Triangle : 1
-Square : 0
-
-### 3. 화면 표시
-
-상점 슬롯에는 현재 보유 개수를 배지 형태로 표시한다.
-
-- 미보유 : 0
-- 보유 : 실제 개수
-
-### 4. 저장
-
-구매 결과는 save.js를 통해 localStorage에 저장한다.
-
-새로고침 후에도 보유 개수와 💎이 유지되어야 한다.
-
-### 5. 제외 사항
-
-아직 구현하지 않는다.
-
-- 머리 적용
-- 조합
-- 해체
-- 이름 변경
-- 색상
-- 꾸밈
-
-## 구현 원칙
-
-- 구매 로직과 저장 로직을 분리한다.
-- 인벤토리는 객체 형태로 관리한다.
-- 기존 저장 시스템과 호환되도록 구현한다.
-
-변경된 파일만 출력한다.
-
-구현 완료 후 요구사항별 완료/미완료 체크리스트를 함께 보고한다.
+# 구현 완료 후 요구사항별 완료/미완료 체크리스트를 함께 보고한다.
+버전 정보 아래에 주석으로 Public API와 Save Structure를 간략히 정리한다.
+- 제공하는 함수 목록
+- 저장 데이터 구조
+- 각각 한눈에 이해할 수 있는 수준으로만 작성한다.
+- 구현 내용을 장황하게 설명하지 않는다.
+- 코드와 불일치하지 않도록 유지한다.
 -----------
 
 게임화면 내 캐릭터 위치: 어울림. 자리차지x & 랜덤 위치 (다른 요소와 겹치지는 않으면서)
@@ -206,49 +138,3 @@ Add random character placement system
 구현 완료 후 요구사항별 완료/미완료 체크리스트를 함께 보고한다.
 
 ------------
-
-1. 크기를 결정하는 지점 — core/svgLoader.js의 replaceSvgContent()
-js
-const viewBox = root.getAttribute('viewBox');
-if (viewBox) svgElement.setAttribute('viewBox', viewBox);
-
-검색 키워드: viewBox (svgLoader.js 내 유일하게 크기 관련 로직이 있는 곳)
-
-이 함수는 원본 파츠 SVG 파일(assets/parts/p-*.svg)의 viewBox 값을 그대로 복사해서 .part-slot__svg에 씌운다.
-width / height 속성은 원본에서 가져오지 않고 아예 건드리지 않는다. (replaceChildren으로 자식 노드만 교체)
-2. 실제 화면 크기 — character-shop.css의 .part-slot__svg
-
-검색 키워드: part-slot__svg
-
-css
-.part-slot__svg {
-  width: 56px;
-  height: 56px;
-}
-
-→ 화면에 그려지는 박스 자체의 크기(56×56px)는 CSS가 고정하고 있어서, 여기엔 문제가 없다.
-
-3. 결론 — 진짜 원인은 "viewBox 대 도형 크기 비율"
-
-replaceSvgContent()는 원본 파일의 viewBox를 무조건 그대로 복사한다. 즉:
-
-56×56px 박스 자체는 정상 크기로 잡혀 있고
-그 안에서 viewBox가 정의하는 좌표계(width, height)를 SVG가 그대로 채우는 구조 (preserveAspectRatio 기본값 xMidYMid meet)이기 때문에
-만약 assets/parts/p-circle.svg 같은 원본 파일이 viewBox="0 0 200 200"인데 실제 도형은 그 중앙 100×100 영역에만 그려져 있다면(캔버스 여백이 큰 상태로 export된 경우), 56px 박스 전체를 여백까지 포함해 채우게 되어 도형 자체는 절반 크기로 작게 보인다.
-
-→ character-shop.js의 호출부(replaceSvgContent(svgElement, part.assetPath))는 단순 호출만 하므로 문제 없음. 버그는 svgLoader.js가 원본 viewBox를 무조건 그대로 신뢰하고 복사하는 부분이다.
-
-정확히 2배로 만드는 방법
-
-원본 p-circle.svg 등을 열어 실제 viewBox="minX minY W H" 값을 확인한 뒤, 중앙 기준으로 절반 영역만 잘라내는(zoom-in) viewBox로 바꿔주면 모든 방향으로 정확히 2배가 된다.
-
-계산식:
-
-newMinX = minX + W / 4
-newMinY = minY + H / 4
-newW    = W / 2
-newH    = H / 2
-
-예를 들어 원본이 viewBox="0 0 200 200"이라면 → viewBox="50 50 100 100"로 바꾸면 도형이 정확히 2배 크게(=중앙 기준 확대) 보인다.
-
-이 계산을 replaceSvgContent() 안에서, root.getAttribute('viewBox')를 가져온 직후 위 공식대로 가공해 svgElement.setAttribute('viewBox', ...)에 넣는 방식으로 수정하면 된다. (원본 SVG 파일 자체를 수정하는 대신 로더에서 배율만 조정하는 방식)

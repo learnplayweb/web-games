@@ -1,8 +1,16 @@
 // v0.1.0 : 최초 생성 - Clock Game의 save.js 저장 기능을 이전, LocalStorage 접근 단일화
 // v0.1.1 : Add_디버그용 함수(resetSave, setGold, unlockAllClockLevels, setAllClockStars) 추가
+// v0.1.2 : Implement - 캐릭터 인벤토리용 저장 키(character_save) 및 get/set 추가
 // 의존: 없음 (LocalStorage 직접 접근은 이 파일에서만 수행)
 // 기존 저장 데이터(clockGame_save) 구조/키를 그대로 유지하여 호환성 보장
 // 향후 다른 게임/캐릭터 시스템 저장 기능 추가 시 이 파일에 함수를 확장한다.
+//
+// Public API (character_save 관련)
+// - getCharacterSave(): 캐릭터 저장 데이터 반환 (없으면 기본값)
+// - setCharacterSave(saveData): 캐릭터 저장 데이터 통째로 덮어쓰기
+//
+// Save Structure (character_save)
+// { parts: { [category]: string[] } }  // 카테고리별 보유 파츠 id 배열 (예: { head: ['circle'] })
 
   const SAVE_KEY = 'clockGame_save'; // localStorage 키 (기존 키 유지)
 
@@ -49,6 +57,40 @@ export function getClockSave() {
     save.gold += amount;
     write(save);
     return save.gold;
+  }
+
+  /* ===== 캐릭터 인벤토리 (공통) ===== */
+
+  const CHARACTER_SAVE_KEY = 'character_save';
+
+  function getDefaultCharacterSave() {
+    return { parts: {} };
+  }
+
+  function loadCharacter() {
+    try {
+      const raw = localStorage.getItem(CHARACTER_SAVE_KEY);
+      return raw ? JSON.parse(raw) : getDefaultCharacterSave();
+    } catch {
+      return getDefaultCharacterSave();
+    }
+  }
+
+  function writeCharacter(saveData) {
+    try {
+      localStorage.setItem(CHARACTER_SAVE_KEY, JSON.stringify(saveData));
+    } catch {
+      console.warn('저장 실패: localStorage를 사용할 수 없습니다.');
+    }
+  }
+
+  export function getCharacterSave() {
+    return loadCharacter();
+  }
+
+  export function setCharacterSave(saveData) {
+    writeCharacter(saveData);
+    return saveData;
   }
 
   /* ===== Clock Game 전용 ===== */
