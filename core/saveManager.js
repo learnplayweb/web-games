@@ -1,6 +1,7 @@
 // v0.1.0 : 최초 생성 - Clock Game의 save.js 저장 기능을 이전, LocalStorage 접근 단일화
 // v0.1.1 : Add_디버그용 함수(resetSave, setGold, unlockAllClockLevels, setAllClockStars) 추가
 // v0.1.2 : Implement - 캐릭터 인벤토리용 저장 키(character_save) 및 get/set 추가
+// v0.1.3 : Implement - spendGold() 추가 (구매 처리용 골드 차감)
 // 의존: 없음 (LocalStorage 직접 접근은 이 파일에서만 수행)
 // 기존 저장 데이터(clockGame_save) 구조/키를 그대로 유지하여 호환성 보장
 // 향후 다른 게임/캐릭터 시스템 저장 기능 추가 시 이 파일에 함수를 확장한다.
@@ -9,8 +10,11 @@
 // - getCharacterSave(): 캐릭터 저장 데이터 반환 (없으면 기본값)
 // - setCharacterSave(saveData): 캐릭터 저장 데이터 통째로 덮어쓰기
 //
+// Public API (Gold 관련, 신규)
+// - spendGold(amount): 골드가 충분하면 차감 후 true, 부족하면 저장 없이 false
+//
 // Save Structure (character_save)
-// { parts: { [category]: string[] } }  // 카테고리별 보유 파츠 id 배열 (예: { head: ['circle'] })
+// { parts: { [category]: { [id]: number } } }  // 카테고리별 파츠 id → 보유 수량 (예: { head: { circle: 2 } })
 
   const SAVE_KEY = 'clockGame_save'; // localStorage 키 (기존 키 유지)
 
@@ -57,6 +61,15 @@ export function getClockSave() {
     save.gold += amount;
     write(save);
     return save.gold;
+  }
+
+  // 골드가 충분할 때만 차감하고 저장한다. 부족하면 차감/저장 없이 false 반환.
+  function spendGold(amount) {
+    const save = load();
+    if (save.gold < amount) return false;
+    save.gold -= amount;
+    write(save);
+    return true;
   }
 
   /* ===== 캐릭터 인벤토리 (공통) ===== */
@@ -163,6 +176,7 @@ export function getClockSave() {
 export {
   getGold,
   addGold,
+  spendGold,
   getClockBestStars,
   getClockCurrentStars,
   saveClockResult,
