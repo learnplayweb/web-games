@@ -3,11 +3,14 @@
 //          inline SVG(svgLoader.js)로 로딩하도록 변경. 화면/기능은 동일.
 // v0.1.2 : Implement - 파츠 구매 기능(구매 버튼, 수량 배지, 골드 표시 갱신) 연결
 // v0.1.3 : Polish - 구매/적용 버튼을 좌(라벨)/우(가격) 구조로 변경, 가격 상수(SHOP_COST) 사용
+// v0.1.4 : Polish - 구입 버튼 문구/스타일을 적용 버튼과 통일, 골드 부족 시 비활성화,
+//          수량 배지를 원형(99+ 상한)으로 변경
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgLoader.js';
 import { FACE_ASSETS, getPart, SHOP_COST } from './characterData.js';
 import { getPartQuantity, purchasePart, purchaseRandomPart } from './inventory.js';
+import { getGold } from '../core/saveManager.js';
 
 createHeader();
 
@@ -57,7 +60,23 @@ document.querySelectorAll('.part-slot[data-part]').forEach((slot) => {
 // 파츠 슬롯 보유 수량 배지 갱신
 // - inventory.js의 getPartQuantity()를 기준으로 표시한다.
 // - 수량 0: 배지 숨김 + part-slot--locked 유지, 1 이상: 배지 표시 + locked 해제
+// - 1~99는 실제 수량, 100 이상은 "99" + 위첨자 "+"로 표시(.part-slot__badge-plus)
 // ===========================
+function renderBadgeContent(badge, quantity) {
+  const displayNumber = quantity > 99 ? '99' : String(quantity);
+  const numberSpan = document.createElement('span');
+  numberSpan.textContent = displayNumber;
+
+  if (quantity > 99) {
+    const plusSup = document.createElement('sup');
+    plusSup.className = 'part-slot__badge-plus';
+    plusSup.textContent = '+';
+    badge.replaceChildren(numberSpan, plusSup);
+  } else {
+    badge.replaceChildren(numberSpan);
+  }
+}
+
 function refreshPartSlot(slot) {
   const slotId = slot.dataset.part;
   if (slotId === 'random') return;
@@ -75,7 +94,7 @@ function refreshPartSlot(slot) {
       badge.className = 'part-slot__badge';
       slot.appendChild(badge);
     }
-    badge.textContent = String(quantity);
+    renderBadgeContent(badge, quantity);
   } else if (badge) {
     badge.remove();
   }
@@ -106,13 +125,16 @@ const partModalName = document.getElementById('part-modal-name');
 const partModalActions = document.getElementById('part-modal-actions');
 let currentHeadPart = null;
 
-// 좌측 라벨("구매"/"적용") + 우측 가격(💎 n) 구조의 버튼을 생성한다.
+// 좌측 라벨("구입"/"적용") + 우측 가격(💎 n) 구조의 버튼을 생성한다.
 // textContent를 통째로 바꾸지 않고, 가격은 별도 span(.modal-card__btn-price)에만 넣어
 // 이후 가격만 갱신해야 할 때 이 span만 건드리면 되도록 한다.
-function createPricedButton(variantClass, label, price) {
+// 구입/적용 버튼은 동일한 modal-card__btn--cancel 스타일을 공유하며,
+// disabled 상태의 시각적 처리는 CSS(.modal-card__btn--priced:disabled)에서 일괄 담당한다.
+function createPricedButton(variantClass, label, price, disabled = false) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = `modal-card__btn modal-card__btn--priced ${variantClass}`;
+  button.disabled = disabled;
 
   const labelSpan = document.createElement('span');
   labelSpan.className = 'modal-card__btn-label';
@@ -136,8 +158,9 @@ function openPartModal(slot) {
   partModalName.textContent = '';
   partModalActions.replaceChildren();
 
-  const buyPrice = isRandom ? `💎 ${SHOP_COST.partRandomPurchase}` : `💎 ${SHOP_COST.partPurchase}`;
-  const buyButton = createPricedButton('modal-card__btn--confirm', '구매', buyPrice);
+  const buyPrice = isRandom ? SHOP_COST.partRandomPurchase : SHOP_COST.partPurchase;
+  const canAffordBuy = getGold() >= buyPrice;
+  const buyButton = createPricedButton('modal-card__btn--cancel', '구입', `💎 ${buyPrice}`, !canAffordBuy);
   buyButton.addEventListener('click', () => {
     const result = isRandom
       ? purchaseRandomPart('head')
@@ -165,12 +188,7 @@ function openPartModal(slot) {
       appliedMessage.textContent = '\uc801\uc6a9 \uc911';
       partModalActions.appendChild(appliedMessage);
     } else {
-      const applyButton = createPricedButton('modal-card__btn--cancel', '적용', `💎 ${SHOP_COST.partApply}`);
-      if (owned <= 0) {
-        applyButton.disabled = true;
-        applyButton.style.opacity = '0.4';
-        applyButton.style.cursor = 'default';
-      }
+      const applyButton = createPricedButton('modal-card__btn--cancel', '적용', `💎 ${SHOP_COST.partApply}`, owned <= 0);
       partModalActions.appendChild(applyButton);
     }
   }
@@ -196,7 +214,8 @@ function openColorModal(color) {
   colorModalPreview.replaceChildren(previewSvg);
   colorModalActions.replaceChildren();
 
-  const buyButton = createPricedButton('modal-card__btn--confirm', '구매', `💎 ${SHOP_COST.colorPurchase}`);
+  const canAffordColorBuy = getGold() >= SHOP_COST.colorPurchase;
+  const buyButton = createPricedButton('modal-card__btn--cancel', '구입', `💎 ${SHOP_COST.colorPurchase}`, !canAffordColorBuy);
   const applyButton = createPricedButton('modal-card__btn--cancel', '적용', `💎 ${SHOP_COST.colorApply}`);
   colorModalActions.append(buyButton, applyButton);
   colorModal.classList.remove('modal-overlay--hidden');
