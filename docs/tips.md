@@ -25,7 +25,10 @@ web-games/
     ├── sounds/     # 정답, 오답, 버튼 클릭 등 효과음(BGM은 필요 시)
     └── images/     # 공통 이미지(배경, 로고 등)
 
-
+# 이전 커밋으로 돌아가기
+git switch --detach <커밋해시>
+# 최신으로 돌리기
+git switch main
 
 
 # 개발 습관

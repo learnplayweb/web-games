@@ -2,17 +2,11 @@
 // v0.1.1 : Refactor - placeholder 눈/입, 파츠 슬롯 아이콘을 assets fetch 기반
 //          inline SVG(svgLoader.js)로 로딩하도록 변경. 화면/기능은 동일.
 // v0.1.2 : Implement - 파츠 구매 기능(구매 버튼, 수량 배지, 골드 표시 갱신) 연결
-
-// Public API
-// (없음 — 화면 진입 스크립트, 외부에서 import하지 않음)
-// 주요 내부 함수: openPartModal, openColorModal, refreshPartSlot, refreshAllPartSlots
-//
-// Save Structure
-// 이 파일은 저장소를 직접 다루지 않음. core/saveManager.js, characters/inventory.js 참고.
+// v0.1.3 : Polish - 구매/적용 버튼을 좌(라벨)/우(가격) 구조로 변경, 가격 상수(SHOP_COST) 사용
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
-import { replaceSvgContent, embedSvgFragment } from './svgLoader.js';
-import { FACE_ASSETS, getPart } from './characterData.js';
+import { replaceSvgContent, embedSvgFragment } from '../core/svgLoader.js';
+import { FACE_ASSETS, getPart, SHOP_COST } from './characterData.js';
 import { getPartQuantity, purchasePart, purchaseRandomPart } from './inventory.js';
 
 createHeader();
@@ -112,6 +106,26 @@ const partModalName = document.getElementById('part-modal-name');
 const partModalActions = document.getElementById('part-modal-actions');
 let currentHeadPart = null;
 
+// 좌측 라벨("구매"/"적용") + 우측 가격(💎 n) 구조의 버튼을 생성한다.
+// textContent를 통째로 바꾸지 않고, 가격은 별도 span(.modal-card__btn-price)에만 넣어
+// 이후 가격만 갱신해야 할 때 이 span만 건드리면 되도록 한다.
+function createPricedButton(variantClass, label, price) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `modal-card__btn modal-card__btn--priced ${variantClass}`;
+
+  const labelSpan = document.createElement('span');
+  labelSpan.className = 'modal-card__btn-label';
+  labelSpan.textContent = label;
+
+  const priceSpan = document.createElement('span');
+  priceSpan.className = 'modal-card__btn-price';
+  priceSpan.textContent = price;
+
+  button.append(labelSpan, priceSpan);
+  return button;
+}
+
 function openPartModal(slot) {
   const slotId = slot.dataset.part;
   const isRandom = slotId === 'random';
@@ -122,10 +136,8 @@ function openPartModal(slot) {
   partModalName.textContent = '';
   partModalActions.replaceChildren();
 
-  const buyButton = document.createElement('button');
-  buyButton.type = 'button';
-  buyButton.className = 'modal-card__btn modal-card__btn--confirm';
-  buyButton.textContent = isRandom ? '구매 💎 70' : '구매 💎 100';
+  const buyPrice = isRandom ? `💎 ${SHOP_COST.partRandomPurchase}` : `💎 ${SHOP_COST.partPurchase}`;
+  const buyButton = createPricedButton('modal-card__btn--confirm', '구매', buyPrice);
   buyButton.addEventListener('click', () => {
     const result = isRandom
       ? purchaseRandomPart('head')
@@ -153,10 +165,7 @@ function openPartModal(slot) {
       appliedMessage.textContent = '\uc801\uc6a9 \uc911';
       partModalActions.appendChild(appliedMessage);
     } else {
-      const applyButton = document.createElement('button');
-      applyButton.type = 'button';
-      applyButton.className = 'modal-card__btn modal-card__btn--cancel';
-      applyButton.textContent = '적용 💎 10';
+      const applyButton = createPricedButton('modal-card__btn--cancel', '적용', `💎 ${SHOP_COST.partApply}`);
       if (owned <= 0) {
         applyButton.disabled = true;
         applyButton.style.opacity = '0.4';
@@ -187,14 +196,8 @@ function openColorModal(color) {
   colorModalPreview.replaceChildren(previewSvg);
   colorModalActions.replaceChildren();
 
-  const buyButton = document.createElement('button');
-  buyButton.type = 'button';
-  buyButton.className = 'modal-card__btn modal-card__btn--confirm';
-  buyButton.textContent = '\uad6c\ub9e4 \ud83e\ude99 100';
-  const applyButton = document.createElement('button');
-  applyButton.type = 'button';
-  applyButton.className = 'modal-card__btn modal-card__btn--cancel';
-  applyButton.textContent = '\uc801\uc6a9 \ud83e\ude99 10';
+  const buyButton = createPricedButton('modal-card__btn--confirm', '구매', `💎 ${SHOP_COST.colorPurchase}`);
+  const applyButton = createPricedButton('modal-card__btn--cancel', '적용', `💎 ${SHOP_COST.colorApply}`);
   colorModalActions.append(buyButton, applyButton);
   colorModal.classList.remove('modal-overlay--hidden');
 }

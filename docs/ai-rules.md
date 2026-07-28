@@ -14,9 +14,22 @@
 - Refactor : 내부 구조 변경 (동작 변화 없음)
 - Fix : 버그 수정
 - Polish : UI/UX 다듬기
+* 버전 정보 아래에 주석으로 Public API와 Save Structure를 간략히 정리한다.
+- 제공하는 함수 목록
+- 저장 데이터 구조
+- 각각 한눈에 이해할 수 있는 수준으로만 작성한다.
+- 구현 내용을 장황하게 설명하지 않는다.
+- 코드와 불일치하지 않도록 유지한다.
 * 기존 기능이나 구조를 변경해야 하는 경우에는 먼저 이유를 설명하고, 가능한 영향 범위를 최소화한다.
 * 구현 완료 후 요구사항별 완료/미완료 체크리스트를 함께 보고한다.
 * 확신할 수 없는 내용은 추측하여 구현하지 않는다. 필요한 경우 먼저 확인을 요청한다.
+
+# Public API와 Save Structure 필요 파일
+saveManager.js
+inventory.js
+character.js
+characterData.js
+svgLoader.js
 
 ## 파일 분리 원칙
 역할이 독립적인 화면가 추가되면 HTML, CSS, JavaScript를 함께 분리한다.
