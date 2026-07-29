@@ -5,6 +5,8 @@
 // v0.1.3 : Polish - 구매/적용 버튼을 좌(라벨)/우(가격) 구조로 변경, 가격 상수(SHOP_COST) 사용
 // v0.1.4 : Polish - 구입 버튼 문구/스타일을 적용 버튼과 통일, 골드 부족 시 비활성화,
 //          수량 배지를 원형(99+ 상한)으로 변경
+// v0.1.5 : Implement - 일반/랜덤 구입 결과 모달(파티클, 랜덤 연출) 추가.
+//          기존 part-modal(#part-modal-svg/#part-modal-actions)을 결과 화면으로 재사용.
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgLoader.js';
@@ -148,7 +150,101 @@ function createPricedButton(variantClass, label, price, disabled = false) {
   return button;
 }
 
+// ===========================
+// 구입 결과 연출 (기존 #part-modal을 재사용)
+// - 일반 구입: 결과를 바로 표시
+// - 랜덤 구입: "뽑는 중..." 연출(0.7초) 후 결과 표시
+// - 결과 표시 중에는 스케일 팝업 + 파티클(6~10개) 효과, 3초 후 자동 닫힘
+// - reopenTimerId: "뽑는 중" → 결과 전환 타이머, autoCloseTimerId: 자동 닫힘 타이머
+// ===========================
+const RANDOM_DRAW_DELAY_MS = 700; // 요구사항: 약 0.6~0.8초
+const RESULT_AUTO_CLOSE_MS = 3000;
+const PARTICLE_COLORS = ['#ffffff', '#bfe6ff', '#fff6b3'];
+
+let reopenTimerId = null;
+let autoCloseTimerId = null;
+
+function clearResultTimers() {
+  if (reopenTimerId) { clearTimeout(reopenTimerId); reopenTimerId = null; }
+  if (autoCloseTimerId) { clearTimeout(autoCloseTimerId); autoCloseTimerId = null; }
+}
+
+function closePartModal() {
+  clearResultTimers();
+  partModal.classList.add('modal-overlay--hidden');
+}
+
+// 파츠 아이콘 주변에 원형 파티클을 잠깐 흩뿌린다. (Canvas/외부 라이브러리 미사용)
+function spawnResultParticles() {
+  const layer = document.createElement('div');
+  layer.className = 'part-modal__particles';
+
+  const count = 6 + Math.floor(Math.random() * 5); // 6~10개
+  for (let i = 0; i < count; i += 1) {
+    const particle = document.createElement('span');
+    particle.className = 'part-modal__particle';
+    const angle = (360 / count) * i + (Math.random() * 20 - 10);
+    const distance = 34 + Math.random() * 18; // px
+    const size = 4 + Math.random() * 4; // 4~8px
+    particle.style.setProperty('--angle', `${angle}deg`);
+    particle.style.setProperty('--distance', `${distance}px`);
+    particle.style.width = `${size}px`;
+    particle.style.height = `${size}px`;
+    particle.style.background = PARTICLE_COLORS[i % PARTICLE_COLORS.length];
+    layer.appendChild(particle);
+  }
+
+  partModalSvg.appendChild(layer);
+  setTimeout(() => layer.remove(), 900);
+}
+
+// 구입 결과(획득한 파츠)를 표시하고 3초 뒤 자동으로 닫는다.
+function showPurchaseResult(category, id) {
+  const part = getPart(category, id);
+
+  const iconSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  iconSvg.setAttribute('viewBox', '0 0 56 56');
+  iconSvg.classList.add('part-modal__result-icon');
+  partModalSvg.replaceChildren(iconSvg);
+  replaceSvgContent(iconSvg, part.assetPath);
+  spawnResultParticles();
+
+  partModalName.textContent = '';
+  partModalActions.replaceChildren();
+  const resultText = document.createElement('p');
+  resultText.className = 'part-modal__result-text';
+  resultText.textContent = '🎉 꼬무리 조각 획득';
+  partModalActions.appendChild(resultText);
+
+  clearResultTimers();
+  autoCloseTimerId = setTimeout(closePartModal, RESULT_AUTO_CLOSE_MS);
+}
+
+// 랜덤 구입 전용: "뽑는 중..." 로딩 연출 후 결과를 표시한다.
+function showRandomDrawing(category, id) {
+  const spinner = document.createElement('div');
+  spinner.className = 'part-modal__spinner';
+  spinner.textContent = '💎';
+  partModalSvg.replaceChildren(spinner);
+
+  partModalName.textContent = '';
+  partModalActions.replaceChildren();
+  const drawingText = document.createElement('p');
+  drawingText.className = 'part-modal__drawing-text';
+  drawingText.textContent = '뽑는 중...';
+  partModalActions.appendChild(drawingText);
+
+  clearResultTimers();
+  reopenTimerId = setTimeout(() => {
+    reopenTimerId = null;
+    // 연출 도중 모달이 닫혔다면 결과를 표시하지 않는다.
+    if (partModal.classList.contains('modal-overlay--hidden')) return;
+    showPurchaseResult(category, id);
+  }, RANDOM_DRAW_DELAY_MS);
+}
+
 function openPartModal(slot) {
+  clearResultTimers();
   const slotId = slot.dataset.part;
   const isRandom = slotId === 'random';
   const headPartId = isRandom ? null : PART_ID_BY_SLOT[slotId];
@@ -168,15 +264,14 @@ function openPartModal(slot) {
 
     if (!result.success) return; // 골드 부족 등: 구매/저장/화면 갱신 없음
 
+    // 골드/수량 배지/버튼 상태는 연출과 무관하게 즉시 갱신한다.
     updateHeaderGold(result.remainingGold);
     refreshAllPartSlots();
 
-    // 특정 파츠 구매는 모달을 다시 그려 수량/버튼 상태를 즉시 반영한다.
-    // 랜덤 구매는 어떤 슬롯이 당첨됐는지 이 모달과 무관하므로 닫기만 한다.
     if (isRandom) {
-      partModal.classList.add('modal-overlay--hidden');
+      showRandomDrawing('head', result.id);
     } else {
-      openPartModal(slot);
+      showPurchaseResult('head', headPartId);
     }
   });
   partModalActions.appendChild(buyButton);
@@ -199,7 +294,7 @@ document.querySelectorAll('.part-slot[data-part]').forEach((slot) => {
   slot.addEventListener('click', () => openPartModal(slot));
 });
 partModal.addEventListener('click', (event) => {
-  if (event.target === partModal) partModal.classList.add('modal-overlay--hidden');
+  if (event.target === partModal) closePartModal();
 });
 
 const colorModal = document.getElementById('color-modal');
