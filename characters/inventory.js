@@ -1,6 +1,8 @@
 // v0.1.0 : Implement - 캐릭터 파츠 인벤토리 시스템 최초 구현
 // v0.1.1 : Implement - 보유 여부(true/false) 대신 보유 수량(number)으로 구조 변경.
 //          파츠 구매 함수(purchasePart, purchaseRandomPart) 추가.
+// v0.1.2 : Implement - 파츠 적용(equip) 함수 추가. 적용 상태는 core/saveManager.js의
+//          별도 저장 키(character_equip_save)를 통해 저장/조회한다.
 //
 // Public API
 // - hasPart(category, id): 파츠 보유 여부 확인 (수량 > 0)
@@ -10,15 +12,21 @@
 // - grantParts(entries): [{ category, id }, ...] 여러 파츠 수량 일괄 1 증가
 // - purchasePart(category, id): 골드로 파츠 1개 구매 (수량 1 증가)
 // - purchaseRandomPart(category): 골드로 카테고리 내 랜덤 파츠 1개 구매
+// - getEquippedPart(category): 현재 적용된 파츠 id 반환 (없으면 null)
+// - applyPart(category, id): 골드로 파츠를 적용(수량 1 감소 + 적용 상태 갱신)
 //
-// Save Structure (core/saveManager.js의 character_save 저장)
+// Save Structure (core/saveManager.js의 character_save 저장, 인벤토리 전용)
 // { parts: { [category]: { [id]: number } } }  // 카테고리별 파츠 id → 보유 수량
+// 적용(equip) 상태는 character_equip_save에 별도 저장한다 (saveManager.js 참고).
 //
 // characterData.js의 PARTS_BY_CATEGORY/SHOP_COST를 기준으로 카테고리·파츠·가격을
 // 검증하므로, 파츠 이름과 가격을 이 파일에 하드코딩하지 않는다.
 
 import { PARTS_BY_CATEGORY, getPart, SHOP_COST } from './characterData.js';
-import { getCharacterSave, setCharacterSave, getGold, spendGold } from '../core/saveManager.js';
+import {
+  getCharacterSave, setCharacterSave, getGold, spendGold,
+  getEquippedParts, setEquippedParts,
+} from '../core/saveManager.js';
 
 /** 카테고리별 기본 보유 수량만 채운 인벤토리를 만든다. (현재는 기본 보유 파츠 없음) */
 function buildDefaultInventory() {
@@ -131,5 +139,48 @@ export function purchaseRandomPart(category) {
     id: randomPart.id,
     quantity: getPartQuantity(category, randomPart.id),
     remainingGold: getGold(),
+  };
+}
+
+/** 파츠 수량을 1 감소시킨다 (0 이하로는 내려가지 않음). 보유 수량이 없으면 false. */
+function consumePart(category, id) {
+  const inventory = loadInventory();
+  const current = inventory.parts[category]?.[id] ?? 0;
+  if (current <= 0) return false;
+
+  inventory.parts[category][id] = current - 1;
+  setCharacterSave(inventory);
+
+  return true;
+}
+
+/** 현재 적용된 파츠 id를 반환한다 (미적용 시 null). */
+export function getEquippedPart(category) {
+  const equipped = getEquippedParts();
+  return equipped[category] ?? null;
+}
+
+/**
+ * 보유한 파츠를 골드로 적용(장착)한다.
+ * 순서: 골드 차감 → 적용 상태 갱신 → 보유 수량 1 감소.
+ * 미보유거나 골드가 부족하면 아무것도 차감/저장하지 않는다.
+ */
+export function applyPart(category, id) {
+  if (!getPart(category, id)) return { success: false, reason: 'invalid-part' };
+  if (getPartQuantity(category, id) <= 0) return { success: false, reason: 'not-owned' };
+  if (!spendGold(SHOP_COST.partApply)) return { success: false, reason: 'insufficient-gold' };
+
+  const equipped = getEquippedParts();
+  equipped[category] = id;
+  setEquippedParts(equipped);
+
+  consumePart(category, id);
+
+  return {
+    success: true,
+    category,
+    id,
+    remainingGold: getGold(),
+    remainingQuantity: getPartQuantity(category, id),
   };
 }

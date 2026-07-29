@@ -7,27 +7,59 @@
 //          수량 배지를 원형(99+ 상한)으로 변경
 // v0.1.5 : Implement - 일반/랜덤 구입 결과 모달(파티클, 랜덤 연출) 추가.
 //          기존 part-modal(#part-modal-svg/#part-modal-actions)을 결과 화면으로 재사용.
+// v0.1.6 : Implement - 파츠 적용(equip) 기능 연결. placeholder를 미적용/적용 상태에
+//          따라 조건부로 그리도록 변경 (미적용: 안내 문구만, 적용: 실제 머리 파츠+눈/입).
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgLoader.js';
 import { FACE_ASSETS, getPart, SHOP_COST } from './characterData.js';
-import { getPartQuantity, purchasePart, purchaseRandomPart } from './inventory.js';
+import {
+  getPartQuantity, purchasePart, purchaseRandomPart, getEquippedPart, applyPart,
+} from './inventory.js';
 import { getGold } from '../core/saveManager.js';
 
 createHeader();
 
 // ===========================
-// 캐릭터 placeholder 얼굴(눈/입) 인라인 로딩
-// - assets/face/eyes-idle.svg, mouth-idle.svg를 fetch하여
-//   character-placeholder 안의 #face-eyes-slot, #face-mouth-slot 위치에 삽입한다.
-// - 프레임(x, y, width, height)은 placeholder viewBox(0 0 160 200) 기준 좌표이며,
-//   기존 하드코딩 눈/입이 있던 자리를 참고해 잡은 값이다. 필요 시 조정 가능.
+// 캐릭터 placeholder 렌더링
+// - 아직 한 번도 적용하지 않았으면(getEquippedPart('head') === null) 안내 문구만 표시.
+// - 적용된 머리 파츠가 있으면 해당 파츠 SVG + 눈/입(idle)을 fetch해 표시한다.
+// - 기존 정적 head outline(<path>)은 실제 파츠로 대체되므로 숨긴다.
+// - 프레임(x, y, width, height)은 placeholder viewBox(0 0 160 200) 기준 좌표이며
+//   기존 하드코딩 눈/입/머리가 있던 자리를 참고해 잡은 값이다. 필요 시 조정 가능.
 // ===========================
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const characterPlaceholder = document.querySelector('.character-placeholder');
+const headOutlinePath = characterPlaceholder.querySelector('path');
+const placeholderText = characterPlaceholder.querySelector('text');
 const faceEyesSlot = document.getElementById('face-eyes-slot');
 const faceMouthSlot = document.getElementById('face-mouth-slot');
 
-embedSvgFragment(faceEyesSlot, FACE_ASSETS.eyes.idle, { x: 50, y: 50, width: 60, height: 26 });
-embedSvgFragment(faceMouthSlot, FACE_ASSETS.mouth.idle, { x: 60, y: 72, width: 40, height: 18 });
+const headPartSlot = document.createElementNS(SVG_NS, 'g');
+headPartSlot.setAttribute('id', 'head-part-slot');
+characterPlaceholder.insertBefore(headPartSlot, faceEyesSlot);
+
+function renderCharacterPreview() {
+  const equippedHeadId = getEquippedPart('head');
+
+  if (!equippedHeadId) {
+    headOutlinePath.style.display = 'none';
+    headPartSlot.replaceChildren();
+    faceEyesSlot.replaceChildren();
+    faceMouthSlot.replaceChildren();
+    placeholderText.style.display = '';
+    return;
+  }
+
+  const part = getPart('head', equippedHeadId);
+  headOutlinePath.style.display = 'none';
+  placeholderText.style.display = 'none';
+  embedSvgFragment(headPartSlot, part.assetPath, { x: 30, y: 12, width: 100, height: 96 });
+  embedSvgFragment(faceEyesSlot, FACE_ASSETS.eyes.idle, { x: 50, y: 50, width: 60, height: 26 });
+  embedSvgFragment(faceMouthSlot, FACE_ASSETS.mouth.idle, { x: 60, y: 72, width: 40, height: 18 });
+}
+
+renderCharacterPreview();
 
 // ===========================
 // 파츠 슬롯 아이콘 인라인 로딩
@@ -125,7 +157,6 @@ const partModal = document.getElementById('part-modal');
 const partModalSvg = document.getElementById('part-modal-svg');
 const partModalName = document.getElementById('part-modal-name');
 const partModalActions = document.getElementById('part-modal-actions');
-let currentHeadPart = null;
 
 // 좌측 라벨("구입"/"적용") + 우측 가격(💎 n) 구조의 버튼을 생성한다.
 // textContent를 통째로 바꾸지 않고, 가격은 별도 span(.modal-card__btn-price)에만 넣어
@@ -277,13 +308,24 @@ function openPartModal(slot) {
   partModalActions.appendChild(buyButton);
 
   if (!isRandom) {
-    if (currentHeadPart === slotId) {
+    const equippedHeadId = getEquippedPart('head');
+    if (equippedHeadId === headPartId) {
       const appliedMessage = document.createElement('p');
       appliedMessage.className = 'part-modal__applied';
-      appliedMessage.textContent = '\uc801\uc6a9 \uc911';
+      appliedMessage.textContent = '적용 성공';
       partModalActions.appendChild(appliedMessage);
     } else {
-      const applyButton = createPricedButton('modal-card__btn--cancel', '적용', `💎 ${SHOP_COST.partApply}`, owned <= 0);
+      const canApply = owned > 0 && getGold() >= SHOP_COST.partApply;
+      const applyButton = createPricedButton('modal-card__btn--cancel', '적용', `💎 ${SHOP_COST.partApply}`, !canApply);
+      applyButton.addEventListener('click', () => {
+        const result = applyPart('head', headPartId);
+        if (!result.success) return; // 미보유/골드 부족 등: 적용/저장/화면 갱신 없음
+
+        updateHeaderGold(result.remainingGold);
+        refreshAllPartSlots();
+        renderCharacterPreview();
+        openPartModal(slot); // 적용 중 표시/버튼 상태를 즉시 반영
+      });
       partModalActions.appendChild(applyButton);
     }
   }
@@ -300,10 +342,9 @@ partModal.addEventListener('click', (event) => {
 const colorModal = document.getElementById('color-modal');
 const colorModalPreview = document.getElementById('color-modal-preview');
 const colorModalActions = document.getElementById('color-modal-actions');
-const characterPreview = document.querySelector('.character-placeholder');
 
 function openColorModal(color) {
-  const previewSvg = characterPreview.cloneNode(true);
+  const previewSvg = characterPlaceholder.cloneNode(true);
   previewSvg.querySelectorAll('path, line').forEach((element) => element.setAttribute('stroke', color));
   previewSvg.querySelectorAll('circle').forEach((element) => element.setAttribute('fill', color));
   colorModalPreview.replaceChildren(previewSvg);

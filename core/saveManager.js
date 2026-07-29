@@ -2,6 +2,7 @@
 // v0.1.1 : Add_디버그용 함수(resetSave, setGold, unlockAllClockLevels, setAllClockStars) 추가
 // v0.1.2 : Implement - 캐릭터 인벤토리용 저장 키(character_save) 및 get/set 추가
 // v0.1.3 : Implement - spendGold() 추가 (구매 처리용 골드 차감)
+// v0.1.4 : Implement - 적용(equip) 상태용 저장 키(character_equip_save) 및 get/set 추가
 // 의존: 없음 (LocalStorage 직접 접근은 이 파일에서만 수행)
 // 기존 저장 데이터(clockGame_save) 구조/키를 그대로 유지하여 호환성 보장
 // 향후 다른 게임/캐릭터 시스템 저장 기능 추가 시 이 파일에 함수를 확장한다.
@@ -10,11 +11,18 @@
 // - getCharacterSave(): 캐릭터 저장 데이터 반환 (없으면 기본값)
 // - setCharacterSave(saveData): 캐릭터 저장 데이터 통째로 덮어쓰기
 //
-// Public API (Gold 관련, 신규)
+// Public API (character_equip_save 관련, 신규)
+// - getEquippedParts(): 적용 상태 반환 (없으면 기본값)
+// - setEquippedParts(equipData): 적용 상태 통째로 덮어쓰기
+//
+// Public API (Gold 관련)
 // - spendGold(amount): 골드가 충분하면 차감 후 true, 부족하면 저장 없이 false
 //
 // Save Structure (character_save)
 // { parts: { [category]: { [id]: number } } }  // 카테고리별 파츠 id → 보유 수량 (예: { head: { circle: 2 } })
+//
+// Save Structure (character_equip_save)
+// { [category]: string | null }  // 카테고리별 현재 적용된 파츠 id (예: { head: 'circle' })
 
   const SAVE_KEY = 'clockGame_save'; // localStorage 키 (기존 키 유지)
 
@@ -104,6 +112,43 @@ export function getClockSave() {
   export function setCharacterSave(saveData) {
     writeCharacter(saveData);
     return saveData;
+  }
+
+  /* ===== 캐릭터 적용(equip) 상태 (공통) =====
+     인벤토리(character_save)와 별도 키를 사용한다. 같은 키를 공유하면
+     inventory.js가 { parts }만 통째로 덮어쓸 때 equip 정보가 함께
+     지워질 수 있어, 서로 영향 없이 독립적으로 저장/갱신되도록 분리했다. */
+
+  const CHARACTER_EQUIP_KEY = 'character_equip_save';
+
+  function getDefaultEquip() {
+    return { head: null };
+  }
+
+  function loadEquip() {
+    try {
+      const raw = localStorage.getItem(CHARACTER_EQUIP_KEY);
+      return raw ? JSON.parse(raw) : getDefaultEquip();
+    } catch {
+      return getDefaultEquip();
+    }
+  }
+
+  function writeEquip(equipData) {
+    try {
+      localStorage.setItem(CHARACTER_EQUIP_KEY, JSON.stringify(equipData));
+    } catch {
+      console.warn('저장 실패: localStorage를 사용할 수 없습니다.');
+    }
+  }
+
+  export function getEquippedParts() {
+    return loadEquip();
+  }
+
+  export function setEquippedParts(equipData) {
+    writeEquip(equipData);
+    return equipData;
   }
 
   /* ===== Clock Game 전용 ===== */
