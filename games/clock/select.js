@@ -52,6 +52,7 @@ function renderStageCards() {
   });
 }
 
+/* 디버그 메뉴 열기/닫기/버튼 > 헤더로 옮김
 function openDebugMenu() {
   document.getElementById('debug-menu').style.display = 'flex';
 }
@@ -98,6 +99,7 @@ document.querySelectorAll('#debug-menu [data-debug]').forEach((button) => {
     closeDebugMenu();
   });
 });
+*/
 
 createHeader();
 renderStageCards();

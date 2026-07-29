@@ -30,7 +30,13 @@ git switch --detach <커밋해시>
 # 최신으로 돌리기
 git switch main
 
+---
+# 주석 처리
+/* ... */  (CSS 전용)
+//  (JavaScript 전용)
+<!-- ... --> (HTML 전용)
 
+---
 # 개발 습관
 1. 기능 구현
 2. Ctrl + Shift + S (모든 파일 저장)

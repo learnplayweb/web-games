@@ -3,6 +3,7 @@
 // v0.1.2 : Implement - 캐릭터 인벤토리용 저장 키(character_save) 및 get/set 추가
 // v0.1.3 : Implement - spendGold() 추가 (구매 처리용 골드 차감)
 // v0.1.4 : Implement - 적용(equip) 상태용 저장 키(character_equip_save) 및 get/set 추가
+// v0.1.5 : Implement - resetCharacterSave() 추가 (디버그 메뉴의 캐릭터샵 초기화용)
 // 의존: 없음 (LocalStorage 직접 접근은 이 파일에서만 수행)
 // 기존 저장 데이터(clockGame_save) 구조/키를 그대로 유지하여 호환성 보장
 // 향후 다른 게임/캐릭터 시스템 저장 기능 추가 시 이 파일에 함수를 확장한다.
@@ -11,9 +12,12 @@
 // - getCharacterSave(): 캐릭터 저장 데이터 반환 (없으면 기본값)
 // - setCharacterSave(saveData): 캐릭터 저장 데이터 통째로 덮어쓰기
 //
-// Public API (character_equip_save 관련, 신규)
+// Public API (character_equip_save 관련)
 // - getEquippedParts(): 적용 상태 반환 (없으면 기본값)
 // - setEquippedParts(equipData): 적용 상태 통째로 덮어쓰기
+//
+// Public API (디버그 전용, 신규)
+// - resetCharacterSave(): character_save + character_equip_save를 기본값으로 초기화
 //
 // Public API (Gold 관련)
 // - spendGold(amount): 골드가 충분하면 차감 후 true, 부족하면 저장 없이 false
@@ -149,6 +153,12 @@ export function getClockSave() {
   export function setEquippedParts(equipData) {
     writeEquip(equipData);
     return equipData;
+  }
+
+  // 캐릭터 관련 저장(인벤토리 + 적용 상태)을 모두 기본값으로 되돌린다. (디버그 전용)
+  export function resetCharacterSave() {
+    writeCharacter(getDefaultCharacterSave());
+    writeEquip(getDefaultEquip());
   }
 
   /* ===== Clock Game 전용 ===== */
