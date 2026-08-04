@@ -4,6 +4,7 @@
 // v0.1.3 : Implement - spendGold() 추가 (구매 처리용 골드 차감)
 // v0.1.4 : Implement - 적용(equip) 상태용 저장 키(character_equip_save) 및 get/set 추가
 // v0.1.5 : Implement - resetCharacterSave() 추가 (디버그 메뉴의 캐릭터샵 초기화용)
+// v0.1.6 : Implement - resetClockProgress() 추가 (골드는 유지하고 Clock 진행 상태만 초기화)
 // 의존: 없음 (LocalStorage 직접 접근은 이 파일에서만 수행)
 // 기존 저장 데이터(clockGame_save) 구조/키를 그대로 유지하여 호환성 보장
 // 향후 다른 게임/캐릭터 시스템 저장 기능 추가 시 이 파일에 함수를 확장한다.
@@ -16,7 +17,9 @@
 // - getEquippedParts(): 적용 상태 반환 (없으면 기본값)
 // - setEquippedParts(equipData): 적용 상태 통째로 덮어쓰기
 //
-// Public API (디버그 전용, 신규)
+// Public API (디버그 전용)
+// - resetSave(): clockGame_save 전체 초기화 (골드 포함)
+// - resetClockProgress(): Clock 진행 상태만 초기화 (골드 유지, 신규)
 // - resetCharacterSave(): character_save + character_equip_save를 기본값으로 초기화
 //
 // Public API (Gold 관련)
@@ -203,6 +206,13 @@ export function getClockSave() {
     write(getDefaultSave());
   }
 
+  // Clock Game 진행 상태(단계 해금/별점)만 기본값으로 되돌리고 골드는 그대로 둔다.
+  function resetClockProgress() {
+    const save = load();
+    const defaults = getDefaultSave();
+    write({ ...defaults, gold: save.gold });
+  }
+
   function setGold(amount) {
     const save = load();
     save.gold = amount;
@@ -236,6 +246,7 @@ export {
   getClockCurrentStars,
   saveClockResult,
   resetSave,
+  resetClockProgress,
   setGold,
   unlockAllClockLevels,
   setAllClockStars,

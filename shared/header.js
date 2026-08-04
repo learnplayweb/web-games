@@ -2,6 +2,8 @@
 // v0.1.1 : Implement - 숨김 디버그 메뉴 추가. 💎 표시 영역을 7회 연속 탭하면 열림.
 //          core/debug.js는 동적 import로만 불러와, 배포 시 그 파일만 지워도
 //          헤더/페이지 전체는 영향받지 않도록 함(정적 import 금지).
+// v0.1.2 : Update - 메뉴 순서 조정, resetClock/resetAll 함수명 변경 반영
+//          (resetAll은 이제 골드+캐릭터샵+전체 게임 초기화)
 
 import { getGold } from '../core/saveManager.js';
 
@@ -48,20 +50,22 @@ const DEBUG_TAP_WINDOW_MS = 2000;
 
 const DEBUG_MENU_ITEMS = [
   { key: 'grantMaxGold', label: 'Gold 99999 지급' },
-  { key: 'resetAll', label: '시계 게임 초기화' },
+  { key: 'resetClock', label: '시계 게임 초기화' },
   { key: 'unlockAllClockLevels', label: 'Clock 모든 단계 해금' },
   { key: 'star1', label: '시계 별 1개' },
   { key: 'star2', label: '시계 별 2개' },
   { key: 'star3', label: '시계 별 3개' },
   { key: 'resetCharacter', label: '캐릭터샵 초기화' },
+  { key: 'resetAll', label: '전체 데이터 초기화 (골드+캐릭터+게임)' },
 ];
 
 function buildDebugActions(debugModule) {
   return {
+    resetClock: debugModule.resetClock,
     grantMaxGold: debugModule.grantMaxGold,
-    resetAll: debugModule.resetAll,
     unlockAllClockLevels: debugModule.unlockAllClockLevels,
     resetCharacter: debugModule.resetCharacter,
+    resetAll: debugModule.resetAll,
     star1: () => debugModule.setAllClockStars(1),
     star2: () => debugModule.setAllClockStars(2),
     star3: () => debugModule.setAllClockStars(3),
