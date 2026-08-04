@@ -8,33 +8,7 @@
 
 
 폴더 구조 tree /F
-├─assets
-│  └─fonts
-├─characters
-│  ├─assets
-│  │  ├─face
-│  │  └─parts
-│  └─preview
-├─core
-├─docs
-│  ├─games
-│  └─systems
-├─games
-│  ├─clock
-│  │  ├─assets
-│  │  │  ├─images
-│  │  │  ├─sounds
-│  │  │  └─svg
-│  │  └─data
-│  └─number-connect
-│      └─assets
-│          ├─images
-│          ├─sounds
-│          └─svg
-└─shared
-    ├─css
-    ├─icons
-    └─sounds
+
 
 
 개발 규칙
@@ -42,7 +16,7 @@
 - 기존 구조를 유지한다.
 - 불필요한 리팩터링 금지.
 - 새 파일이 필요하면 경로를 명시한다.
-- 항상 Commit Summary를 제공한다. (가능한 간략하게)
+- 항상 Commit Summary를 제공한다. (영어로, 간략하게)
     - Implement : 새로운 기능
     - Update : 기능 개선
     - Refactor : 내부 구조 변경 (동작 변화 없음)
@@ -54,3 +28,6 @@
 
 - 변경 파일만 출력한다.
 - 확신할 수 없는 내용은 추측하여 구현하지 않는다. 필요한 경우 먼저 확인을 요청한다.
+- 코드 상단에 버전 정보, Public API와 Save Structure를 필요한 경우 수정/보충한다.
+- 구현 완료 후 요구사항별 완료/미완료 체크리스트를 매우 간략히 보고한다.
+- 기타 설명은 답변이 아닌 코드 내 주석으로 한다.

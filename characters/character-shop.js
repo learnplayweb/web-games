@@ -9,6 +9,14 @@
 //          기존 part-modal(#part-modal-svg/#part-modal-actions)을 결과 화면으로 재사용.
 // v0.1.6 : Implement - 파츠 적용(equip) 기능 연결. placeholder를 미적용/적용 상태에
 //          따라 조건부로 그리도록 변경 (미적용: 안내 문구만, 적용: 실제 머리 파츠+눈/입).
+// v0.1.7 : Refactor - 파츠 조합 슬롯(head/eyes/mouth)의 위치/크기 관리를
+//          character-shop.html(<svg x y width height>)로 이전. head-part-slot을
+//          JS에서 동적 생성하던 코드를 제거하고 HTML에 선언된 엘리먼트를 그대로 사용.
+//          embedSvgFragment() 호출도 위치/크기 인자 없이 (slot, path)만 전달하도록 변경.
+// v0.1.8 : "SVG 제작 규격"(viewBox="0 0 160 160", 중심좌표 (80,80)) 확정에 따라
+//          slot의 viewBox까지 character-shop.html에 고정 선언됨. 이 파일의 호출
+//          코드는 변경 없음 — embedSvgFragment(slot, path)는 이전부터 이미
+//          위치/크기/viewBox를 모두 슬롯 쪽(HTML)에 맡기는 형태였다.
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgLoader.js';
@@ -20,24 +28,22 @@ import { getGold } from '../core/saveManager.js';
 
 createHeader();
 
+
+
 // ===========================
 // 캐릭터 placeholder 렌더링
 // - 아직 한 번도 적용하지 않았으면(getEquippedPart('head') === null) 안내 문구만 표시.
 // - 적용된 머리 파츠가 있으면 해당 파츠 SVG + 눈/입(idle)을 fetch해 표시한다.
 // - 기존 정적 head outline(<path>)은 실제 파츠로 대체되므로 숨긴다.
-// - 프레임(x, y, width, height)은 placeholder viewBox(0 0 160 200) 기준 좌표이며
-//   기존 하드코딩 눈/입/머리가 있던 자리를 참고해 잡은 값이다. 필요 시 조정 가능.
+// - 슬롯(head-part-slot/face-eyes-slot/face-mouth-slot)의 위치·표시 크기는
+//   character-shop.html에서 관리한다. 여기서는 어떤 SVG를 넣을지만 결정한다.
 // ===========================
-const SVG_NS = 'http://www.w3.org/2000/svg';
 const characterPlaceholder = document.querySelector('.character-placeholder');
 const headOutlinePath = characterPlaceholder.querySelector('path');
 const placeholderText = characterPlaceholder.querySelector('text');
+const headPartSlot = document.getElementById('head-part-slot');
 const faceEyesSlot = document.getElementById('face-eyes-slot');
 const faceMouthSlot = document.getElementById('face-mouth-slot');
-
-const headPartSlot = document.createElementNS(SVG_NS, 'g');
-headPartSlot.setAttribute('id', 'head-part-slot');
-characterPlaceholder.insertBefore(headPartSlot, faceEyesSlot);
 
 function renderCharacterPreview() {
   const equippedHeadId = getEquippedPart('head');
@@ -54,9 +60,9 @@ function renderCharacterPreview() {
   const part = getPart('head', equippedHeadId);
   headOutlinePath.style.display = 'none';
   placeholderText.style.display = 'none';
-  embedSvgFragment(headPartSlot, part.assetPath, { x: 30, y: 12, width: 100, height: 96 });
-  embedSvgFragment(faceEyesSlot, FACE_ASSETS.eyes.idle, { x: 50, y: 50, width: 60, height: 26 });
-  embedSvgFragment(faceMouthSlot, FACE_ASSETS.mouth.idle, { x: 60, y: 72, width: 40, height: 18 });
+  embedSvgFragment(headPartSlot, part.assetPath);
+  embedSvgFragment(faceEyesSlot, FACE_ASSETS.eyes.idle);
+  embedSvgFragment(faceMouthSlot, FACE_ASSETS.mouth.idle);
 }
 
 renderCharacterPreview();

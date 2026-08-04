@@ -28,17 +28,6 @@ debounce()
 등.
 ---------------
 
-Clock Game 완성
-
-Gold / Combo / 별 / 단계 완료까지 구현
-
-ui-ux-system.md 작성
-
-이 시점에서 캐릭터 구상 세부 내용 정리
-
-그다음 character-system.md 작성
-
-캐릭터 구조가 확정되면 save-system.md 작성
 
 # 다음 게임: 맞춤법 갈림길 
 

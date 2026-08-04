@@ -21,7 +21,32 @@ function 을를(이름) {
 외곽선은 항상 stroke만 사용한다.
 색상을 변경할 대상에는 고정된 id(head-fill, body-fill 등) 를 부여한다.
 
+----
+# 260729 사용자 수정 사항
+1. 
+characters/character-shop.html 31, 33행
+        <text x="80" y="100" font-size="17" fill="#b0bac6" text-anchor="middle">아직 꼬무리가 없어요</text>
+      </svg>
+      <p class="character-name">ㅠㅁㅠ</p>
 
+2. 
+characters/character-shop.js 57~59행
+  embedSvgFragment(headPartSlot, part.assetPath, { x: 0, y: 20, width: 160, height: 192 });
+  embedSvgFragment(faceEyesSlot, FACE_ASSETS.eyes.idle, { x: -15, y: -10, width: 200, height: 300 });
+  embedSvgFragment(faceMouthSlot, FACE_ASSETS.mouth.idle, { x: -15, y: -10, width: 200, height: 300 });
+
+
+3. 파츠, 표정, 꾸밈 아이템에 따라 좌표를 계속 보정해야 하는 문제 해결 방안 필요
+characters/character-shop.html 28~29행
+        <g id="face-eyes-slot"></g>
+        <g id="face-mouth-slot"></g>
+에서 예를 들어
+        <g id="face-eyes-slot" transform="translate(40 35)"></g>
+        <g id="face-mouth-slot" transform="translate(55 70)"></g>   
+처럼 교체하는 것이 좋을까?
+HTML(SVG) → 어디에 놓을지
+JS → 얼마나 크게 그릴지
+역할 분리 위해
 ----------
 
 캐릭터 상점 개발 순서 
