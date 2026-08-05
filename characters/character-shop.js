@@ -24,12 +24,18 @@
 //           바뀜에 따라 getPart(id)/getPartQuantity(id)/purchasePart(id)/
 //           purchaseRandomPart()로 category 인자를 제거한 호출부 수정.
 //           applyPart(category, id)는 "적용할 부위"를 의미하므로 그대로 유지.
+// v0.1.11 : Implement - 조합(combine) 기능을 #btn-combine에 연결. inventory.js의
+//           canCombine()/combineCharacter()를 사용해 버튼 활성/비활성을 관리하고,
+//           조합 성공 시 골드/파츠 배지/캐릭터 미리보기를 즉시 갱신한다.
+//           renderCharacterPreview()가 head 외 body/legs 적용 상태도 함께
+//           그리도록 확장 (기존 head 전용 동작과 충돌 없음).
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
 import { FACE_ASSETS, getPart, SHOP_COST } from './characterData.js';
 import {
   getPartQuantity, purchasePart, purchaseRandomPart, getEquippedPart, applyPart,
+  canCombine, combineCharacter,
 } from './inventory.js';
 import { getGold } from '../core/saveManager.js';
 
@@ -41,8 +47,11 @@ createHeader();
 // 캐릭터 placeholder 렌더링
 // - 아직 한 번도 적용하지 않았으면(getEquippedPart('head') === null) 안내 문구만 표시.
 // - 적용된 머리 파츠가 있으면 해당 파츠 SVG + 눈/입(idle)을 fetch해 표시한다.
+// - 상체(body)/하체(legs)는 적용(조합)된 경우에만 그리고, 없으면 비워둔다
+//   (기존 head 전용 적용 흐름과 충돌하지 않음 — head 없이 body/legs만 채워지는
+//   경우는 없다. combineCharacter()가 항상 head → body → legs 순서로 채우기 때문).
 // - 기존 정적 head outline(<path>)은 실제 파츠로 대체되므로 숨긴다.
-// - 슬롯(head-part-slot/face-eyes-slot/face-mouth-slot)의 위치·표시 크기는
+// - 슬롯(head/eyes/mouth/body/leg-part-slot)의 위치·표시 크기는
 //   character-shop.html에서 관리한다. 여기서는 어떤 SVG를 넣을지만 결정한다.
 // ===========================
 const characterPlaceholder = document.querySelector('.character-placeholder');
@@ -51,6 +60,8 @@ const placeholderText = characterPlaceholder.querySelector('text');
 const headPartSlot = document.getElementById('head-part-slot');
 const faceEyesSlot = document.getElementById('face-eyes-slot');
 const faceMouthSlot = document.getElementById('face-mouth-slot');
+const bodyPartSlot = document.getElementById('body-part-slot');
+const legPartSlot = document.getElementById('leg-part-slot');
 
 function renderCharacterPreview() {
   const equippedHeadId = getEquippedPart('head');
@@ -60,6 +71,8 @@ function renderCharacterPreview() {
     headPartSlot.replaceChildren();
     faceEyesSlot.replaceChildren();
     faceMouthSlot.replaceChildren();
+    bodyPartSlot.replaceChildren();
+    legPartSlot.replaceChildren();
     placeholderText.style.display = '';
     return;
   }
@@ -70,6 +83,20 @@ function renderCharacterPreview() {
   embedSvgFragment(headPartSlot, part.assetPath);
   embedSvgFragment(faceEyesSlot, FACE_ASSETS.eyes.idle);
   embedSvgFragment(faceMouthSlot, FACE_ASSETS.mouth.idle);
+
+  const equippedBodyId = getEquippedPart('body');
+  if (equippedBodyId) {
+    embedSvgFragment(bodyPartSlot, getPart(equippedBodyId).assetPath);
+  } else {
+    bodyPartSlot.replaceChildren();
+  }
+
+  const equippedLegsId = getEquippedPart('legs');
+  if (equippedLegsId) {
+    embedSvgFragment(legPartSlot, getPart(equippedLegsId).assetPath);
+  } else {
+    legPartSlot.replaceChildren();
+  }
 }
 
 renderCharacterPreview();
@@ -152,6 +179,32 @@ function refreshAllPartSlots() {
 }
 
 refreshAllPartSlots();
+
+// ===========================
+// 조합(combine) 기능
+// - inventory.js의 canCombine()으로 버튼 활성/비활성을 관리한다.
+//   (3부위 완료 / 보유 파츠 없음 / 골드 부족 시 비활성 — 시각적 처리는 구입 등
+//   기존 비활성 버튼과 동일하게 CSS :disabled 스타일에 맡긴다.)
+// - 골드/인벤토리가 바뀔 수 있는 모든 지점(구매/적용/조합 직후, 최초 로드)에서
+//   refreshCombineButton()을 호출해 최신 상태를 반영한다.
+// ===========================
+const combineButton = document.getElementById('btn-combine');
+
+function refreshCombineButton() {
+  combineButton.disabled = !canCombine();
+}
+
+combineButton.addEventListener('click', () => {
+  const result = combineCharacter();
+  if (!result.success) return; // canCombine()으로 사전에 걸러지므로 사실상 도달하지 않음
+
+  updateHeaderGold(result.remainingGold);
+  refreshAllPartSlots();
+  renderCharacterPreview();
+  refreshCombineButton();
+});
+
+refreshCombineButton();
 
 function setupToggle(toggleId, bodyId) {
   const button = document.getElementById(toggleId);
@@ -311,6 +364,7 @@ function openPartModal(slot) {
     // 골드/수량 배지/버튼 상태는 연출과 무관하게 즉시 갱신한다.
     updateHeaderGold(result.remainingGold);
     refreshAllPartSlots();
+    refreshCombineButton(); // 구매로 인벤토리가 늘어 조합 가능 여부가 바뀔 수 있음
 
     if (isRandom) {
       showRandomDrawing(result.id);
@@ -336,6 +390,7 @@ function openPartModal(slot) {
 
         updateHeaderGold(result.remainingGold);
         refreshAllPartSlots();
+        refreshCombineButton(); // 적용으로 인벤토리가 줄어 조합 가능 여부가 바뀔 수 있음
         renderCharacterPreview();
         openPartModal(slot); // 적용 중 표시/버튼 상태를 즉시 반영
       });
