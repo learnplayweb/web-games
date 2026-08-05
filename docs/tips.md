@@ -147,17 +147,62 @@ COMBO_MULTIPLIER
 
 이 과정을 반복하여 작업한다.
 
-### 장점
+  <!-- svg 제작 디버그 선 -->
+  <rect
+     x="0"
+     y="0"
+     width="160"
+     height="160"
+     fill="none"
+     stroke="red"
+     stroke-width="1"
+     vector-effect="non-scaling-stroke"
+     id="rect1" />
+  <!-- 세로 중앙 -->
+  <line
+     x1="80"
+     y1="0"
+     x2="80"
+     y2="160"
+     stroke="red"
+     stroke-width="0.5"
+     vector-effect="non-scaling-stroke"
+     id="line1" />
+  <!-- 가로 중앙 -->
+  <line
+     x1="0"
+     y1="80"
+     x2="160"
+     y2="80"
+     stroke="red"
+     stroke-width="0.5"
+     vector-effect="non-scaling-stroke"
+     id="line2" />
+     
+  <!-- 파츠 가이드-->
+  <rect
+     x="35"
+     y="35"
+     width="90"
+     height="90"
+     fill="none"
+     stroke="green"
+     stroke-width="1"
+     vector-effect="non-scaling-stroke"
+     id="rect2" />
 
-* 게임을 실행하지 않아도 된다.
-* 여러 파츠의 조합을 빠르게 확인할 수 있다.
-* 색상 적용 결과를 즉시 확인할 수 있다.
-* 신규 파츠 제작 및 위치 조정이 편리하다.
+<!-- 팔다리 가이드-->
+  <rect
+     x="45"
+     y="65"
+     width="70"
+     height="45"
+     fill="none"
+     stroke="green"
+     stroke-width="1"
+     vector-effect="non-scaling-stroke"
+     id="rect3" />
 
-### 용도
-
-개발 전용 화면으로 사용한다.
-실제 게임 기능이나 저장 기능은 포함하지 않는다.
 
 
 ---------
