@@ -7,11 +7,15 @@
  * 어느 화면에서도 같은 상태 객체를 재사용할 수 있다.
  */
 
+// v0.1.1 : Refactor - characterData.js의 PARTS_BY_CATEGORY(부위별 목록) →
+//          PART_CATEGORIES(부위 목록) + 공유 파츠 목록으로 변경에 맞춰
+//          resolveParts()가 PART_CATEGORIES를 순회하고 getPart(id)를 호출하도록 수정.
+
 import {
   BODY_ASSETS,
   CHARACTER_COLORS,
   FACE_ASSETS,
-  PARTS_BY_CATEGORY,
+  PART_CATEGORIES,
   getPart,
 } from './characterData.js';
 
@@ -31,13 +35,14 @@ function resolveColor(color) {
 
 /**
  * 카테고리별 장착 파츠 id를 검증하고, 유효하지 않으면 null로 정리한다.
- * 새 파츠 카테고리가 characterData.js에 추가되면 자동으로 결과에 포함된다.
+ * PART_CATEGORIES(head/body/legs)를 순회하며, 각 부위는 공유 파츠 목록에서
+ * id로 조회한다.
  */
 function resolveParts(selectedParts = {}) {
   return Object.fromEntries(
-    Object.keys(PARTS_BY_CATEGORY).map((category) => {
+    PART_CATEGORIES.map((category) => {
       const selectedId = selectedParts[category] ?? null;
-      const part = selectedId ? getPart(category, selectedId) : null;
+      const part = selectedId ? getPart(selectedId) : null;
 
       return [category, part?.id ?? null];
     }),
@@ -78,7 +83,7 @@ export function createCharacter({
   const partAssets = Object.fromEntries(
     Object.entries(selectedParts).map(([category, id]) => [
       category,
-      id ? getPart(category, id)?.assetPath ?? null : null,
+      id ? getPart(id)?.assetPath ?? null : null,
     ]),
   );
 

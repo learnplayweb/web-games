@@ -5,6 +5,8 @@
 // v0.1.4 : Implement - 적용(equip) 상태용 저장 키(character_equip_save) 및 get/set 추가
 // v0.1.5 : Implement - resetCharacterSave() 추가 (디버그 메뉴의 캐릭터샵 초기화용)
 // v0.1.6 : Implement - resetClockProgress() 추가 (골드는 유지하고 Clock 진행 상태만 초기화)
+// v0.1.7 : Update - character_equip_save 기본값에 body, legs 키 추가 (2단계/3단계
+//          상체/하체 슬롯 대응). head만 있던 것을 { head, body, legs } 3부위로 확장.
 // 의존: 없음 (LocalStorage 직접 접근은 이 파일에서만 수행)
 // 기존 저장 데이터(clockGame_save) 구조/키를 그대로 유지하여 호환성 보장
 // 향후 다른 게임/캐릭터 시스템 저장 기능 추가 시 이 파일에 함수를 확장한다.
@@ -29,7 +31,7 @@
 // { parts: { [category]: { [id]: number } } }  // 카테고리별 파츠 id → 보유 수량 (예: { head: { circle: 2 } })
 //
 // Save Structure (character_equip_save)
-// { [category]: string | null }  // 카테고리별 현재 적용된 파츠 id (예: { head: 'circle' })
+// { head: string | null, body: string | null, legs: string | null }  // 부위별 현재 적용된 파츠 id (예: { head: 'circle', body: 'star', legs: null })
 
   const SAVE_KEY = 'clockGame_save'; // localStorage 키 (기존 키 유지)
 
@@ -129,7 +131,7 @@ export function getClockSave() {
   const CHARACTER_EQUIP_KEY = 'character_equip_save';
 
   function getDefaultEquip() {
-    return { head: null };
+    return { head: null, body: null, legs: null };
   }
 
   function loadEquip() {

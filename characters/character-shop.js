@@ -20,6 +20,10 @@
 // v0.1.9 : Fix - '../core/svgLoader.js' → '../core/svgloader.js' import 경로 대소문자
 //          수정. 로컬(대소문자 미구분 파일시스템)에서는 문제없이 동작했으나 GitHub
 //          Pages(대소문자 구분 파일시스템)에서 404가 발생하던 문제 해결.
+// v0.1.10 : Refactor - characterData.js/inventory.js가 부위 공유 인벤토리로
+//           바뀜에 따라 getPart(id)/getPartQuantity(id)/purchasePart(id)/
+//           purchaseRandomPart()로 category 인자를 제거한 호출부 수정.
+//           applyPart(category, id)는 "적용할 부위"를 의미하므로 그대로 유지.
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
@@ -60,7 +64,7 @@ function renderCharacterPreview() {
     return;
   }
 
-  const part = getPart('head', equippedHeadId);
+  const part = getPart(equippedHeadId);
   headOutlinePath.style.display = 'none';
   placeholderText.style.display = 'none';
   embedSvgFragment(headPartSlot, part.assetPath);
@@ -92,7 +96,7 @@ document.querySelectorAll('.part-slot[data-part]').forEach((slot) => {
   if (slotId === 'random') return;
 
   const partId = PART_ID_BY_SLOT[slotId];
-  const part = partId ? getPart('head', partId) : null;
+  const part = partId ? getPart(partId) : null;
   if (!part) return;
 
   const svgElement = slot.querySelector('.part-slot__svg');
@@ -125,7 +129,7 @@ function refreshPartSlot(slot) {
   if (slotId === 'random') return;
 
   const partId = PART_ID_BY_SLOT[slotId];
-  const quantity = partId ? getPartQuantity('head', partId) : 0;
+  const quantity = partId ? getPartQuantity(partId) : 0;
 
   slot.dataset.owned = String(quantity);
   slot.classList.toggle('part-slot--locked', quantity <= 0);
@@ -239,8 +243,8 @@ function spawnResultParticles() {
 }
 
 // 구입 결과(획득한 파츠)를 표시하고 3초 뒤 자동으로 닫는다.
-function showPurchaseResult(category, id) {
-  const part = getPart(category, id);
+function showPurchaseResult(id) {
+  const part = getPart(id);
 
   const iconSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   iconSvg.setAttribute('viewBox', '0 0 56 56');
@@ -261,7 +265,7 @@ function showPurchaseResult(category, id) {
 }
 
 // 랜덤 구입 전용: "뽑는 중..." 로딩 연출 후 결과를 표시한다.
-function showRandomDrawing(category, id) {
+function showRandomDrawing(id) {
   const spinner = document.createElement('div');
   spinner.className = 'part-modal__spinner';
   spinner.textContent = '💎';
@@ -279,7 +283,7 @@ function showRandomDrawing(category, id) {
     reopenTimerId = null;
     // 연출 도중 모달이 닫혔다면 결과를 표시하지 않는다.
     if (partModal.classList.contains('modal-overlay--hidden')) return;
-    showPurchaseResult(category, id);
+    showPurchaseResult(id);
   }, RANDOM_DRAW_DELAY_MS);
 }
 
@@ -288,7 +292,7 @@ function openPartModal(slot) {
   const slotId = slot.dataset.part;
   const isRandom = slotId === 'random';
   const headPartId = isRandom ? null : PART_ID_BY_SLOT[slotId];
-  const owned = headPartId ? getPartQuantity('head', headPartId) : 0;
+  const owned = headPartId ? getPartQuantity(headPartId) : 0;
 
   partModalSvg.replaceChildren(slot.querySelector('svg').cloneNode(true));
   partModalName.textContent = '';
@@ -299,8 +303,8 @@ function openPartModal(slot) {
   const buyButton = createPricedButton('modal-card__btn--cancel', '구입', `💎 ${buyPrice}`, !canAffordBuy);
   buyButton.addEventListener('click', () => {
     const result = isRandom
-      ? purchaseRandomPart('head')
-      : purchasePart('head', headPartId);
+      ? purchaseRandomPart()
+      : purchasePart(headPartId);
 
     if (!result.success) return; // 골드 부족 등: 구매/저장/화면 갱신 없음
 
@@ -309,9 +313,9 @@ function openPartModal(slot) {
     refreshAllPartSlots();
 
     if (isRandom) {
-      showRandomDrawing('head', result.id);
+      showRandomDrawing(result.id);
     } else {
-      showPurchaseResult('head', headPartId);
+      showPurchaseResult(headPartId);
     }
   });
   partModalActions.appendChild(buyButton);
