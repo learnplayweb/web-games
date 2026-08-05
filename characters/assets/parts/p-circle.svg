@@ -46,7 +46,10 @@
      stroke-linecap="round"
      stroke-linejoin="round"
      id="path2" />
-  <!-- svg 제작 디버그 선-->
+
+     </svg>
+     
+  <!-- svg 제작 디버그 선
   <rect
      x="0"
      y="0"
@@ -89,4 +92,19 @@
      stroke-width="1"
      vector-effect="non-scaling-stroke"
      id="rect2" />
-</svg>
+
+<!-- 팔다리 가이드-->
+  <rect
+     x="45"
+     y="65"
+     width="70"
+     height="45"
+     fill="none"
+     stroke="green"
+     stroke-width="1"
+     vector-effect="non-scaling-stroke"
+     id="rect3" />
+-->
+
+
+
