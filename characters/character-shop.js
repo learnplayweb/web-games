@@ -1,6 +1,6 @@
 // v0.1.0 : 최초 생성 - 캐릭터 상점 화면 스크립트 (섹션 토글, 파츠/색상/저장 모달)
 // v0.1.1 : Refactor - placeholder 눈/입, 파츠 슬롯 아이콘을 assets fetch 기반
-//          inline SVG(svgLoader.js)로 로딩하도록 변경. 화면/기능은 동일.
+//          inline SVG(svgloader.js)로 로딩하도록 변경. 화면/기능은 동일.
 // v0.1.2 : Implement - 파츠 구매 기능(구매 버튼, 수량 배지, 골드 표시 갱신) 연결
 // v0.1.3 : Polish - 구매/적용 버튼을 좌(라벨)/우(가격) 구조로 변경, 가격 상수(SHOP_COST) 사용
 // v0.1.4 : Polish - 구입 버튼 문구/스타일을 적용 버튼과 통일, 골드 부족 시 비활성화,
@@ -17,9 +17,12 @@
 //          slot의 viewBox까지 character-shop.html에 고정 선언됨. 이 파일의 호출
 //          코드는 변경 없음 — embedSvgFragment(slot, path)는 이전부터 이미
 //          위치/크기/viewBox를 모두 슬롯 쪽(HTML)에 맡기는 형태였다.
+// v0.1.9 : Fix - '../core/svgLoader.js' → '../core/svgloader.js' import 경로 대소문자
+//          수정. 로컬(대소문자 미구분 파일시스템)에서는 문제없이 동작했으나 GitHub
+//          Pages(대소문자 구분 파일시스템)에서 404가 발생하던 문제 해결.
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
-import { replaceSvgContent, embedSvgFragment } from '../core/svgLoader.js';
+import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
 import { FACE_ASSETS, getPart, SHOP_COST } from './characterData.js';
 import {
   getPartQuantity, purchasePart, purchaseRandomPart, getEquippedPart, applyPart,
