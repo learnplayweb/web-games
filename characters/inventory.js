@@ -3,20 +3,20 @@
 //          파츠 구매 함수(purchasePart, purchaseRandomPart) 추가.
 // v0.1.2 : Implement - 파츠 적용(equip) 함수 추가. 적용 상태는 core/saveManager.js의
 //          별도 저장 키(character_equip_save)를 통해 저장/조회한다.
+// v0.1.3 : Refactor - 인벤토리를 부위별(head/body/legs 각각 별도 수량)에서 파츠별
+//          (부위 구분 없이 하나의 수량)로 변경. 머리/상체/하체는 같은 보유 수량을
+//          공유한다. purchasePart/purchaseRandomPart/getPartQuantity 등에서
+//          category 인자를 제거. applyPart(category, id)만 "어느 부위에 적용할지"를
+//          의미하는 category를 그대로 받는다 (인벤토리 자체는 공유).
 // v0.1.4 : Implement - 조합(combine) 기능 추가. getNextCombineCategory(),
 //          getCombineStage(), selectCombinablePart(), canCombine(), combineCharacter()
 //          추가. 조합은 보유 파츠(수량 1개 이상) 중 무작위 하나를 다음 빈 부위
 //          (head → body → legs 순서)에 적용한다. 기존 applyPart()와 별개 경로이며
 //          저장 구조(character_save/character_equip_save)는 그대로 사용한다.
-//
-// Public API (조합 관련, 추가)
-// - getNextCombineCategory(): 다음으로 채울 조합 부위(head/body/legs). 3부위가
-//   모두 찼으면 null.
-// - getCombineStage(): 현재까지 채워진 부위 수 (0~3).
-// - selectCombinablePart(): 보유 파츠(수량 1개 이상) 중 무작위 id 선택. 순수 함수 —
-//   인벤토리/적용 상태를 변경하지 않는다. 후보가 없으면 null.
-// - canCombine(): 조합 버튼 활성/비활성 판단 (3부위 완료/보유 파츠 없음/골드 부족 시 false).
-// - combineCharacter(): 조합을 실제로 실행한다 (골드 차감 + 파츠 소비 + 부위 적용).
+// v0.1.5 : Implement - 재조합(recombine) 기능 추가. canRecombine(),
+//          selectRecombinablePart(), recombineCharacter() 추가. 지금 해당
+//          부위에 적용된 파츠와 다른 모양의 보유 파츠 중 무작위로 재선택한다.
+//          기존에 적용되어 있던 파츠는 인벤토리로 환불되지 않는다.
 //
 // Public API
 // - hasPart(id): 파츠 보유 여부 확인 (수량 > 0)
@@ -29,6 +29,23 @@
 // - getEquippedPart(category): 현재 부위(category)에 적용된 파츠 id 반환 (없으면 null)
 // - applyPart(category, id): 골드로 파츠를 특정 부위(category)에 적용
 //   (보유 수량 1 감소 + 적용 상태 갱신). 같은 파츠를 여러 부위에 동시에 적용 가능.
+//
+// Public API (조합 관련)
+// - getNextCombineCategory(): 다음으로 채울 조합 부위(head/body/legs). 3부위가
+//   모두 찼으면 null.
+// - getCombineStage(): 현재까지 채워진 부위 수 (0~3).
+// - selectCombinablePart(): 보유 파츠(수량 1개 이상) 중 무작위 id 선택. 순수 함수 —
+//   인벤토리/적용 상태를 변경하지 않는다. 후보가 없으면 null.
+// - canCombine(): 조합 버튼 활성/비활성 판단 (3부위 완료/보유 파츠 없음/골드 부족 시 false).
+// - combineCharacter(): 조합을 실제로 실행한다 (골드 차감 + 파츠 소비 + 부위 적용).
+//
+// Public API (재조합 관련)
+// - selectRecombinablePart(category): 지금 그 부위에 적용된 파츠와 다른 모양의
+//   보유 파츠 중 무작위 id 선택. 순수 함수. 후보가 없으면 null.
+// - canRecombine(category): 재조합 버튼 활성/비활성 판단 (다른 모양 후보 없음/
+//   골드 부족 시 false).
+// - recombineCharacter(category): 재조합을 실제로 실행한다 (골드 차감 + 파츠
+//   소비 + 부위 재적용). 기존 적용 파츠는 환불되지 않는다.
 //
 // Save Structure (core/saveManager.js의 character_save 저장, 인벤토리 전용)
 // { parts: { [id]: number } }  // 파츠 id → 보유 수량 (부위 구분 없이 공유)
@@ -255,6 +272,60 @@ export function combineCharacter() {
     category,
     id,
     stage: getCombineStage(),
+    remainingGold: getGold(),
+    remainingQuantity: getPartQuantity(id),
+  };
+}
+
+/**
+ * 지금 해당 부위(category)에 적용된 파츠와 "다른 모양"의 보유 파츠 중 무작위로
+ * 하나 선택한다. 순수 함수 — 인벤토리/적용 상태를 변경하지 않는다. 후보가 없으면 null.
+ */
+export function selectRecombinablePart(category) {
+  const currentId = getEquippedPart(category);
+  const candidates = getOwnedParts().filter((id) => id !== currentId);
+  if (candidates.length === 0) return null;
+
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+/**
+ * 재조합 가능 여부를 판단한다 (재조합 버튼 활성/비활성에 사용).
+ * - 지금 적용된 파츠와 다른 모양의 보유 파츠가 없으면 불가
+ * - 골드가 재조합 비용(SHOP_COST.partRecombine)보다 부족하면 불가
+ */
+export function canRecombine(category) {
+  if (!selectRecombinablePart(category)) return false;
+  if (getGold() < SHOP_COST.partRecombine) return false;
+
+  return true;
+}
+
+/**
+ * 재조합을 실행한다. 지금 해당 부위(category)에 적용된 파츠와 다른 모양의 보유
+ * 파츠 중 무작위로 하나를 선택해 같은 부위에 다시 적용한다. 기존에 적용되어
+ * 있던 파츠는 인벤토리로 환불되지 않는다(재조합 비용은 별도로 지불한다).
+ * 순서: 후보 파츠 결정(상태 변경 없음) → 골드 차감 → 적용 상태 갱신 →
+ * 새로 선택된 파츠 보유 수량 1 감소.
+ */
+export function recombineCharacter(category) {
+  if (!PART_CATEGORIES.includes(category)) return { success: false, reason: 'invalid-category' };
+
+  const id = selectRecombinablePart(category);
+  if (!id) return { success: false, reason: 'no-candidate' };
+
+  if (!spendGold(SHOP_COST.partRecombine)) return { success: false, reason: 'insufficient-gold' };
+
+  const equipped = getEquippedParts();
+  equipped[category] = id;
+  setEquippedParts(equipped);
+
+  consumePart(id);
+
+  return {
+    success: true,
+    category,
+    id,
     remainingGold: getGold(),
     remainingQuantity: getPartQuantity(id),
   };

@@ -29,13 +29,24 @@
 //           조합 성공 시 골드/파츠 배지/캐릭터 미리보기를 즉시 갱신한다.
 //           renderCharacterPreview()가 head 외 body/legs 적용 상태도 함께
 //           그리도록 확장 (기존 head 전용 동작과 충돌 없음).
+// v0.1.12 : Implement - 조합 결과 모달(openCombineResultModal) 추가. 기존
+//           #part-modal을 재사용해 지금까지 조합된 캐릭터 전체를 보여주고,
+//           [확인](닫기만 함)/[재조합 💎30](다른 모양으로 재조합) 버튼을 연결.
+//           조합/재조합 모두 버튼 클릭 시점에 데이터가 이미 반영되며, [확인]은
+//           그 상태를 되돌리지 않고 모달만 닫는다.
+// v0.1.13 : Fix - 조합/재조합 직후 모달에 이전 상태 캐릭터가 보이던 문제 수정.
+//           renderCharacterPreview()가 embedSvgFragment(fetch 기반 비동기)를
+//           기다리지 않고 반환해, 그 직후 characterPlaceholder를 복제하면 아직
+//           새 SVG가 채워지기 전이었다. renderCharacterPreview()를 async로 바꿔
+//           모든 embedSvgFragment를 Promise.all로 기다리도록 하고, 조합/재조합
+//           핸들러에서 await한 뒤 openCombineResultModal()을 호출하도록 수정.
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
 import { FACE_ASSETS, getPart, SHOP_COST } from './characterData.js';
 import {
   getPartQuantity, purchasePart, purchaseRandomPart, getEquippedPart, applyPart,
-  canCombine, combineCharacter,
+  canCombine, combineCharacter, canRecombine, recombineCharacter,
 } from './inventory.js';
 import { getGold } from '../core/saveManager.js';
 
@@ -63,7 +74,10 @@ const faceMouthSlot = document.getElementById('face-mouth-slot');
 const bodyPartSlot = document.getElementById('body-part-slot');
 const legPartSlot = document.getElementById('leg-part-slot');
 
-function renderCharacterPreview() {
+// renderCharacterPreview()는 embedSvgFragment(fetch 기반, 비동기)의 완료를 기다렸다가
+// 반환한다. 조합/재조합 직후 캐릭터 전체를 복제해 모달에 보여줘야 하는 곳에서는
+// 반드시 이 함수의 완료(await)를 기다린 뒤 복제해야 최신 상태가 보인다.
+async function renderCharacterPreview() {
   const equippedHeadId = getEquippedPart('head');
 
   if (!equippedHeadId) {
@@ -80,23 +94,28 @@ function renderCharacterPreview() {
   const part = getPart(equippedHeadId);
   headOutlinePath.style.display = 'none';
   placeholderText.style.display = 'none';
-  embedSvgFragment(headPartSlot, part.assetPath);
-  embedSvgFragment(faceEyesSlot, FACE_ASSETS.eyes.idle);
-  embedSvgFragment(faceMouthSlot, FACE_ASSETS.mouth.idle);
+
+  const pendingEmbeds = [
+    embedSvgFragment(headPartSlot, part.assetPath),
+    embedSvgFragment(faceEyesSlot, FACE_ASSETS.eyes.idle),
+    embedSvgFragment(faceMouthSlot, FACE_ASSETS.mouth.idle),
+  ];
 
   const equippedBodyId = getEquippedPart('body');
   if (equippedBodyId) {
-    embedSvgFragment(bodyPartSlot, getPart(equippedBodyId).assetPath);
+    pendingEmbeds.push(embedSvgFragment(bodyPartSlot, getPart(equippedBodyId).assetPath));
   } else {
     bodyPartSlot.replaceChildren();
   }
 
   const equippedLegsId = getEquippedPart('legs');
   if (equippedLegsId) {
-    embedSvgFragment(legPartSlot, getPart(equippedLegsId).assetPath);
+    pendingEmbeds.push(embedSvgFragment(legPartSlot, getPart(equippedLegsId).assetPath));
   } else {
     legPartSlot.replaceChildren();
   }
+
+  await Promise.all(pendingEmbeds);
 }
 
 renderCharacterPreview();
@@ -194,14 +213,15 @@ function refreshCombineButton() {
   combineButton.disabled = !canCombine();
 }
 
-combineButton.addEventListener('click', () => {
+combineButton.addEventListener('click', async () => {
   const result = combineCharacter();
   if (!result.success) return; // canCombine()으로 사전에 걸러지므로 사실상 도달하지 않음
 
   updateHeaderGold(result.remainingGold);
   refreshAllPartSlots();
-  renderCharacterPreview();
   refreshCombineButton();
+  await renderCharacterPreview(); // 모달에 복제할 캐릭터가 최신 상태가 되도록 완료를 기다린다
+  openCombineResultModal(result.category);
 });
 
 refreshCombineButton();
@@ -406,6 +426,52 @@ document.querySelectorAll('.part-slot[data-part]').forEach((slot) => {
 partModal.addEventListener('click', (event) => {
   if (event.target === partModal) closePartModal();
 });
+
+// ===========================
+// 조합 결과 모달 (기존 #part-modal 재사용)
+// - 상단: 지금까지 조합된 캐릭터 전체 미리보기 (character-placeholder를 그대로 복제 —
+//   openColorModal()과 동일한 방식). 호출 시점에는 renderCharacterPreview()가 이미
+//   최신 상태로 갱신되어 있어야 한다.
+// - 하단: [확인](모달을 닫기만 함) / [재조합 💎30](다른 모양 파츠로 재조합).
+// - 조합/재조합은 버튼을 누르는 즉시 데이터가 반영된다(inventory.js의
+//   combineCharacter()/recombineCharacter() 호출 시점). 이 모달의 [확인]은
+//   단순히 화면을 닫을 뿐 그 어떤 상태도 되돌리지 않는다.
+// ===========================
+function openCombineResultModal(category) {
+  clearResultTimers(); // 구입 결과 연출과 같은 DOM/타이머를 공유하므로 정리하고 시작
+
+  const preview = characterPlaceholder.cloneNode(true);
+  partModalSvg.replaceChildren(preview);
+  partModalName.textContent = '';
+  partModalActions.replaceChildren();
+
+  const confirmButton = document.createElement('button');
+  confirmButton.type = 'button';
+  confirmButton.className = 'modal-card__btn modal-card__btn--confirm';
+  confirmButton.textContent = '확인';
+  confirmButton.addEventListener('click', closePartModal);
+
+  const canRecombineNow = canRecombine(category);
+  const recombineButton = createPricedButton(
+    'modal-card__btn--cancel',
+    '재조합',
+    `💎 ${SHOP_COST.partRecombine}`,
+    !canRecombineNow,
+  );
+  recombineButton.addEventListener('click', async () => {
+    const result = recombineCharacter(category);
+    if (!result.success) return; // canRecombine()으로 사전에 걸러지므로 사실상 도달하지 않음
+
+    updateHeaderGold(result.remainingGold);
+    refreshAllPartSlots();
+    refreshCombineButton();
+    await renderCharacterPreview(); // 모달에 복제할 캐릭터가 최신 상태가 되도록 완료를 기다린다
+    openCombineResultModal(category); // 새 결과로 모달을 다시 연다 (같은 부위 재조합)
+  });
+
+  partModalActions.append(confirmButton, recombineButton);
+  partModal.classList.remove('modal-overlay--hidden');
+}
 
 const colorModal = document.getElementById('color-modal');
 const colorModalPreview = document.getElementById('color-modal-preview');
