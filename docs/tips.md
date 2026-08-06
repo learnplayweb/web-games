@@ -204,6 +204,41 @@ COMBO_MULTIPLIER
      id="rect3" />
 
 
+  <!-- 눈 영역 + 가로세로중앙-->
+
+  <line
+     x1="66"
+     y1="0"
+     x2="66"
+     y2="160"
+     stroke="blue"
+     stroke-width="0.5"
+     vector-effect="non-scaling-stroke"
+     id="line3" />
+
+   <line
+     x1="94"
+     y1="0"
+     x2="94"
+     y2="160"
+     stroke="blue"
+     stroke-width="0.5"
+     vector-effect="non-scaling-stroke"
+     id="line4" />
+
+ 
+  <!-- 입 영역 / + 눈 영역-->
+
+  <line
+     x1="0"
+     y1="95"
+     x2="160"
+     y2="95"
+     stroke="blue"
+     stroke-width="0.5"
+     vector-effect="non-scaling-stroke"
+     id="line5" />
+
 
 ---------
 # 모바일 테스트 체크리스트

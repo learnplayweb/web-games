@@ -29,16 +29,26 @@
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg2" />
-  <path
-     style="fill:none;fill-opacity:1;stroke:#b0bac6;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
-     d="M 49.283144,71.946096 C 32.678436,85.576826 35.404582,95.490086 35.404582,95.490086"
-     id="path1" />
-  <ellipse
-     style="fill:none;fill-opacity:1;stroke:#b0bac6;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
-     id="ellipse1"
-     cx="100.57063"
-     cy="36.271988"
-     rx="3.8413877"
-     ry="3.5935564"
-     transform="matrix(0,1,1,0,0,0)" />
+  <g
+     id="g4"
+     transform="translate(-59.782,-0.03742716)">
+    <g
+       id="g3"
+       inkscape:transform-center-x="15.382176"
+       inkscape:transform-center-y="12.489148"
+       transform="matrix(-0.90090552,-0.43401526,-0.43401526,0.90090552,239.13304,54.915443)">
+      <path
+         style="fill:none;fill-opacity:1;stroke:#b0bac6;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+         d="m 111.77199,70.631972 c 16.60471,13.63073 13.87857,23.54399 13.87857,23.54399"
+         id="path3" />
+      <ellipse
+         style="fill:none;fill-opacity:1;stroke:#b0bac6;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+         id="ellipse3"
+         cx="99.256508"
+         cy="-124.78315"
+         rx="3.8413877"
+         ry="3.5935564"
+         transform="rotate(90)" />
+    </g>
+  </g>
 </svg>

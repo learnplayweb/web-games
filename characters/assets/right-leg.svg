@@ -29,16 +29,20 @@
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg2" />
-  <ellipse
-     style="fill:none;fill-opacity:1;stroke:#b0bac6;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
-     id="path4-4-8-4"
-     cx="7.0265465"
-     cy="184.00652"
-     rx="3.8413877"
-     ry="3.5935564"
-     transform="rotate(-39.097632)" />
-  <path
-     style="fill:none;fill-opacity:1;stroke:#b0bac6;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
-     d="m 105.68619,107.52385 c 7.93061,24.53532 12.39158,28.00496 12.39158,28.00496"
-     id="path5-5" />
+  <g
+     id="g1"
+     transform="translate(-1.68619,0.47615)">
+    <ellipse
+       style="fill:none;fill-opacity:1;stroke:#b0bac6;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+       id="path4-4-8-4"
+       cx="7.0265465"
+       cy="184.00652"
+       rx="3.8413877"
+       ry="3.5935564"
+       transform="rotate(-39.097632)" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#b0bac6;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+       d="m 105.68619,107.52385 c 7.93061,24.53532 12.39158,28.00496 12.39158,28.00496"
+       id="path5-5" />
+  </g>
 </svg>
