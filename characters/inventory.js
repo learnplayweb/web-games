@@ -5,6 +5,7 @@
 // v0.1.4 : Implement_조합(combine) 기능 추가
 // v0.1.5 : Implement_재조합(recombine) 기능 추가
 // v0.1.6 : Fix_조합 대상에서 머리 제외(적용 버튼 전용), 머리 미장착 시 조합 불가
+// v0.1.7 : Implement_해체(dismantle) 기능 추가
 //
 // Public API
 // - hasPart(id)
@@ -29,9 +30,13 @@
 // - canRecombine(category)
 // - recombineCharacter(category)
 //
+// Dismantle API
+// - canDismantle()
+// - dismantleCharacter()
+//
 // Save Structure
 // character_save.parts : { [id]: number }
-// character_equip_save : { head, body, lowerBody }
+// character_equip_save : { head, body, legs }
 //
 // Data Source
 // characterData.js(BASE_PARTS, PART_CATEGORIES, SHOP_COST)
@@ -310,6 +315,59 @@ export function recombineCharacter(category) {
   setEquippedParts(equipped);
 
   consumePart(id);
+
+  return {
+    success: true,
+    category,
+    id,
+    remainingGold: getGold(),
+    remainingQuantity: getPartQuantity(id),
+  };
+}
+
+/**
+ * 가장 마지막으로 조합된 부위를 반환한다. COMBINABLE_CATEGORIES(['body', 'legs'])
+ * 순서를 거꾸로 훑어 처음 채워진 부위를 찾는다 — 항상 body보다 legs를 먼저 채우므로
+ * (getNextCombineCategory 참고), legs가 있으면 legs가 곧 마지막 조합이다.
+ * 조합 이력이 없으면(머리만 있으면) null.
+ */
+function getLastCombinedCategory() {
+  const equipped = getEquippedParts();
+  return [...COMBINABLE_CATEGORIES].reverse().find((category) => equipped[category]) ?? null;
+}
+
+/**
+ * 해체 가능 여부를 판단한다 (해체 버튼 활성/비활성에 사용).
+ * - 조합 이력이 없으면(머리만 있으면) 불가
+ * - 골드가 해체 비용(SHOP_COST.partDismantle)보다 부족하면 불가
+ */
+export function canDismantle() {
+  if (!getLastCombinedCategory()) return false;
+  if (getGold() < SHOP_COST.partDismantle) return false;
+
+  return true;
+}
+
+/**
+ * 해체를 실행한다. 가장 마지막으로 조합된 부위(legs → body 순)만 제거하고,
+ * 그 파츠를 인벤토리로 1개 돌려준다. 머리는 항상 유지된다(조합 대상이 아니므로).
+ * 조합 순서를 그대로 유지하며 한 번에 하나씩만 해체된다 — A+B+C → A+B → A.
+ * canDismantle()로 사전에 걸러진 상태에서 호출하면 항상 성공한다.
+ * 순서: 대상 부위 결정(상태 변경 없음) → 골드 차감 → 적용 상태에서 제거 →
+ * 제거된 파츠 보유 수량 1 증가.
+ */
+export function dismantleCharacter() {
+  const category = getLastCombinedCategory();
+  if (!category) return { success: false, reason: 'nothing-to-dismantle' };
+
+  if (!spendGold(SHOP_COST.partDismantle)) return { success: false, reason: 'insufficient-gold' };
+
+  const equipped = getEquippedParts();
+  const id = equipped[category];
+  equipped[category] = null;
+  setEquippedParts(equipped);
+
+  grantPart(id);
 
   return {
     success: true,

@@ -15,6 +15,7 @@
 // v0.1.14 : Implement_상체 조합 시 팔, 하체 조합 시 다리 자동 표시
 // v0.1.15 : Update_애니메이션 대응을 위해 팔·다리를 좌우 분리
 // v0.1.16 : Fix_조합은 머리를 대상으로 하지 않도록 변경, 머리 미적용 시 조합 버튼 비활성화, 해체 버튼 기본 비활성화
+// v0.1.17 : Implement_해체(dismantle) 기능 및 결과 모달 추가, 결과 자동 닫힘 3초→2초 통일
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
@@ -22,6 +23,7 @@ import { BODY_ASSETS, FACE_ASSETS, getPart, SHOP_COST } from './characterData.js
 import {
   getPartQuantity, purchasePart, purchaseRandomPart, getEquippedPart, applyPart,
   canCombine, combineCharacter, canRecombine, recombineCharacter,
+  canDismantle, dismantleCharacter,
 } from './inventory.js';
 import { getGold } from '../core/saveManager.js';
 
@@ -198,7 +200,7 @@ refreshAllPartSlots();
 // - inventory.js의 canCombine()으로 버튼 활성/비활성을 관리한다.
 //   (머리 미장착 / 두 부위(body/legs) 완료 / 보유 파츠 없음 / 골드 부족 시 비활성 —
 //   시각적 처리는 구입 등 기존 비활성 버튼과 동일하게 CSS :disabled 스타일에 맡긴다.)
-// - 골드/인벤토리가 바뀔 수 있는 모든 지점(구매/적용/조합 직후, 최초 로드)에서
+// - 골드/인벤토리가 바뀔 수 있는 모든 지점(구매/적용/조합/해체 직후, 최초 로드)에서
 //   refreshCombineButton()을 호출해 최신 상태를 반영한다.
 // ===========================
 const combineButton = document.getElementById('btn-combine');
@@ -214,14 +216,39 @@ combineButton.addEventListener('click', async () => {
   updateHeaderGold(result.remainingGold);
   refreshAllPartSlots();
   refreshCombineButton();
+  refreshDismantleButton();
   await renderCharacterPreview(); // 모달에 복제할 캐릭터가 최신 상태가 되도록 완료를 기다린다
   openCombineResultModal(result.category);
 });
 
-// 해체(dismantle) 기능은 아직 미구현이므로 기본 비활성화해 둔다.
-document.getElementById('btn-dismantle').disabled = true;
-
 refreshCombineButton();
+
+// ===========================
+// 해체(dismantle) 기능
+// - inventory.js의 canDismantle()로 버튼 활성/비활성을 관리한다.
+//   (조합 이력 없음(머리만 있음) / 골드 부족 시 비활성)
+// - 가장 마지막으로 조합된 부위만 제거하고, 그 파츠는 인벤토리로 돌아간다.
+// - 결과는 버튼 없는 안내 모달(showDismantleResult)로 보여주고 잠시 후 자동으로 닫힌다.
+// ===========================
+const dismantleButton = document.getElementById('btn-dismantle');
+
+function refreshDismantleButton() {
+  dismantleButton.disabled = !canDismantle();
+}
+
+dismantleButton.addEventListener('click', async () => {
+  const result = dismantleCharacter();
+  if (!result.success) return; // canDismantle()으로 사전에 걸러지므로 사실상 도달하지 않음
+
+  updateHeaderGold(result.remainingGold);
+  refreshAllPartSlots();
+  refreshCombineButton();
+  refreshDismantleButton();
+  await renderCharacterPreview(); // 해체된 상태(팔/다리 숨김 등)가 반영된 뒤 모달에 복제한다
+  showDismantleResult();
+});
+
+refreshDismantleButton();
 
 function setupToggle(toggleId, bodyId) {
   const button = document.getElementById(toggleId);
@@ -268,11 +295,12 @@ function createPricedButton(variantClass, label, price, disabled = false) {
 // 구입 결과 연출 (기존 #part-modal을 재사용)
 // - 일반 구입: 결과를 바로 표시
 // - 랜덤 구입: "뽑는 중..." 연출(0.7초) 후 결과 표시
-// - 결과 표시 중에는 스케일 팝업 + 파티클(6~10개) 효과, 3초 후 자동 닫힘
+// - 결과 표시 중에는 스케일 팝업 + 파티클(6~10개) 효과, RESULT_AUTO_CLOSE_MS 후 자동 닫힘
+//   (버튼 없이 안내만 하는 모달은 모두 이 상수를 공유한다 — 해체 결과 모달 포함)
 // - reopenTimerId: "뽑는 중" → 결과 전환 타이머, autoCloseTimerId: 자동 닫힘 타이머
 // ===========================
 const RANDOM_DRAW_DELAY_MS = 700; // 요구사항: 약 0.6~0.8초
-const RESULT_AUTO_CLOSE_MS = 3000;
+const RESULT_AUTO_CLOSE_MS = 2000; // 버튼 없는 결과 모달(구입 결과/해체 결과) 공통 자동 닫힘 시간
 const PARTICLE_COLORS = ['#ffffff', '#bfe6ff', '#fff6b3'];
 
 let reopenTimerId = null;
@@ -312,7 +340,7 @@ function spawnResultParticles() {
   setTimeout(() => layer.remove(), 900);
 }
 
-// 구입 결과(획득한 파츠)를 표시하고 3초 뒤 자동으로 닫는다.
+// 구입 결과(획득한 파츠)를 표시하고 RESULT_AUTO_CLOSE_MS 후 자동으로 닫는다.
 function showPurchaseResult(id) {
   const part = getPart(id);
 
@@ -357,6 +385,26 @@ function showRandomDrawing(id) {
   }, RANDOM_DRAW_DELAY_MS);
 }
 
+// 해체 결과를 보여준다 (기존 #part-modal 재사용, 버튼 없이 RESULT_AUTO_CLOSE_MS 후 자동으로 닫힘).
+// 상단에는 해체된 상태가 반영된 캐릭터 전체를 보여준다 — 호출 전에 renderCharacterPreview()가
+// 이미 최신 상태로 갱신되어 있어야 한다 (dismantleButton 클릭 핸들러에서 await 후 호출).
+function showDismantleResult() {
+  clearResultTimers();
+
+  const preview = characterPlaceholder.cloneNode(true);
+  partModalSvg.replaceChildren(preview);
+  partModalName.textContent = '';
+  partModalActions.replaceChildren();
+
+  const resultText = document.createElement('p');
+  resultText.className = 'part-modal__result-text';
+  resultText.textContent = '🎉 해체 성공';
+  partModalActions.appendChild(resultText);
+
+  partModal.classList.remove('modal-overlay--hidden');
+  autoCloseTimerId = setTimeout(closePartModal, RESULT_AUTO_CLOSE_MS);
+}
+
 function openPartModal(slot) {
   clearResultTimers();
   const slotId = slot.dataset.part;
@@ -382,6 +430,7 @@ function openPartModal(slot) {
     updateHeaderGold(result.remainingGold);
     refreshAllPartSlots();
     refreshCombineButton(); // 구매로 인벤토리가 늘어 조합 가능 여부가 바뀔 수 있음
+    refreshDismantleButton(); // 구매로 골드가 줄어 해체 가능 여부가 바뀔 수 있음
 
     if (isRandom) {
       showRandomDrawing(result.id);
@@ -408,6 +457,7 @@ function openPartModal(slot) {
         updateHeaderGold(result.remainingGold);
         refreshAllPartSlots();
         refreshCombineButton(); // 적용으로 인벤토리가 줄어 조합 가능 여부가 바뀔 수 있음
+        refreshDismantleButton(); // 적용으로 골드가 줄어 해체 가능 여부가 바뀔 수 있음
         renderCharacterPreview();
         openPartModal(slot); // 적용 중 표시/버튼 상태를 즉시 반영
       });
@@ -462,6 +512,7 @@ function openCombineResultModal(category) {
     updateHeaderGold(result.remainingGold);
     refreshAllPartSlots();
     refreshCombineButton();
+    refreshDismantleButton(); // 재조합으로 골드가 줄어 해체 가능 여부가 바뀔 수 있음
     await renderCharacterPreview(); // 모달에 복제할 캐릭터가 최신 상태가 되도록 완료를 기다린다
     openCombineResultModal(category); // 새 결과로 모달을 다시 연다 (같은 부위 재조합)
   });
