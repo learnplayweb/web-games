@@ -33,16 +33,18 @@
      id="g1"
      transform="translate(-1.7448494,-0.05452)">
     <ellipse
-       style="fill:none;fill-opacity:1;stroke:#b0bac6;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+       style="fill:none;fill-opacity:1;stroke:#b0bac6;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
        id="path4-4-8"
        cx="-120.14235"
        cy="81.351662"
        rx="3.8413877"
        ry="3.5935564"
-       transform="matrix(-0.77607247,-0.63064373,-0.63064373,0.77607247,0,0)" />
+       transform="matrix(-0.77607247,-0.63064373,-0.63064373,0.77607247,0,0)" 
+       vector-effect="non-scaling-stroke"/>
     <path
-       style="fill:none;fill-opacity:1;stroke:#b0bac6;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+       style="fill:none;fill-opacity:1;stroke:#b0bac6;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
        d="M 57.744734,108.05452 C 49.814126,132.58984 45.35316,136.05948 45.35316,136.05948"
-       id="path5" />
+       id="path5"
+       vector-effect="non-scaling-stroke" />
   </g>
 </svg>
