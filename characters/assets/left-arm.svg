@@ -3,7 +3,7 @@
    viewBox="0 0 160 160"
    version="1.1"
    id="svg2"
-   sodipodi:docname="arms.svg"
+   sodipodi:docname="left-arm.svg"
    inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -29,28 +29,16 @@
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg2" />
-  
-  <path
-     style="fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;fill-opacity:1;stroke:#b0bac6;stroke-opacity:1"
-     d="M 111.772,69.144981 C 125.40273,52.540273 135.31599,55.266419 135.31599,55.266419"
-     id="path3" />
-  <ellipse
-     style="fill:none;fill-opacity:1;stroke:#b0bac6;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
-     id="path4"
-     cx="140.39653"
-     cy="56.133827"
-     rx="3.8413877"
-     ry="3.5935564" />
   <path
      style="fill:none;fill-opacity:1;stroke:#b0bac6;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
-     d="M 49.396215,70.324351 C 35.765485,53.719643 25.852225,56.445789 25.852225,56.445789"
-     id="path3-9" />
+     d="M 49.283144,71.946096 C 32.678436,85.576826 35.404582,95.490086 35.404582,95.490086"
+     id="path1" />
   <ellipse
      style="fill:none;fill-opacity:1;stroke:#b0bac6;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
-     id="path4-4"
-     cx="-20.771685"
-     cy="57.313194"
+     id="ellipse1"
+     cx="100.57063"
+     cy="36.271988"
      rx="3.8413877"
      ry="3.5935564"
-     transform="scale(-1,1)" />
+     transform="matrix(0,1,1,0,0,0)" />
 </svg>

@@ -1,49 +1,24 @@
-// v0.1.0 : 최초 생성 - 캐릭터 상점 화면 스크립트 (섹션 토글, 파츠/색상/저장 모달)
-// v0.1.1 : Refactor - placeholder 눈/입, 파츠 슬롯 아이콘을 assets fetch 기반
-//          inline SVG(svgloader.js)로 로딩하도록 변경. 화면/기능은 동일.
-// v0.1.2 : Implement - 파츠 구매 기능(구매 버튼, 수량 배지, 골드 표시 갱신) 연결
-// v0.1.3 : Polish - 구매/적용 버튼을 좌(라벨)/우(가격) 구조로 변경, 가격 상수(SHOP_COST) 사용
-// v0.1.4 : Polish - 구입 버튼 문구/스타일을 적용 버튼과 통일, 골드 부족 시 비활성화,
-//          수량 배지를 원형(99+ 상한)으로 변경
-// v0.1.5 : Implement - 일반/랜덤 구입 결과 모달(파티클, 랜덤 연출) 추가.
-//          기존 part-modal(#part-modal-svg/#part-modal-actions)을 결과 화면으로 재사용.
-// v0.1.6 : Implement - 파츠 적용(equip) 기능 연결. placeholder를 미적용/적용 상태에
-//          따라 조건부로 그리도록 변경 (미적용: 안내 문구만, 적용: 실제 머리 파츠+눈/입).
-// v0.1.7 : Refactor - 파츠 조합 슬롯(head/eyes/mouth)의 위치/크기 관리를
-//          character-shop.html(<svg x y width height>)로 이전. head-part-slot을
-//          JS에서 동적 생성하던 코드를 제거하고 HTML에 선언된 엘리먼트를 그대로 사용.
-//          embedSvgFragment() 호출도 위치/크기 인자 없이 (slot, path)만 전달하도록 변경.
-// v0.1.8 : "SVG 제작 규격"(viewBox="0 0 160 160", 중심좌표 (80,80)) 확정에 따라
-//          slot의 viewBox까지 character-shop.html에 고정 선언됨. 이 파일의 호출
-//          코드는 변경 없음 — embedSvgFragment(slot, path)는 이전부터 이미
-//          위치/크기/viewBox를 모두 슬롯 쪽(HTML)에 맡기는 형태였다.
-// v0.1.9 : Fix - '../core/svgLoader.js' → '../core/svgloader.js' import 경로 대소문자
-//          수정. 로컬(대소문자 미구분 파일시스템)에서는 문제없이 동작했으나 GitHub
-//          Pages(대소문자 구분 파일시스템)에서 404가 발생하던 문제 해결.
-// v0.1.10 : Refactor - characterData.js/inventory.js가 부위 공유 인벤토리로
-//           바뀜에 따라 getPart(id)/getPartQuantity(id)/purchasePart(id)/
-//           purchaseRandomPart()로 category 인자를 제거한 호출부 수정.
-//           applyPart(category, id)는 "적용할 부위"를 의미하므로 그대로 유지.
-// v0.1.11 : Implement - 조합(combine) 기능을 #btn-combine에 연결. inventory.js의
-//           canCombine()/combineCharacter()를 사용해 버튼 활성/비활성을 관리하고,
-//           조합 성공 시 골드/파츠 배지/캐릭터 미리보기를 즉시 갱신한다.
-//           renderCharacterPreview()가 head 외 body/legs 적용 상태도 함께
-//           그리도록 확장 (기존 head 전용 동작과 충돌 없음).
-// v0.1.12 : Implement - 조합 결과 모달(openCombineResultModal) 추가. 기존
-//           #part-modal을 재사용해 지금까지 조합된 캐릭터 전체를 보여주고,
-//           [확인](닫기만 함)/[재조합 💎30](다른 모양으로 재조합) 버튼을 연결.
-//           조합/재조합 모두 버튼 클릭 시점에 데이터가 이미 반영되며, [확인]은
-//           그 상태를 되돌리지 않고 모달만 닫는다.
-// v0.1.13 : Fix - 조합/재조합 직후 모달에 이전 상태 캐릭터가 보이던 문제 수정.
-//           renderCharacterPreview()가 embedSvgFragment(fetch 기반 비동기)를
-//           기다리지 않고 반환해, 그 직후 characterPlaceholder를 복제하면 아직
-//           새 SVG가 채워지기 전이었다. renderCharacterPreview()를 async로 바꿔
-//           모든 embedSvgFragment를 Promise.all로 기다리도록 하고, 조합/재조합
-//           핸들러에서 await한 뒤 openCombineResultModal()을 호출하도록 수정.
+// v0.1.0  : 최초 생성 - 캐릭터 상점 화면 스크립트 (섹션 토글, 파츠/색상/저장 모달)
+// v0.1.1  : Refactor_눈/입 및 파츠 아이콘을 fetch 기반 inline SVG로 변경
+// v0.1.2  : Implement_파츠 구매 기능 추가
+// v0.1.3  : Polish_구매/적용 버튼 UI 및 가격 상수 적용
+// v0.1.4  : Polish_구매 버튼 비활성화 및 수량 배지 개선
+// v0.1.5  : Implement_일반/랜덤 구입 결과 모달 추가
+// v0.1.6  : Implement_파츠 적용(equip) 기능 추가
+// v0.1.7  : Refactor_조합 슬롯 위치·크기를 HTML에서 관리하도록 변경
+// v0.1.8  : Refactor_SVG 제작 규격(viewBox 160×160) 적용
+// v0.1.9  : Fix_GitHub Pages import 경로 대소문자 문제 수정
+// v0.1.10 : Refactor_부위 공유 인벤토리 구조 반영
+// v0.1.11 : Implement_조합 기능 및 body/lowerBody 미리보기 추가
+// v0.1.12 : Implement_조합 결과 모달 및 재조합 기능 추가
+// v0.1.13 : Fix_조합 결과 모달 갱신 타이밍 문제 수정
+// v0.1.14 : Implement_상체 조합 시 팔, 하체 조합 시 다리 자동 표시
+// v0.1.15 : Update_애니메이션 대응을 위해 팔·다리를 좌우 분리
+// v0.1.16 : Fix_조합은 머리를 대상으로 하지 않도록 변경, 머리 미적용 시 조합 버튼 비활성화, 해체 버튼 기본 비활성화
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
-import { FACE_ASSETS, getPart, SHOP_COST } from './characterData.js';
+import { BODY_ASSETS, FACE_ASSETS, getPart, SHOP_COST } from './characterData.js';
 import {
   getPartQuantity, purchasePart, purchaseRandomPart, getEquippedPart, applyPart,
   canCombine, combineCharacter, canRecombine, recombineCharacter,
@@ -61,9 +36,12 @@ createHeader();
 // - 상체(body)/하체(legs)는 적용(조합)된 경우에만 그리고, 없으면 비워둔다
 //   (기존 head 전용 적용 흐름과 충돌하지 않음 — head 없이 body/legs만 채워지는
 //   경우는 없다. combineCharacter()가 항상 head → body → legs 순서로 채우기 때문).
+// - 머리에 눈/입이 딸려오듯, 상체가 적용되면 왼팔/오른팔(BODY_ASSETS.leftArm/
+//   rightArm)이, 하체가 적용되면 왼다리/오른다리(BODY_ASSETS.leftLeg/rightLeg)가
+//   같은 박스에 함께 그려진다. (애니메이션 적용을 대비해 좌우가 분리된 파일)
 // - 기존 정적 head outline(<path>)은 실제 파츠로 대체되므로 숨긴다.
-// - 슬롯(head/eyes/mouth/body/leg-part-slot)의 위치·표시 크기는
-//   character-shop.html에서 관리한다. 여기서는 어떤 SVG를 넣을지만 결정한다.
+// - 슬롯(head/eyes/mouth/body/left-arm/right-arm/leg-part/left-leg/right-leg-slot)의
+//   위치·표시 크기는 character-shop.html에서 관리한다. 여기서는 어떤 SVG를 넣을지만 결정한다.
 // ===========================
 const characterPlaceholder = document.querySelector('.character-placeholder');
 const headOutlinePath = characterPlaceholder.querySelector('path');
@@ -72,7 +50,11 @@ const headPartSlot = document.getElementById('head-part-slot');
 const faceEyesSlot = document.getElementById('face-eyes-slot');
 const faceMouthSlot = document.getElementById('face-mouth-slot');
 const bodyPartSlot = document.getElementById('body-part-slot');
+const leftArmSlot = document.getElementById('left-arm-slot');
+const rightArmSlot = document.getElementById('right-arm-slot');
 const legPartSlot = document.getElementById('leg-part-slot');
+const leftLegSlot = document.getElementById('left-leg-slot');
+const rightLegSlot = document.getElementById('right-leg-slot');
 
 // renderCharacterPreview()는 embedSvgFragment(fetch 기반, 비동기)의 완료를 기다렸다가
 // 반환한다. 조합/재조합 직후 캐릭터 전체를 복제해 모달에 보여줘야 하는 곳에서는
@@ -86,7 +68,11 @@ async function renderCharacterPreview() {
     faceEyesSlot.replaceChildren();
     faceMouthSlot.replaceChildren();
     bodyPartSlot.replaceChildren();
+    leftArmSlot.replaceChildren();
+    rightArmSlot.replaceChildren();
     legPartSlot.replaceChildren();
+    leftLegSlot.replaceChildren();
+    rightLegSlot.replaceChildren();
     placeholderText.style.display = '';
     return;
   }
@@ -104,15 +90,23 @@ async function renderCharacterPreview() {
   const equippedBodyId = getEquippedPart('body');
   if (equippedBodyId) {
     pendingEmbeds.push(embedSvgFragment(bodyPartSlot, getPart(equippedBodyId).assetPath));
+    pendingEmbeds.push(embedSvgFragment(leftArmSlot, BODY_ASSETS.leftArm));
+    pendingEmbeds.push(embedSvgFragment(rightArmSlot, BODY_ASSETS.rightArm));
   } else {
     bodyPartSlot.replaceChildren();
+    leftArmSlot.replaceChildren();
+    rightArmSlot.replaceChildren();
   }
 
   const equippedLegsId = getEquippedPart('legs');
   if (equippedLegsId) {
     pendingEmbeds.push(embedSvgFragment(legPartSlot, getPart(equippedLegsId).assetPath));
+    pendingEmbeds.push(embedSvgFragment(leftLegSlot, BODY_ASSETS.leftLeg));
+    pendingEmbeds.push(embedSvgFragment(rightLegSlot, BODY_ASSETS.rightLeg));
   } else {
     legPartSlot.replaceChildren();
+    leftLegSlot.replaceChildren();
+    rightLegSlot.replaceChildren();
   }
 
   await Promise.all(pendingEmbeds);
@@ -202,8 +196,8 @@ refreshAllPartSlots();
 // ===========================
 // 조합(combine) 기능
 // - inventory.js의 canCombine()으로 버튼 활성/비활성을 관리한다.
-//   (3부위 완료 / 보유 파츠 없음 / 골드 부족 시 비활성 — 시각적 처리는 구입 등
-//   기존 비활성 버튼과 동일하게 CSS :disabled 스타일에 맡긴다.)
+//   (머리 미장착 / 두 부위(body/legs) 완료 / 보유 파츠 없음 / 골드 부족 시 비활성 —
+//   시각적 처리는 구입 등 기존 비활성 버튼과 동일하게 CSS :disabled 스타일에 맡긴다.)
 // - 골드/인벤토리가 바뀔 수 있는 모든 지점(구매/적용/조합 직후, 최초 로드)에서
 //   refreshCombineButton()을 호출해 최신 상태를 반영한다.
 // ===========================
@@ -223,6 +217,9 @@ combineButton.addEventListener('click', async () => {
   await renderCharacterPreview(); // 모달에 복제할 캐릭터가 최신 상태가 되도록 완료를 기다린다
   openCombineResultModal(result.category);
 });
+
+// 해체(dismantle) 기능은 아직 미구현이므로 기본 비활성화해 둔다.
+document.getElementById('btn-dismantle').disabled = true;
 
 refreshCombineButton();
 

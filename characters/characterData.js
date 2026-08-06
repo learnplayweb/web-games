@@ -3,6 +3,9 @@
 //          PART_CATEGORIES(부위 목록)로 변경. 머리/상체/하체가 동일한 파츠 데이터를
 //          공유하며 중복 정의하지 않는다. getPart(category, id) → getPart(id)로 변경
 //          (부위 구분 없이 파츠 id만으로 조회).
+// v0.1.2 : Update - 애니메이션 적용을 대비해 BODY_ASSETS를 좌우 분리. arms/legs
+//          단일 파일 대신 leftArm/rightArm/leftLeg/rightLeg 4개로 변경
+//          (assets/left-arm.svg, right-arm.svg, left-leg.svg, right-leg.svg).
 //
 // Public API
 // - BASE_PARTS: 머리/상체/하체가 공유하는 파츠 목록 (부위별로 따로 정의하지 않음)
@@ -12,8 +15,10 @@
 const ASSET_ROOT = 'assets';
 
 export const BODY_ASSETS = Object.freeze({
-  arms: `${ASSET_ROOT}/arms.svg`,
-  legs: `${ASSET_ROOT}/legs.svg`,
+  leftArm: `${ASSET_ROOT}/left-arm.svg`,
+  rightArm: `${ASSET_ROOT}/right-arm.svg`,
+  leftLeg: `${ASSET_ROOT}/left-leg.svg`,
+  rightLeg: `${ASSET_ROOT}/right-leg.svg`,
 });
 
 export const FACE_ASSETS = Object.freeze({

@@ -1,22 +1,12 @@
 <!-- v0.1.0 : 최초 생성 - 캐릭터 상점 화면 (UI만, 기능 미구현)
      v0.1.1 : 파츠 슬롯 클릭 모달 추가
      v0.1.2 : Refactor_공통 Sticky Header 적용, 가격 수정, 모달 이름 제거
-     v0.1.3 : Refactor_캐릭터 placeholder 눈/입과 파츠 슬롯 아이콘을
-              하드코딩 SVG에서 assets fetch 기반 inline SVG로 교체
-     v0.1.4 : Refactor_캐릭터 미리보기 조합 슬롯(head/eyes/mouth)의 위치(x, y)와
-              표시 크기(width, height)를 <g> 대신 <svg x y width height>로 이 파일에서
-              직접 관리하도록 변경. head-part-slot도 JS 동적 생성 대신 여기서 선언.
-              (core/svgLoader.js embedSvgFragment(slot, path) 시그니처 변경과 연동)
-     v0.1.5 : Refactor_"SVG 제작 규격"(모든 캐릭터 SVG는 viewBox="0 0 160 160",
-              중심좌표 (80,80) 기준) 확정에 따라 슬롯에 viewBox="0 0 160 160"을
-              고정 선언. 같은 레벨(1단계: 머리+눈+입)의 슬롯은 동일 좌표계를
-              공유하므로 head/eyes/mouth 슬롯의 x/y/width/height를 하나로 통일.
-     v0.1.6 : Implement_2단계(상체)/3단계(하체) 조합 슬롯(body-part-slot,
-              leg-part-slot) 마크업 추가. 규격상 상체·하체는 머리의 70% 크기
-              (160*0.7=112)이며, 머리 아래로 20px씩 겹쳐 이어지도록 배치.
-              3단계를 모두 담기 위해 placeholder viewBox를 "0 0 160 200"에서
-              "0 0 160 380"으로 확장. (⚠ inventory/equip 데이터 연결은 미구현 —
-              상체/하체가 head와 같은 파츠 카탈로그를 어떻게 공유할지 확인 후 진행) -->
+     v0.1.3 : Refactor_눈/입 및 파츠 아이콘을 fetch 기반 inline SVG로 변경
+     v0.1.4 : Refactor_슬롯 위치·크기를 HTML(<svg>)에서 직접 관리하도록 변경
+     v0.1.5 : Refactor_SVG 제작 규격(viewBox 160×160, 중심 (80,80)) 통일
+     v0.1.6 : Implement_2·3단계 조합 슬롯(body, lowerBody) 추가
+     v0.1.7 : Update_상체/하체 슬롯 위치 조정 및 팔·다리 슬롯 추가
+     v0.1.8 : Update_애니메이션 대응을 위해 팔·다리 슬롯을 좌우 분리 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -40,20 +30,31 @@
         <!-- 파츠 조합 슬롯: 위치(x, y)·표시 크기(width, height)·viewBox는 여기서만 관리한다.
              character-shop.js는 embedSvgFragment(slot, path)로 내용만 채워 넣는다
              (core/svgLoader.js 참고).
-             SVG 제작 규격: 모든 캐릭터 SVG(파츠/눈/입)는 viewBox="0 0 160 160",
+             SVG 제작 규격: 모든 캐릭터 SVG(파츠/눈/입/팔/다리)는 viewBox="0 0 160 160",
              중심좌표 (80,80) 기준으로 제작되므로 같은 레벨의 슬롯은 동일한
              x/y/width/height/viewBox를 그대로 공유한다 — 파츠를 교체해도 위치를
              다시 맞출 필요가 없다.
              단계별 크기 규격: 머리 100%(160×160) 기준, 상체·하체는 70%(112×112).
-             가로 중앙 정렬은 x=(160-112)/2=24. 세로는 바로 위 단계와 20px씩
-             겹치도록 배치해 이어붙인 것처럼 보이게 한다.
+             가로 중앙 정렬은 x=(160-112)/2=24.
+             머리에 눈/입이 딸려오듯, 상체에는 팔이, 하체에는 다리가 같은 박스로
+             함께 표시된다. 애니메이션 적용을 대비해 좌/우를 각각 별도 SVG
+             파일(assets/left-arm.svg, right-arm.svg, left-leg.svg, right-leg.svg)로
+             분리했으므로 슬롯도 좌우 각각 둔다(body-part-slot과 동일 박스를
+             left-arm-slot/right-arm-slot이, leg-part-slot과 동일 박스를
+             left-leg-slot/right-leg-slot이 공유).
              그리는 순서 = 쌓이는 순서: head-part-slot(머리) → face-eyes-slot(눈)
-             → face-mouth-slot(입) → body-part-slot(상체) → leg-part-slot(하체). -->
+             → face-mouth-slot(입) → body-part-slot(상체) → left-arm-slot(왼팔)
+             → right-arm-slot(오른팔) → leg-part-slot(하체) → left-leg-slot(왼다리)
+             → right-leg-slot(오른다리). -->
         <svg id="head-part-slot" x="0" y="20" width="160" height="160" viewBox="0 0 160 160"></svg>
         <svg id="face-eyes-slot" x="0" y="20" width="160" height="160" viewBox="0 0 160 160"></svg>
         <svg id="face-mouth-slot" x="0" y="20" width="160" height="160" viewBox="0 0 160 160"></svg>
         <svg id="body-part-slot" x="24" y="120" width="112" height="112" viewBox="0 0 160 160"></svg>
+        <svg id="left-arm-slot" x="24" y="120" width="112" height="112" viewBox="0 0 160 160"></svg>
+        <svg id="right-arm-slot" x="24" y="120" width="112" height="112" viewBox="0 0 160 160"></svg>
         <svg id="leg-part-slot" x="24" y="182" width="112" height="112" viewBox="0 0 160 160"></svg>
+        <svg id="left-leg-slot" x="24" y="182" width="112" height="112" viewBox="0 0 160 160"></svg>
+        <svg id="right-leg-slot" x="24" y="182" width="112" height="112" viewBox="0 0 160 160"></svg>
         <!-- 플레이스홀더 안내 -->
         <text x="80" y="100" font-size="17" fill="#b0bac6" text-anchor="middle">아직 꼬무리가 없어요</text>
       </svg>
