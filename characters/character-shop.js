@@ -24,6 +24,10 @@
 // v0.1.21 : Update_구입 성공 후 모달을 닫는 대신 원래 파츠 모달(구입/적용 버튼)로
 //           자동 복귀하도록 변경 — 연속 구입 가능. 색상/꾸밈 섹션 펼침·접힘 클릭
 //           영역을 화살표 버튼에서 헤더 바 전체로 확장.
+// v0.1.22 : Implement_이름 변경/색 섞기 버튼 기본 비활성화(활성화 조건 미구현).
+// v0.1.23 : Update_#character-root 정렬 로직에 scale 추가 — 머리만 있을 때도
+//           머리+상체+하체 전체와 같은 길이로 보이도록 부족한 단계를 확대한다
+//           (computeCharacterRootOffsetY → computeCharacterRootTransform으로 교체).
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
@@ -50,8 +54,9 @@ createHeader();
 // - 머리에 눈/입이 딸려오듯, 상체가 적용되면 왼팔/오른팔(BODY_ASSETS.leftArm/
 //   rightArm)이, 하체가 적용되면 왼다리/오른다리(BODY_ASSETS.leftLeg/rightLeg)가
 //   같은 박스에 함께 그려진다. (애니메이션 적용을 대비해 좌우가 분리된 파일)
-// - 조합 단계(머리만/머리+상체/전체)에 따라 내용의 세로 범위가 달라지므로,
-//   #character-root의 translate(y)를 매번 다시 계산해 항상 가운데에 오도록 한다.
+// - 조합 단계(머리만/머리+상체/전체)에 따라 내용의 세로 범위·전체 길이가 달라지므로,
+//   #character-root의 translate+scale을 매번 다시 계산해 항상 가운데 정렬 + 같은
+//   전체 길이로 보이도록 한다 (computeCharacterRootTransform 참고).
 // - 기존 정적 head outline(<path>)은 실제 파츠로 대체되므로 숨긴다.
 // - 슬롯(head/eyes/mouth/body/left-arm/right-arm/leg-part/left-leg/right-leg-slot)의
 //   위치·표시 크기는 character-shop.html에서 관리한다. 여기서는 어떤 SVG를 넣을지만 결정한다.
@@ -78,22 +83,37 @@ function getViewBoxHeight(svgElement) {
 }
 
 // 조합 단계(머리만 / 머리+상체 / 전체)에 따라 실제로 그려지는 내용의 세로 범위가
-// 달라지므로, 그 범위의 중심이 항상 viewBox 세로 중앙에 오도록 #character-root의
-// translate(y)를 계산한다. 슬롯의 x/y/width/height 자체는 여전히 character-shop.html이
-// 관리하며, 여기서는 이미 선언된 값(headPartSlot 등의 y/height)을 읽기만 한다.
-function computeCharacterRootOffsetY(hasBody, hasLegs, viewBoxHeight) {
+// 달라진다. 이 함수는 #character-root에 적용할 translate+scale을 계산해
+// (1) 항상 viewBox 세로 중앙에 오고, (2) 부족한 단계는 그만큼 확대해 항상
+// "전체(머리+상체+하체)"와 같은 전체 길이로 보이도록 만든다.
+// 슬롯의 x/y/width/height 자체는 여전히 character-shop.html이 관리하며,
+// 여기서는 이미 선언된 값(headPartSlot 등)을 읽어 계산만 한다.
+function computeCharacterRootTransform(hasBody, hasLegs, viewBoxHeight) {
+  const centerX = Number(headPartSlot.getAttribute('x')) + Number(headPartSlot.getAttribute('width')) / 2;
+
   const top = Number(headPartSlot.getAttribute('y'));
   let bottomSlot = headPartSlot;
   if (hasBody) bottomSlot = bodyPartSlot;
   if (hasLegs) bottomSlot = legPartSlot;
   const bottom = Number(bottomSlot.getAttribute('y')) + Number(bottomSlot.getAttribute('height'));
 
-  const contentCenter = (top + bottom) / 2;
-  return (viewBoxHeight / 2) - contentCenter;
+  // "전체(머리+상체+하체)" 단계의 길이를 기준으로 삼아, 그보다 짧은 단계는
+  // 그 비율만큼 확대한다(scale > 1). 전체 단계에서는 scale이 1이 된다.
+  const referenceBottom = Number(legPartSlot.getAttribute('y')) + Number(legPartSlot.getAttribute('height'));
+  const referenceHeight = referenceBottom - top;
+  const scale = referenceHeight / (bottom - top);
+
+  // SVG의 "translate(...) scale(...)"은 점에 스케일을 먼저 적용한 뒤 이동시키므로
+  // (p' = scale*p + translate), 중심(centerX, 콘텐츠 세로 중심)이 스케일 후에도
+  // 제자리(가로 centerX, 세로 viewBox 중앙)에 오도록 translate 값을 역산한다.
+  const offsetX = centerX * (1 - scale);
+  const offsetY = (viewBoxHeight / 2) - ((top + bottom) / 2) * scale;
+
+  return `translate(${offsetX}, ${offsetY}) scale(${scale})`;
 }
 
-function applyCharacterRootOffset(rootElement, hasBody, hasLegs, viewBoxHeight) {
-  rootElement.setAttribute('transform', `translate(0, ${computeCharacterRootOffsetY(hasBody, hasLegs, viewBoxHeight)})`);
+function applyCharacterRootTransform(rootElement, hasBody, hasLegs, viewBoxHeight) {
+  rootElement.setAttribute('transform', computeCharacterRootTransform(hasBody, hasLegs, viewBoxHeight));
 }
 
 // renderCharacterPreview()는 embedSvgFragment(fetch 기반, 비동기)의 완료를 기다렸다가
@@ -149,7 +169,7 @@ async function renderCharacterPreview() {
     rightLegSlot.replaceChildren();
   }
 
-  applyCharacterRootOffset(characterRoot, Boolean(equippedBodyId), Boolean(equippedLegsId), getViewBoxHeight(characterPlaceholder));
+  applyCharacterRootTransform(characterRoot, Boolean(equippedBodyId), Boolean(equippedLegsId), getViewBoxHeight(characterPlaceholder));
 
   await Promise.all(pendingEmbeds);
 }
@@ -291,6 +311,12 @@ dismantleButton.addEventListener('click', async () => {
 
 refreshDismantleButton();
 
+// 이름 변경/색 섞기는 활성화 조건(이름 변경: 이름 설정 여부 / 색 섞기: 골드 50↑ +
+// 색상 2종↑ 보유)이 아직 구현되지 않았으므로 기본 비활성화해 둔다. 앞으로 추가할
+// 버튼도 조건 로직이 붙기 전까지는 기본을 비활성화 상태로 둔다.
+document.getElementById('btn-rename').disabled = true;
+document.querySelector('.color-mix-btn').disabled = true;
+
 // 헤더 바(섹션 명이 적힌 사각형) 전체를 클릭 영역으로 사용한다 — 화살표 버튼만
 // 클릭 대상이면 영역이 좁아 불편하다는 피드백을 반영. 화살표 버튼도 헤더 안에
 // 있으므로 클릭이 자연히 버블링되어 같은 핸들러로 처리된다(중복 바인딩 없음).
@@ -345,7 +371,7 @@ function createPricedButton(variantClass, label, price, disabled = false) {
 // - reopenTimerId: "뽑는 중" → 결과 전환 타이머, autoCloseTimerId: 자동 닫힘 타이머
 // ===========================
 const RANDOM_DRAW_DELAY_MS = 700; // 요구사항: 약 0.6~0.8초
-const RESULT_AUTO_CLOSE_MS = 2000; // 버튼 없는 결과 모달(구입 결과/해체 결과) 공통 자동 닫힘 시간
+const RESULT_AUTO_CLOSE_MS = 2500; // 버튼 없는 결과 모달(구입 결과/해체 결과) 공통 자동 닫힘 시간
 const PARTICLE_COLORS = ['#ffffff', '#bfe6ff', '#fff6b3'];
 
 let reopenTimerId = null;
@@ -552,10 +578,10 @@ async function buildCombinePreviewClone(category, id) {
     ]);
   }
 
-  // 미리보기 파츠까지 포함한 세로 범위를 기준으로 가운데 정렬을 다시 계산한다.
+  // 미리보기 파츠까지 포함한 세로 범위를 기준으로 가운데 정렬·전체 길이를 다시 계산한다.
   const hasBody = category === 'body' || Boolean(getEquippedPart('body'));
   const hasLegs = category === 'legs' || Boolean(getEquippedPart('legs'));
-  applyCharacterRootOffset(clone.querySelector('#character-root'), hasBody, hasLegs, getViewBoxHeight(clone));
+  applyCharacterRootTransform(clone.querySelector('#character-root'), hasBody, hasLegs, getViewBoxHeight(clone));
 
   return clone;
 }
