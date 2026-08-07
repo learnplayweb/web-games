@@ -28,6 +28,9 @@
 // v0.1.23 : Update_#character-root 정렬 로직에 scale 추가 — 머리만 있을 때도
 //           머리+상체+하체 전체와 같은 길이로 보이도록 부족한 단계를 확대한다
 //           (computeCharacterRootOffsetY → computeCharacterRootTransform으로 교체).
+// v0.1.24 : Implement_캐릭터 이름 설정 모달(#name-modal) 연결. 머리 파츠 최초 적용
+//           시 자동으로 뜨며 [저장]으로만 닫힌다(바깥 클릭/자동 닫힘 없음). 이름은
+//           core/saveManager.js의 character_name_save에 저장, .character-name에 반영.
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
@@ -37,7 +40,7 @@ import {
   canCombine, previewCombine, canRecombine, previewRecombine, confirmCombine,
   canDismantle, dismantleCharacter,
 } from './inventory.js';
-import { getGold } from '../core/saveManager.js';
+import { getGold, getCharacterName, setCharacterName } from '../core/saveManager.js';
 
 createHeader();
 
@@ -175,6 +178,52 @@ async function renderCharacterPreview() {
 }
 
 renderCharacterPreview();
+
+// ===========================
+// 이름 설정 모달
+// - 머리 파츠가 최초로 적용될 때(캐릭터 최초 생성) applyButton 핸들러에서 openNameModal()을
+//   호출한다. [저장]을 눌러야만 닫힌다 — 바깥 클릭/자동 닫힘 리스너를 아예 붙이지 않는다.
+// - 입력창은 비어 있으면 placeholder("10글자까지 가능합니다.")를 보여주고(HTML 기본 동작),
+//   maxlength="10"으로 10자 초과 입력을 막는다(붙여넣기 대비 JS에서 한 번 더 자름).
+// - [저장] 버튼은 다른 기능 버튼과 동일하게 기본 비활성화 — 입력이 있어야 눌린다.
+// ===========================
+const nameModal = document.getElementById('name-modal');
+const nameModalInput = document.getElementById('name-modal-input');
+const nameModalSaveButton = document.getElementById('name-modal-save');
+const characterNameLabel = document.querySelector('.character-name');
+
+function refreshNameModalSaveButton() {
+  nameModalSaveButton.disabled = nameModalInput.value.trim().length === 0;
+}
+
+nameModalInput.addEventListener('input', () => {
+  if (nameModalInput.value.length > 10) {
+    nameModalInput.value = nameModalInput.value.slice(0, 10); // maxlength 우회(붙여넣기 등) 대비
+  }
+  refreshNameModalSaveButton();
+});
+
+function openNameModal() {
+  nameModalInput.value = '';
+  refreshNameModalSaveButton();
+  nameModal.classList.remove('modal-overlay--hidden');
+  nameModalInput.focus();
+}
+
+nameModalSaveButton.addEventListener('click', () => {
+  const name = nameModalInput.value.trim();
+  if (!name) return; // 버튼이 비활성화되어 있어 사실상 도달하지 않음
+
+  setCharacterName(name);
+  characterNameLabel.textContent = name;
+  nameModal.classList.add('modal-overlay--hidden');
+});
+
+// 이미 저장된 이름이 있으면(재방문) 기본 표시 문구 대신 그 이름을 보여준다.
+const savedCharacterName = getCharacterName();
+if (savedCharacterName) {
+  characterNameLabel.textContent = savedCharacterName;
+}
 
 // ===========================
 // 파츠 슬롯 아이콘 인라인 로딩
@@ -523,6 +572,7 @@ function openPartModal(slot) {
       const canApply = owned > 0 && getGold() >= SHOP_COST.partApply;
       const applyButton = createPricedButton('modal-card__btn--cancel', '적용', `💎 ${SHOP_COST.partApply}`, !canApply);
       applyButton.addEventListener('click', () => {
+        const isFirstSave = !getEquippedPart('head'); // 머리를 아직 한 번도 적용한 적 없으면 캐릭터 최초 생성
         const result = applyPart('head', headPartId);
         if (!result.success) return; // 미보유/골드 부족 등: 적용/저장/화면 갱신 없음
 
@@ -531,7 +581,13 @@ function openPartModal(slot) {
         refreshCombineButton(); // 적용으로 인벤토리가 줄어 조합 가능 여부가 바뀔 수 있음
         refreshDismantleButton(); // 적용으로 골드가 줄어 해체 가능 여부가 바뀔 수 있음
         renderCharacterPreview();
-        openPartModal(slot); // 적용 중 표시/버튼 상태를 즉시 반영
+
+        if (isFirstSave) {
+          closePartModal();
+          openNameModal();
+        } else {
+          openPartModal(slot); // 적용 중 표시/버튼 상태를 즉시 반영
+        }
       });
       partModalActions.appendChild(applyButton);
     }

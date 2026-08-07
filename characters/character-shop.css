@@ -7,7 +7,9 @@
    v0.1.6 : Implement_구입 결과 연출 CSS 추가(스피너, 스케일 팝업, 파티클)
    v0.1.7 : Polish_저장 버튼 텍스트 색·굵기 조정
    v0.1.8 : Implement_기능 버튼(조합/해체/이름 변경/저장하기)·색 섞기 버튼 비활성화 스타일 추가
-   v0.1.9 : Polish_펼침/접힘 화살표가 있는 섹션 헤더에 포인터 커서 적용(헤더 전체 클릭 가능해진 JS와 일치) */
+   v0.1.9 : Polish_펼침/접힘 화살표가 있는 섹션 헤더에 포인터 커서 적용(헤더 전체 클릭 가능해진 JS와 일치)
+   v0.1.10 : Implement_이름 설정 모달(#name-modal) 스타일 추가(제목 font-weight 600,
+             가운데 정렬 입력창, 비활성 저장 버튼) */
 
 /* ===========================
    1. 전역 초기화 & 변수
@@ -491,6 +493,43 @@ body {
 
 /* 골드 부족(구입) / 미보유(적용) 등으로 비활성화된 상태 */
 .modal-card__btn--priced:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ===========================
+   10. 이름 설정 모달
+=========================== */
+.name-modal__title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: center;
+}
+
+.name-modal__input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--color-text);
+  text-align: center;
+}
+
+.name-modal__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.name-modal__input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* [저장] 버튼도 다른 기능 버튼과 동일하게: 이름을 입력하기 전까지는 비활성화 */
+#name-modal-save:disabled {
   opacity: 0.4;
   cursor: default;
 }

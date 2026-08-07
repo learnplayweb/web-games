@@ -7,6 +7,8 @@
 // v0.1.6 : Implement - resetClockProgress() 추가 (골드는 유지하고 Clock 진행 상태만 초기화)
 // v0.1.7 : Update - character_equip_save 기본값에 body, legs 키 추가 (2단계/3단계
 //          상체/하체 슬롯 대응). head만 있던 것을 { head, body, legs } 3부위로 확장.
+// v0.1.8 : Implement_캐릭터 이름 저장 키(character_name_save) 및 get/set 추가.
+//          resetCharacterSave()가 이름도 함께 기본값(null)으로 되돌리도록 확장.
 // 의존: 없음 (LocalStorage 직접 접근은 이 파일에서만 수행)
 // 기존 저장 데이터(clockGame_save) 구조/키를 그대로 유지하여 호환성 보장
 // 향후 다른 게임/캐릭터 시스템 저장 기능 추가 시 이 파일에 함수를 확장한다.
@@ -19,10 +21,14 @@
 // - getEquippedParts(): 적용 상태 반환 (없으면 기본값)
 // - setEquippedParts(equipData): 적용 상태 통째로 덮어쓰기
 //
+// Public API (character_name_save 관련)
+// - getCharacterName(): 캐릭터 이름 반환 (없으면 null)
+// - setCharacterName(name): 캐릭터 이름 저장
+//
 // Public API (디버그 전용)
 // - resetSave(): clockGame_save 전체 초기화 (골드 포함)
 // - resetClockProgress(): Clock 진행 상태만 초기화 (골드 유지, 신규)
-// - resetCharacterSave(): character_save + character_equip_save를 기본값으로 초기화
+// - resetCharacterSave(): character_save + character_equip_save + character_name_save를 기본값으로 초기화
 //
 // Public API (Gold 관련)
 // - spendGold(amount): 골드가 충분하면 차감 후 true, 부족하면 저장 없이 false
@@ -32,6 +38,9 @@
 //
 // Save Structure (character_equip_save)
 // { head: string | null, body: string | null, legs: string | null }  // 부위별 현재 적용된 파츠 id (예: { head: 'circle', body: 'star', legs: null })
+//
+// Save Structure (character_name_save)
+// string | null  // 캐릭터 이름 (설정 전에는 null)
 
   const SAVE_KEY = 'clockGame_save'; // localStorage 키 (기존 키 유지)
 
@@ -160,10 +169,47 @@ export function getClockSave() {
     return equipData;
   }
 
-  // 캐릭터 관련 저장(인벤토리 + 적용 상태)을 모두 기본값으로 되돌린다. (디버그 전용)
+  // 캐릭터 관련 저장(인벤토리 + 적용 상태 + 이름)을 모두 기본값으로 되돌린다. (디버그 전용)
   export function resetCharacterSave() {
     writeCharacter(getDefaultCharacterSave());
     writeEquip(getDefaultEquip());
+    writeCharacterName(getDefaultCharacterName());
+  }
+
+  /* ===== 캐릭터 이름 (공통) =====
+     인벤토리/적용 상태와 별도 키를 사용해, 어느 한쪽을 통째로 덮어써도 이름이
+     함께 지워지지 않도록 분리했다. */
+
+  const CHARACTER_NAME_KEY = 'character_name_save';
+
+  function getDefaultCharacterName() {
+    return null;
+  }
+
+  function loadCharacterName() {
+    try {
+      const raw = localStorage.getItem(CHARACTER_NAME_KEY);
+      return raw ? JSON.parse(raw) : getDefaultCharacterName();
+    } catch {
+      return getDefaultCharacterName();
+    }
+  }
+
+  function writeCharacterName(name) {
+    try {
+      localStorage.setItem(CHARACTER_NAME_KEY, JSON.stringify(name));
+    } catch {
+      console.warn('저장 실패: localStorage를 사용할 수 없습니다.');
+    }
+  }
+
+  export function getCharacterName() {
+    return loadCharacterName();
+  }
+
+  export function setCharacterName(name) {
+    writeCharacterName(name);
+    return name;
   }
 
   /* ===== Clock Game 전용 ===== */

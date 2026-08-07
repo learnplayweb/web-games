@@ -8,7 +8,10 @@
      v0.1.7 : Update_상체/하체 슬롯 위치 조정 및 팔·다리 슬롯 추가
      v0.1.8 : Update_애니메이션 대응을 위해 팔·다리 슬롯을 좌우 분리
      v0.1.9 : Implement_조합 단계에 따라 세로 중앙 정렬되도록 파츠 슬롯을
-              <g id="character-root">로 묶음 (character-shop.js가 transform 계산) -->
+              <g id="character-root">로 묶음 (character-shop.js가 transform 계산)
+     v0.1.10 : Update_상체·하체 크기를 62.5%(100×100)로, 위치를 재조정
+     v0.1.11 : Implement_이름 설정 모달(#name-modal) 마크업 추가 (머리 최초 적용 시
+               자동으로 뜨는, [저장]으로만 닫히는 이름 입력 모달) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -229,6 +232,20 @@
       <div class="modal-card__actions">
         <button type="button" class="modal-card__btn modal-card__btn--confirm" id="modal-confirm">저장</button>
         <button type="button" class="modal-card__btn modal-card__btn--cancel" id="modal-cancel">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 이름 설정 모달: 머리 파츠 최초 적용(캐릭터 최초 생성) 시 자동으로 뜬다.
+       [저장]을 눌러야만 닫힌다 — 바깥 클릭/자동 닫힘 없음(character-shop.js에서
+       이 모달에는 그런 리스너를 아예 붙이지 않는 방식으로 구현). -->
+  <div id="name-modal" class="modal-overlay modal-overlay--hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <p class="name-modal__title">이름을 정해 주세요</p>
+      <input type="text" id="name-modal-input" class="name-modal__input"
+             placeholder="10글자까지 가능합니다." maxlength="10" autocomplete="off">
+      <div class="modal-card__actions">
+        <button type="button" class="modal-card__btn modal-card__btn--confirm" id="name-modal-save" disabled>저장</button>
       </div>
     </div>
   </div>
