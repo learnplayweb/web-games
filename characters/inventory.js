@@ -6,6 +6,10 @@
 // v0.1.5 : Implement_재조합(recombine) 기능 추가
 // v0.1.6 : Fix_조합 대상에서 머리 제외(적용 버튼 전용), 머리 미장착 시 조합 불가
 // v0.1.7 : Implement_해체(dismantle) 기능 추가
+// v0.1.8 : Refactor_조합/재조합을 미리보기(골드 차감만)와 확정(인벤토리 소비+저장)
+//          2단계로 분리. combineCharacter/recombineCharacter를 previewCombine/
+//          previewRecombine/confirmCombine으로 교체 — [확인]을 누르기 전까지는
+//          재조합을 반복해도 인벤토리/적용 상태가 전혀 바뀌지 않는다.
 //
 // Public API
 // - hasPart(id)
@@ -23,12 +27,13 @@
 // - getCombineStage()
 // - selectCombinablePart()
 // - canCombine()
-// - combineCharacter()
+// - previewCombine()
+// - confirmCombine(category, id)
 //
 // Recombine API
-// - selectRecombinablePart(category)
-// - canRecombine(category)
-// - recombineCharacter(category)
+// - selectRecombinablePart(excludeId)
+// - canRecombine(excludeId)
+// - previewRecombine(excludeId)
 //
 // Dismantle API
 // - canDismantle()
@@ -237,16 +242,14 @@ export function canCombine() {
 }
 
 /**
- * 조합을 실행한다. 보유 파츠(수량 1개 이상) 중 무작위로 선택된 하나를 다음 빈
- * 부위(body → legs 순서, 항상 마지막 슬롯)에 적용한다. 머리는 조합 대상이 아니며
- * (적용 버튼 전용), 머리가 없으면 실행되지 않는다.
- * 실패 조건(머리 없음/두 부위 완료/후보 없음/골드 부족)은 이 함수 안에서도 다시
- * 확인하며, 실패 시 아무것도 차감/저장하지 않는다 — canCombine()으로 사전에
- * 걸러진 상태에서 호출하면 항상 성공한다.
- * 순서: 대상 부위/파츠 결정(상태 변경 없음) → 골드 차감 → 적용 상태 갱신 →
- * 보유 수량 1 감소.
+ * 조합을 "미리보기"한다. 다음 빈 부위(body → legs 순)에 적용할 파츠를 보유 파츠
+ * 중 무작위로 하나 골라 골드만 차감한다. 인벤토리 소비/적용 상태 저장은 하지
+ * 않는다 — 사용자가 결과를 보고 [확인]을 눌러야 confirmCombine()으로 확정된다.
+ * (재조합으로 다시 미리보기를 새로 고쳐도 이전 미리보기는 아무 흔적도 남기지 않는다.)
+ * 실패 시(머리 없음/두 부위 완료/후보 없음/골드 부족) 아무것도 차감하지 않는다 —
+ * canCombine()으로 사전에 걸러진 상태에서 호출하면 항상 성공한다.
  */
-export function combineCharacter() {
+export function previewCombine() {
   const category = getNextCombineCategory();
   if (!category) return { success: false, reason: 'max-stage' };
 
@@ -254,6 +257,56 @@ export function combineCharacter() {
   if (!id) return { success: false, reason: 'no-candidate' };
 
   if (!spendGold(SHOP_COST.partCombine)) return { success: false, reason: 'insufficient-gold' };
+
+  return { success: true, category, id, remainingGold: getGold() };
+}
+
+/**
+ * 지금 미리보기 중인 파츠(excludeId)와 "다른 모양"의 보유 파츠 중 무작위로
+ * 하나 선택한다. 순수 함수 — 인벤토리/적용 상태를 변경하지 않는다. 후보가 없으면 null.
+ */
+export function selectRecombinablePart(excludeId) {
+  const candidates = getOwnedParts().filter((id) => id !== excludeId);
+  if (candidates.length === 0) return null;
+
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+/**
+ * 재조합 가능 여부를 판단한다 (재조합 버튼 활성/비활성에 사용).
+ * - 지금 미리보기 중인 파츠(excludeId)와 다른 모양의 보유 파츠가 없으면 불가
+ * - 골드가 재조합 비용(SHOP_COST.partRecombine)보다 부족하면 불가
+ */
+export function canRecombine(excludeId) {
+  if (!selectRecombinablePart(excludeId)) return false;
+  if (getGold() < SHOP_COST.partRecombine) return false;
+
+  return true;
+}
+
+/**
+ * 재조합을 "미리보기"한다. 지금 미리보기 중인 파츠(excludeId)와 다른 모양의
+ * 보유 파츠 중 무작위로 하나를 새로 골라 골드만 차감한다. previewCombine()과
+ * 마찬가지로 인벤토리 소비/적용 상태 저장은 하지 않는다.
+ */
+export function previewRecombine(excludeId) {
+  const id = selectRecombinablePart(excludeId);
+  if (!id) return { success: false, reason: 'no-candidate' };
+
+  if (!spendGold(SHOP_COST.partRecombine)) return { success: false, reason: 'insufficient-gold' };
+
+  return { success: true, id, remainingGold: getGold() };
+}
+
+/**
+ * 조합/재조합 미리보기를 확정한다. 미리보기로 정해진 부위(category)에 파츠(id)를
+ * 실제로 적용하고, 보유 수량을 1 감소시킨다. [확인] 버튼을 눌렀을 때만 호출되므로,
+ * 그 전까지(재조합을 몇 번 반복하든) 인벤토리/적용 상태는 전혀 바뀌지 않는다.
+ * 순서: 적용 상태 갱신 → 보유 수량 1 감소.
+ */
+export function confirmCombine(category, id) {
+  if (!PART_CATEGORIES.includes(category)) return { success: false, reason: 'invalid-category' };
+  if (getPartQuantity(id) <= 0) return { success: false, reason: 'not-owned' };
 
   const equipped = getEquippedParts();
   equipped[category] = id;
@@ -266,61 +319,6 @@ export function combineCharacter() {
     category,
     id,
     stage: getCombineStage(),
-    remainingGold: getGold(),
-    remainingQuantity: getPartQuantity(id),
-  };
-}
-
-/**
- * 지금 해당 부위(category)에 적용된 파츠와 "다른 모양"의 보유 파츠 중 무작위로
- * 하나 선택한다. 순수 함수 — 인벤토리/적용 상태를 변경하지 않는다. 후보가 없으면 null.
- */
-export function selectRecombinablePart(category) {
-  const currentId = getEquippedPart(category);
-  const candidates = getOwnedParts().filter((id) => id !== currentId);
-  if (candidates.length === 0) return null;
-
-  return candidates[Math.floor(Math.random() * candidates.length)];
-}
-
-/**
- * 재조합 가능 여부를 판단한다 (재조합 버튼 활성/비활성에 사용).
- * - 지금 적용된 파츠와 다른 모양의 보유 파츠가 없으면 불가
- * - 골드가 재조합 비용(SHOP_COST.partRecombine)보다 부족하면 불가
- */
-export function canRecombine(category) {
-  if (!selectRecombinablePart(category)) return false;
-  if (getGold() < SHOP_COST.partRecombine) return false;
-
-  return true;
-}
-
-/**
- * 재조합을 실행한다. 지금 해당 부위(category)에 적용된 파츠와 다른 모양의 보유
- * 파츠 중 무작위로 하나를 선택해 같은 부위에 다시 적용한다. 기존에 적용되어
- * 있던 파츠는 인벤토리로 환불되지 않는다(재조합 비용은 별도로 지불한다).
- * 순서: 후보 파츠 결정(상태 변경 없음) → 골드 차감 → 적용 상태 갱신 →
- * 새로 선택된 파츠 보유 수량 1 감소.
- */
-export function recombineCharacter(category) {
-  if (!PART_CATEGORIES.includes(category)) return { success: false, reason: 'invalid-category' };
-
-  const id = selectRecombinablePart(category);
-  if (!id) return { success: false, reason: 'no-candidate' };
-
-  if (!spendGold(SHOP_COST.partRecombine)) return { success: false, reason: 'insufficient-gold' };
-
-  const equipped = getEquippedParts();
-  equipped[category] = id;
-  setEquippedParts(equipped);
-
-  consumePart(id);
-
-  return {
-    success: true,
-    category,
-    id,
-    remainingGold: getGold(),
     remainingQuantity: getPartQuantity(id),
   };
 }

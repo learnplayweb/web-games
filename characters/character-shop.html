@@ -6,7 +6,9 @@
      v0.1.5 : Refactor_SVG 제작 규격(viewBox 160×160, 중심 (80,80)) 통일
      v0.1.6 : Implement_2·3단계 조합 슬롯(body, lowerBody) 추가
      v0.1.7 : Update_상체/하체 슬롯 위치 조정 및 팔·다리 슬롯 추가
-     v0.1.8 : Update_애니메이션 대응을 위해 팔·다리 슬롯을 좌우 분리 -->
+     v0.1.8 : Update_애니메이션 대응을 위해 팔·다리 슬롯을 좌우 분리
+     v0.1.9 : Implement_조합 단계에 따라 세로 중앙 정렬되도록 파츠 슬롯을
+              <g id="character-root">로 묶음 (character-shop.js가 transform 계산) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -34,8 +36,8 @@
              중심좌표 (80,80) 기준으로 제작되므로 같은 레벨의 슬롯은 동일한
              x/y/width/height/viewBox를 그대로 공유한다 — 파츠를 교체해도 위치를
              다시 맞출 필요가 없다.
-             단계별 크기 규격: 머리 100%(160×160) 기준, 상체·하체는 70%(112×112).
-             가로 중앙 정렬은 x=(160-112)/2=24.
+             단계별 크기 규격: 머리 100%(160×160) 기준, 상체·하체는 62.5%(100×100).
+             가로 중앙 정렬은 x=(160-100)/2=30.
              머리에 눈/입이 딸려오듯, 상체에는 팔이, 하체에는 다리가 같은 박스로
              함께 표시된다. 애니메이션 적용을 대비해 좌/우를 각각 별도 SVG
              파일(assets/left-arm.svg, right-arm.svg, left-leg.svg, right-leg.svg)로
@@ -45,16 +47,23 @@
              그리는 순서 = 쌓이는 순서: head-part-slot(머리) → face-eyes-slot(눈)
              → face-mouth-slot(입) → body-part-slot(상체) → left-arm-slot(왼팔)
              → right-arm-slot(오른팔) → leg-part-slot(하체) → left-leg-slot(왼다리)
-             → right-leg-slot(오른다리). -->
-        <svg id="head-part-slot" x="0" y="20" width="160" height="160" viewBox="0 0 160 160"></svg>
-        <svg id="face-eyes-slot" x="0" y="20" width="160" height="160" viewBox="0 0 160 160"></svg>
-        <svg id="face-mouth-slot" x="0" y="20" width="160" height="160" viewBox="0 0 160 160"></svg>
-        <svg id="body-part-slot" x="24" y="120" width="112" height="112" viewBox="0 0 160 160"></svg>
-        <svg id="left-arm-slot" x="24" y="120" width="112" height="112" viewBox="0 0 160 160"></svg>
-        <svg id="right-arm-slot" x="24" y="120" width="112" height="112" viewBox="0 0 160 160"></svg>
-        <svg id="leg-part-slot" x="24" y="182" width="112" height="112" viewBox="0 0 160 160"></svg>
-        <svg id="left-leg-slot" x="24" y="182" width="112" height="112" viewBox="0 0 160 160"></svg>
-        <svg id="right-leg-slot" x="24" y="182" width="112" height="112" viewBox="0 0 160 160"></svg>
+             → right-leg-slot(오른다리).
+             character-root: 조합 단계(머리만/머리+상체/전체)에 따라 실제로 그려지는
+             내용의 높이가 달라지므로, character-shop.js가 이 그룹의 transform(세로
+             translate)만 매번 다시 계산해 항상 placeholder 가운데에 오도록 만든다.
+             (슬롯 개별 x/y/width/height는 그대로 이 파일이 고정 관리 — character-root의
+             translate만 "몇 단계까지 찼는가"에 따라 달라지는 유일한 예외) -->
+        <g id="character-root" transform="translate(0, 0)">
+          <svg id="head-part-slot" x="0" y="20" width="160" height="160" viewBox="0 0 160 160"></svg>
+          <svg id="face-eyes-slot" x="0" y="20" width="160" height="160" viewBox="0 0 160 160"></svg>
+          <svg id="face-mouth-slot" x="0" y="20" width="160" height="160" viewBox="0 0 160 160"></svg>
+          <svg id="body-part-slot" x="30" y="121" width="100" height="100" viewBox="0 0 160 160"></svg>
+          <svg id="left-arm-slot" x="30" y="121" width="100" height="100" viewBox="0 0 160 160"></svg>
+          <svg id="right-arm-slot" x="30" y="121" width="100" height="100" viewBox="0 0 160 160"></svg>
+          <svg id="leg-part-slot" x="30" y="176" width="100" height="100" viewBox="0 0 160 160"></svg>
+          <svg id="left-leg-slot" x="30" y="176" width="100" height="100" viewBox="0 0 160 160"></svg>
+          <svg id="right-leg-slot" x="30" y="176" width="100" height="100" viewBox="0 0 160 160"></svg>
+        </g>
         <!-- 플레이스홀더 안내 -->
         <text x="80" y="100" font-size="17" fill="#b0bac6" text-anchor="middle">아직 꼬무리가 없어요</text>
       </svg>

@@ -16,13 +16,18 @@
 // v0.1.15 : Update_애니메이션 대응을 위해 팔·다리를 좌우 분리
 // v0.1.16 : Fix_조합은 머리를 대상으로 하지 않도록 변경, 머리 미적용 시 조합 버튼 비활성화, 해체 버튼 기본 비활성화
 // v0.1.17 : Implement_해체(dismantle) 기능 및 결과 모달 추가, 결과 자동 닫힘 3초→2초 통일
+// v0.1.18 : Update_버튼 없는 안내 모달 자동 닫힘을 2.5초로 통일
+// v0.1.19 : Implement_조합 단계에 따라 #character-root를 세로 중앙 정렬
+// v0.1.20 : Refactor_조합/재조합을 미리보기+확정 2단계로 분리(previewCombine/
+//           previewRecombine/confirmCombine). [확인]을 누르기 전까지는 재조합을
+//           반복해도 인벤토리/적용 상태가 바뀌지 않는다.
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
 import { BODY_ASSETS, FACE_ASSETS, getPart, SHOP_COST } from './characterData.js';
 import {
   getPartQuantity, purchasePart, purchaseRandomPart, getEquippedPart, applyPart,
-  canCombine, combineCharacter, canRecombine, recombineCharacter,
+  canCombine, previewCombine, canRecombine, previewRecombine, confirmCombine,
   canDismantle, dismantleCharacter,
 } from './inventory.js';
 import { getGold } from '../core/saveManager.js';
@@ -37,10 +42,13 @@ createHeader();
 // - 적용된 머리 파츠가 있으면 해당 파츠 SVG + 눈/입(idle)을 fetch해 표시한다.
 // - 상체(body)/하체(legs)는 적용(조합)된 경우에만 그리고, 없으면 비워둔다
 //   (기존 head 전용 적용 흐름과 충돌하지 않음 — head 없이 body/legs만 채워지는
-//   경우는 없다. combineCharacter()가 항상 head → body → legs 순서로 채우기 때문).
+//   경우는 없다. 조합은 항상 head → body → legs 순서로 채우고, 실제 저장은
+//   confirmCombine()이 호출되는 [확인] 클릭 시점에만 일어나기 때문).
 // - 머리에 눈/입이 딸려오듯, 상체가 적용되면 왼팔/오른팔(BODY_ASSETS.leftArm/
 //   rightArm)이, 하체가 적용되면 왼다리/오른다리(BODY_ASSETS.leftLeg/rightLeg)가
 //   같은 박스에 함께 그려진다. (애니메이션 적용을 대비해 좌우가 분리된 파일)
+// - 조합 단계(머리만/머리+상체/전체)에 따라 내용의 세로 범위가 달라지므로,
+//   #character-root의 translate(y)를 매번 다시 계산해 항상 가운데에 오도록 한다.
 // - 기존 정적 head outline(<path>)은 실제 파츠로 대체되므로 숨긴다.
 // - 슬롯(head/eyes/mouth/body/left-arm/right-arm/leg-part/left-leg/right-leg-slot)의
 //   위치·표시 크기는 character-shop.html에서 관리한다. 여기서는 어떤 SVG를 넣을지만 결정한다.
@@ -48,6 +56,7 @@ createHeader();
 const characterPlaceholder = document.querySelector('.character-placeholder');
 const headOutlinePath = characterPlaceholder.querySelector('path');
 const placeholderText = characterPlaceholder.querySelector('text');
+const characterRoot = document.getElementById('character-root');
 const headPartSlot = document.getElementById('head-part-slot');
 const faceEyesSlot = document.getElementById('face-eyes-slot');
 const faceMouthSlot = document.getElementById('face-mouth-slot');
@@ -57,6 +66,32 @@ const rightArmSlot = document.getElementById('right-arm-slot');
 const legPartSlot = document.getElementById('leg-part-slot');
 const leftLegSlot = document.getElementById('left-leg-slot');
 const rightLegSlot = document.getElementById('right-leg-slot');
+
+// viewBox="minX minY width height" 문자열에서 height만 뽑아낸다. cloneNode로 만든
+// 분리된(off-DOM) 엘리먼트에서도 항상 정확히 동작하도록 속성 문자열을 직접 읽는다.
+function getViewBoxHeight(svgElement) {
+  const viewBox = svgElement.getAttribute('viewBox') ?? '';
+  return Number(viewBox.trim().split(/\s+/)[3] ?? 0);
+}
+
+// 조합 단계(머리만 / 머리+상체 / 전체)에 따라 실제로 그려지는 내용의 세로 범위가
+// 달라지므로, 그 범위의 중심이 항상 viewBox 세로 중앙에 오도록 #character-root의
+// translate(y)를 계산한다. 슬롯의 x/y/width/height 자체는 여전히 character-shop.html이
+// 관리하며, 여기서는 이미 선언된 값(headPartSlot 등의 y/height)을 읽기만 한다.
+function computeCharacterRootOffsetY(hasBody, hasLegs, viewBoxHeight) {
+  const top = Number(headPartSlot.getAttribute('y'));
+  let bottomSlot = headPartSlot;
+  if (hasBody) bottomSlot = bodyPartSlot;
+  if (hasLegs) bottomSlot = legPartSlot;
+  const bottom = Number(bottomSlot.getAttribute('y')) + Number(bottomSlot.getAttribute('height'));
+
+  const contentCenter = (top + bottom) / 2;
+  return (viewBoxHeight / 2) - contentCenter;
+}
+
+function applyCharacterRootOffset(rootElement, hasBody, hasLegs, viewBoxHeight) {
+  rootElement.setAttribute('transform', `translate(0, ${computeCharacterRootOffsetY(hasBody, hasLegs, viewBoxHeight)})`);
+}
 
 // renderCharacterPreview()는 embedSvgFragment(fetch 기반, 비동기)의 완료를 기다렸다가
 // 반환한다. 조합/재조합 직후 캐릭터 전체를 복제해 모달에 보여줘야 하는 곳에서는
@@ -110,6 +145,8 @@ async function renderCharacterPreview() {
     leftLegSlot.replaceChildren();
     rightLegSlot.replaceChildren();
   }
+
+  applyCharacterRootOffset(characterRoot, Boolean(equippedBodyId), Boolean(equippedLegsId), getViewBoxHeight(characterPlaceholder));
 
   await Promise.all(pendingEmbeds);
 }
@@ -202,6 +239,9 @@ refreshAllPartSlots();
 //   시각적 처리는 구입 등 기존 비활성 버튼과 동일하게 CSS :disabled 스타일에 맡긴다.)
 // - 골드/인벤토리가 바뀔 수 있는 모든 지점(구매/적용/조합/해체 직후, 최초 로드)에서
 //   refreshCombineButton()을 호출해 최신 상태를 반영한다.
+// - 조합/재조합은 "미리보기"만 한다(골드는 즉시 차감되지만 인벤토리 소비/적용
+//   저장은 하지 않음). 모달에서 [확인]을 눌러야 실제로 확정된다 — 원하지 않는
+//   결과를 재조합으로 몇 번을 다시 뽑든 확정 전까지는 파츠가 소모되지 않는다.
 // ===========================
 const combineButton = document.getElementById('btn-combine');
 
@@ -209,16 +249,14 @@ function refreshCombineButton() {
   combineButton.disabled = !canCombine();
 }
 
-combineButton.addEventListener('click', async () => {
-  const result = combineCharacter();
-  if (!result.success) return; // canCombine()으로 사전에 걸러지므로 사실상 도달하지 않음
+combineButton.addEventListener('click', () => {
+  const preview = previewCombine();
+  if (!preview.success) return; // canCombine()으로 사전에 걸러지므로 사실상 도달하지 않음
 
-  updateHeaderGold(result.remainingGold);
-  refreshAllPartSlots();
+  updateHeaderGold(preview.remainingGold); // 조합 비용은 미리보기 단계에서 즉시 차감된다
   refreshCombineButton();
   refreshDismantleButton();
-  await renderCharacterPreview(); // 모달에 복제할 캐릭터가 최신 상태가 되도록 완료를 기다린다
-  openCombineResultModal(result.category);
+  openCombinePreviewModal(preview.category, preview.id);
 });
 
 refreshCombineButton();
@@ -300,7 +338,7 @@ function createPricedButton(variantClass, label, price, disabled = false) {
 // - reopenTimerId: "뽑는 중" → 결과 전환 타이머, autoCloseTimerId: 자동 닫힘 타이머
 // ===========================
 const RANDOM_DRAW_DELAY_MS = 700; // 요구사항: 약 0.6~0.8초
-const RESULT_AUTO_CLOSE_MS = 2000; // 버튼 없는 결과 모달(구입 결과/해체 결과) 공통 자동 닫힘 시간
+const RESULT_AUTO_CLOSE_MS = 2500; // 버튼 없는 결과 모달(구입 결과/해체 결과) 공통 자동 닫힘 시간
 const PARTICLE_COLORS = ['#ffffff', '#bfe6ff', '#fff6b3'];
 
 let reopenTimerId = null;
@@ -475,19 +513,49 @@ partModal.addEventListener('click', (event) => {
 });
 
 // ===========================
-// 조합 결과 모달 (기존 #part-modal 재사용)
-// - 상단: 지금까지 조합된 캐릭터 전체 미리보기 (character-placeholder를 그대로 복제 —
-//   openColorModal()과 동일한 방식). 호출 시점에는 renderCharacterPreview()가 이미
-//   최신 상태로 갱신되어 있어야 한다.
-// - 하단: [확인](모달을 닫기만 함) / [재조합 💎30](다른 모양 파츠로 재조합).
-// - 조합/재조합은 버튼을 누르는 즉시 데이터가 반영된다(inventory.js의
-//   combineCharacter()/recombineCharacter() 호출 시점). 이 모달의 [확인]은
-//   단순히 화면을 닫을 뿐 그 어떤 상태도 되돌리지 않는다.
+// 조합 미리보기 모달 (기존 #part-modal 재사용)
+// - 상단: 지금 실제로 저장된 캐릭터(확정된 상태) 위에, 아직 확정되지 않은 미리보기
+//   파츠(category/id)만 겹쳐서 보여준다. characterPlaceholder 자체나 저장 데이터는
+//   전혀 건드리지 않는다 — 그래서 재조합을 몇 번 반복해도 인벤토리가 줄지 않는다.
+// - 하단: [확인](confirmCombine으로 확정 + placeholder 반영 + 모달 닫기) /
+//   [재조합 💎30](다른 모양으로 새 미리보기, 아직 미확정 상태 유지).
+// - 조합/재조합 버튼을 누르는 시점에 골드만 즉시 차감된다(previewCombine/
+//   previewRecombine). 인벤토리 소비와 적용 상태 저장은 오직 confirmCombine()이
+//   호출되는 [확인] 클릭 시점에만 일어난다.
 // ===========================
-function openCombineResultModal(category) {
+
+// 미리보기 전용 캐릭터 이미지를 만든다. 실제 저장된 상태를 복제한 뒤, 아직
+// 확정되지 않은 미리보기 파츠만 해당 슬롯에 겹쳐 그린다.
+async function buildCombinePreviewClone(category, id) {
+  const clone = characterPlaceholder.cloneNode(true);
+  const part = getPart(id);
+
+  if (category === 'body') {
+    await Promise.all([
+      embedSvgFragment(clone.querySelector('#body-part-slot'), part.assetPath),
+      embedSvgFragment(clone.querySelector('#left-arm-slot'), BODY_ASSETS.leftArm),
+      embedSvgFragment(clone.querySelector('#right-arm-slot'), BODY_ASSETS.rightArm),
+    ]);
+  } else if (category === 'legs') {
+    await Promise.all([
+      embedSvgFragment(clone.querySelector('#leg-part-slot'), part.assetPath),
+      embedSvgFragment(clone.querySelector('#left-leg-slot'), BODY_ASSETS.leftLeg),
+      embedSvgFragment(clone.querySelector('#right-leg-slot'), BODY_ASSETS.rightLeg),
+    ]);
+  }
+
+  // 미리보기 파츠까지 포함한 세로 범위를 기준으로 가운데 정렬을 다시 계산한다.
+  const hasBody = category === 'body' || Boolean(getEquippedPart('body'));
+  const hasLegs = category === 'legs' || Boolean(getEquippedPart('legs'));
+  applyCharacterRootOffset(clone.querySelector('#character-root'), hasBody, hasLegs, getViewBoxHeight(clone));
+
+  return clone;
+}
+
+async function openCombinePreviewModal(category, id) {
   clearResultTimers(); // 구입 결과 연출과 같은 DOM/타이머를 공유하므로 정리하고 시작
 
-  const preview = characterPlaceholder.cloneNode(true);
+  const preview = await buildCombinePreviewClone(category, id);
   partModalSvg.replaceChildren(preview);
   partModalName.textContent = '';
   partModalActions.replaceChildren();
@@ -496,25 +564,32 @@ function openCombineResultModal(category) {
   confirmButton.type = 'button';
   confirmButton.className = 'modal-card__btn modal-card__btn--confirm';
   confirmButton.textContent = '확인';
-  confirmButton.addEventListener('click', closePartModal);
+  confirmButton.addEventListener('click', async () => {
+    const result = confirmCombine(category, id);
+    if (!result.success) return; // 이론상 도달하지 않음(미리보기 시점에 이미 검증됨)
 
-  const canRecombineNow = canRecombine(category);
+    refreshAllPartSlots();
+    refreshCombineButton();
+    refreshDismantleButton();
+    await renderCharacterPreview(); // 확정된 상태를 실제 placeholder에 반영
+    closePartModal();
+  });
+
+  const canRecombineNow = canRecombine(id); // id(지금 미리보기 중인 파츠)와 다른 모양 후보가 있는지
   const recombineButton = createPricedButton(
     'modal-card__btn--cancel',
     '재조합',
     `💎 ${SHOP_COST.partRecombine}`,
     !canRecombineNow,
   );
-  recombineButton.addEventListener('click', async () => {
-    const result = recombineCharacter(category);
-    if (!result.success) return; // canRecombine()으로 사전에 걸러지므로 사실상 도달하지 않음
+  recombineButton.addEventListener('click', () => {
+    const reroll = previewRecombine(id);
+    if (!reroll.success) return; // canRecombine()으로 사전에 걸러지므로 사실상 도달하지 않음
 
-    updateHeaderGold(result.remainingGold);
-    refreshAllPartSlots();
+    updateHeaderGold(reroll.remainingGold); // 재조합 비용도 미리보기 단계에서 즉시 차감된다
     refreshCombineButton();
-    refreshDismantleButton(); // 재조합으로 골드가 줄어 해체 가능 여부가 바뀔 수 있음
-    await renderCharacterPreview(); // 모달에 복제할 캐릭터가 최신 상태가 되도록 완료를 기다린다
-    openCombineResultModal(category); // 새 결과로 모달을 다시 연다 (같은 부위 재조합)
+    refreshDismantleButton();
+    openCombinePreviewModal(category, reroll.id); // 새 미리보기로 모달을 다시 연다 (여전히 미확정)
   });
 
   partModalActions.append(confirmButton, recombineButton);
