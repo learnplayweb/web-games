@@ -161,8 +161,8 @@ body {
 
 /* 저장 버튼 (가격 없음) */
 .action-item--save .action-item__btn {
-  color: var(--color-text-muted);
-  font-weight: 500;
+  color: var(--color-text);
+  font-weight: 600;
 }
 
 /* ===========================

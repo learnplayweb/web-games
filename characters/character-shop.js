@@ -21,6 +21,9 @@
 // v0.1.20 : Refactor_조합/재조합을 미리보기+확정 2단계로 분리(previewCombine/
 //           previewRecombine/confirmCombine). [확인]을 누르기 전까지는 재조합을
 //           반복해도 인벤토리/적용 상태가 바뀌지 않는다.
+// v0.1.21 : Update_구입 성공 후 모달을 닫는 대신 원래 파츠 모달(구입/적용 버튼)로
+//           자동 복귀하도록 변경 — 연속 구입 가능. 색상/꾸밈 섹션 펼침·접힘 클릭
+//           영역을 화살표 버튼에서 헤더 바 전체로 확장.
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
@@ -288,10 +291,14 @@ dismantleButton.addEventListener('click', async () => {
 
 refreshDismantleButton();
 
+// 헤더 바(섹션 명이 적힌 사각형) 전체를 클릭 영역으로 사용한다 — 화살표 버튼만
+// 클릭 대상이면 영역이 좁아 불편하다는 피드백을 반영. 화살표 버튼도 헤더 안에
+// 있으므로 클릭이 자연히 버블링되어 같은 핸들러로 처리된다(중복 바인딩 없음).
 function setupToggle(toggleId, bodyId) {
   const button = document.getElementById(toggleId);
+  const header = button.closest('.shop-section__header');
   const body = document.getElementById(bodyId);
-  button.addEventListener('click', () => {
+  header.addEventListener('click', () => {
     const isHidden = body.classList.toggle('shop-section__body--hidden');
     button.textContent = isHidden ? '\u25b6' : '\u25bc';
     button.setAttribute('aria-expanded', String(!isHidden));
@@ -338,7 +345,7 @@ function createPricedButton(variantClass, label, price, disabled = false) {
 // - reopenTimerId: "뽑는 중" → 결과 전환 타이머, autoCloseTimerId: 자동 닫힘 타이머
 // ===========================
 const RANDOM_DRAW_DELAY_MS = 700; // 요구사항: 약 0.6~0.8초
-const RESULT_AUTO_CLOSE_MS = 2500; // 버튼 없는 결과 모달(구입 결과/해체 결과) 공통 자동 닫힘 시간
+const RESULT_AUTO_CLOSE_MS = 2000; // 버튼 없는 결과 모달(구입 결과/해체 결과) 공통 자동 닫힘 시간
 const PARTICLE_COLORS = ['#ffffff', '#bfe6ff', '#fff6b3'];
 
 let reopenTimerId = null;
@@ -378,8 +385,9 @@ function spawnResultParticles() {
   setTimeout(() => layer.remove(), 900);
 }
 
-// 구입 결과(획득한 파츠)를 표시하고 RESULT_AUTO_CLOSE_MS 후 자동으로 닫는다.
-function showPurchaseResult(id) {
+// 구입 결과(획득한 파츠)를 표시하고 RESULT_AUTO_CLOSE_MS 후 원래 파츠 모달(구입/적용
+// 버튼이 있는)로 자동 복귀한다 — 모달을 닫지 않아 연속 구입이 가능하다.
+function showPurchaseResult(id, slot) {
   const part = getPart(id);
 
   const iconSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -397,11 +405,11 @@ function showPurchaseResult(id) {
   partModalActions.appendChild(resultText);
 
   clearResultTimers();
-  autoCloseTimerId = setTimeout(closePartModal, RESULT_AUTO_CLOSE_MS);
+  autoCloseTimerId = setTimeout(() => openPartModal(slot), RESULT_AUTO_CLOSE_MS);
 }
 
 // 랜덤 구입 전용: "뽑는 중..." 로딩 연출 후 결과를 표시한다.
-function showRandomDrawing(id) {
+function showRandomDrawing(id, slot) {
   const spinner = document.createElement('div');
   spinner.className = 'part-modal__spinner';
   spinner.textContent = '💎';
@@ -419,7 +427,7 @@ function showRandomDrawing(id) {
     reopenTimerId = null;
     // 연출 도중 모달이 닫혔다면 결과를 표시하지 않는다.
     if (partModal.classList.contains('modal-overlay--hidden')) return;
-    showPurchaseResult(id);
+    showPurchaseResult(id, slot);
   }, RANDOM_DRAW_DELAY_MS);
 }
 
@@ -471,9 +479,9 @@ function openPartModal(slot) {
     refreshDismantleButton(); // 구매로 골드가 줄어 해체 가능 여부가 바뀔 수 있음
 
     if (isRandom) {
-      showRandomDrawing(result.id);
+      showRandomDrawing(result.id, slot);
     } else {
-      showPurchaseResult(headPartId);
+      showPurchaseResult(headPartId, slot);
     }
   });
   partModalActions.appendChild(buyButton);
