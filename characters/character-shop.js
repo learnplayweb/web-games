@@ -18,19 +18,12 @@
 // v0.1.17 : Implement_해체(dismantle) 기능 및 결과 모달 추가, 결과 자동 닫힘 3초→2초 통일
 // v0.1.18 : Update_버튼 없는 안내 모달 자동 닫힘을 2.5초로 통일
 // v0.1.19 : Implement_조합 단계에 따라 #character-root를 세로 중앙 정렬
-// v0.1.20 : Refactor_조합/재조합을 미리보기+확정 2단계로 분리(previewCombine/
-//           previewRecombine/confirmCombine). [확인]을 누르기 전까지는 재조합을
-//           반복해도 인벤토리/적용 상태가 바뀌지 않는다.
-// v0.1.21 : Update_구입 성공 후 모달을 닫는 대신 원래 파츠 모달(구입/적용 버튼)로
-//           자동 복귀하도록 변경 — 연속 구입 가능. 색상/꾸밈 섹션 펼침·접힘 클릭
-//           영역을 화살표 버튼에서 헤더 바 전체로 확장.
-// v0.1.22 : Implement_이름 변경/색 섞기 버튼 기본 비활성화(활성화 조건 미구현).
-// v0.1.23 : Update_#character-root 정렬 로직에 scale 추가 — 머리만 있을 때도
-//           머리+상체+하체 전체와 같은 길이로 보이도록 부족한 단계를 확대한다
-//           (computeCharacterRootOffsetY → computeCharacterRootTransform으로 교체).
-// v0.1.24 : Implement_캐릭터 이름 설정 모달(#name-modal) 연결. 머리 파츠 최초 적용
-//           시 자동으로 뜨며 [저장]으로만 닫힌다(바깥 클릭/자동 닫힘 없음). 이름은
-//           core/saveManager.js의 character_name_save에 저장, .character-name에 반영.
+// v0.1.20 : Refactor_조합/재조합을 미리보기+확정 2단계로 분리
+// v0.1.21 : Update_구입 성공 후 원래 파츠 모달로 자동 복귀, 섹션 헤더 클릭 영역 확장
+// v0.1.22 : Implement_이름 변경/색 섞기 버튼 기본 비활성화
+// v0.1.23 : Update_#character-root 정렬에 scale 추가(단계별 전체 길이 통일)
+// v0.1.24 : Implement_캐릭터 이름 설정 모달 연결(머리 최초 적용 시 자동 표시)
+// v0.1.25 : Implement_저장하기 버튼 활성화 조건 추가, 이름 변경 기능 구현(모달 재사용)
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
@@ -38,7 +31,7 @@ import { BODY_ASSETS, FACE_ASSETS, getPart, SHOP_COST } from './characterData.js
 import {
   getPartQuantity, purchasePart, purchaseRandomPart, getEquippedPart, applyPart,
   canCombine, previewCombine, canRecombine, previewRecombine, confirmCombine,
-  canDismantle, dismantleCharacter,
+  canDismantle, dismantleCharacter, canSaveCharacter, canRename, renameCharacter,
 } from './inventory.js';
 import { getGold, getCharacterName, setCharacterName } from '../core/saveManager.js';
 
@@ -180,17 +173,17 @@ async function renderCharacterPreview() {
 renderCharacterPreview();
 
 // ===========================
-// 이름 설정 모달
-// - 머리 파츠가 최초로 적용될 때(캐릭터 최초 생성) applyButton 핸들러에서 openNameModal()을
-//   호출한다. [저장]을 눌러야만 닫힌다 — 바깥 클릭/자동 닫힘 리스너를 아예 붙이지 않는다.
+// 이름 설정/변경 모달 (같은 #name-modal을 두 모드로 재사용)
+// - create: 머리 파츠 최초 적용 시 자동으로 뜬다. 무료, [저장]으로만 닫힘(바깥 클릭 불가).
+// - rename: [이름 변경] 버튼으로 연다. 💎(SHOP_COST.renameCharacter) 차감, 바깥 클릭으로도 닫힘.
 // - 입력창은 비어 있으면 placeholder("10글자까지 가능합니다.")를 보여주고(HTML 기본 동작),
 //   maxlength="10"으로 10자 초과 입력을 막는다(붙여넣기 대비 JS에서 한 번 더 자름).
-// - [저장] 버튼은 다른 기능 버튼과 동일하게 기본 비활성화 — 입력이 있어야 눌린다.
 // ===========================
 const nameModal = document.getElementById('name-modal');
 const nameModalInput = document.getElementById('name-modal-input');
 const nameModalSaveButton = document.getElementById('name-modal-save');
 const characterNameLabel = document.querySelector('.character-name');
+let nameModalMode = 'create'; // 'create' | 'rename' — openNameModal()이 설정
 
 function refreshNameModalSaveButton() {
   nameModalSaveButton.disabled = nameModalInput.value.trim().length === 0;
@@ -203,8 +196,10 @@ nameModalInput.addEventListener('input', () => {
   refreshNameModalSaveButton();
 });
 
-function openNameModal() {
-  nameModalInput.value = '';
+function openNameModal(mode) {
+  nameModalMode = mode;
+  nameModalInput.value = mode === 'rename' ? (getCharacterName() ?? '') : '';
+  nameModalSaveButton.textContent = mode === 'rename' ? `저장 💎 ${SHOP_COST.renameCharacter}` : '저장';
   refreshNameModalSaveButton();
   nameModal.classList.remove('modal-overlay--hidden');
   nameModalInput.focus();
@@ -214,8 +209,24 @@ nameModalSaveButton.addEventListener('click', () => {
   const name = nameModalInput.value.trim();
   if (!name) return; // 버튼이 비활성화되어 있어 사실상 도달하지 않음
 
-  setCharacterName(name);
+  if (nameModalMode === 'rename') {
+    const result = renameCharacter(name);
+    if (!result.success) return; // canRename()으로 사전에 걸러지므로 사실상 도달하지 않음
+    updateHeaderGold(result.remainingGold);
+  } else {
+    setCharacterName(name);
+  }
+
   characterNameLabel.textContent = name;
+  refreshSaveButton(); // 저장하기 버튼 활성화 조건에 이름이 포함되므로
+  refreshRenameButton(); // rename이었다면 골드가 줄어 다시 판단해야 함
+  nameModal.classList.add('modal-overlay--hidden');
+});
+
+// create 모드는 바깥 클릭으로 닫히지 않지만, rename 모드는 닫힌다.
+nameModal.addEventListener('click', (event) => {
+  if (event.target !== nameModal) return;
+  if (nameModalMode !== 'rename') return;
   nameModal.classList.add('modal-overlay--hidden');
 });
 
@@ -328,6 +339,7 @@ combineButton.addEventListener('click', () => {
   updateHeaderGold(preview.remainingGold); // 조합 비용은 미리보기 단계에서 즉시 차감된다
   refreshCombineButton();
   refreshDismantleButton();
+  refreshRenameButton();
   openCombinePreviewModal(preview.category, preview.id);
 });
 
@@ -354,16 +366,35 @@ dismantleButton.addEventListener('click', async () => {
   refreshAllPartSlots();
   refreshCombineButton();
   refreshDismantleButton();
+  refreshRenameButton();
   await renderCharacterPreview(); // 해체된 상태(팔/다리 숨김 등)가 반영된 뒤 모달에 복제한다
   showDismantleResult();
 });
 
 refreshDismantleButton();
 
-// 이름 변경/색 섞기는 활성화 조건(이름 변경: 이름 설정 여부 / 색 섞기: 골드 50↑ +
-// 색상 2종↑ 보유)이 아직 구현되지 않았으므로 기본 비활성화해 둔다. 앞으로 추가할
-// 버튼도 조건 로직이 붙기 전까지는 기본을 비활성화 상태로 둔다.
-document.getElementById('btn-rename').disabled = true;
+// 이름 변경 버튼: 이름이 설정돼 있고 골드가 충분할 때만 활성화 (inventory.js의 canRename()).
+const renameButton = document.getElementById('btn-rename');
+
+function refreshRenameButton() {
+  renameButton.disabled = !canRename();
+}
+
+renameButton.addEventListener('click', () => openNameModal('rename'));
+refreshRenameButton();
+
+// 캐릭터 저장하기 버튼: 캐릭터가 존재할 때(머리 적용 + 이름 저장)만 활성화 (inventory.js의 canSaveCharacter()).
+const saveButton = document.getElementById('btn-save');
+
+function refreshSaveButton() {
+  saveButton.disabled = !canSaveCharacter();
+}
+
+refreshSaveButton();
+
+// 색 섞기는 활성화 조건(골드 50↑ + 색상 2종↑ 보유)이 아직 구현되지 않았으므로
+// 기본 비활성화해 둔다. 앞으로 추가할 버튼도 조건 로직이 붙기 전까지는 기본을
+// 비활성화 상태로 둔다.
 document.querySelector('.color-mix-btn').disabled = true;
 
 // 헤더 바(섹션 명이 적힌 사각형) 전체를 클릭 영역으로 사용한다 — 화살표 버튼만
@@ -552,6 +583,7 @@ function openPartModal(slot) {
     refreshAllPartSlots();
     refreshCombineButton(); // 구매로 인벤토리가 늘어 조합 가능 여부가 바뀔 수 있음
     refreshDismantleButton(); // 구매로 골드가 줄어 해체 가능 여부가 바뀔 수 있음
+    refreshRenameButton(); // 구매로 골드가 줄어 이름 변경 가능 여부가 바뀔 수 있음
 
     if (isRandom) {
       showRandomDrawing(result.id, slot);
@@ -580,11 +612,13 @@ function openPartModal(slot) {
         refreshAllPartSlots();
         refreshCombineButton(); // 적용으로 인벤토리가 줄어 조합 가능 여부가 바뀔 수 있음
         refreshDismantleButton(); // 적용으로 골드가 줄어 해체 가능 여부가 바뀔 수 있음
+        refreshRenameButton(); // 적용으로 골드가 줄어 이름 변경 가능 여부가 바뀔 수 있음
+        refreshSaveButton(); // 머리가 적용됐으니 저장하기 활성화 조건이 바뀔 수 있음
         renderCharacterPreview();
 
         if (isFirstSave) {
           closePartModal();
-          openNameModal();
+          openNameModal('create');
         } else {
           openPartModal(slot); // 적용 중 표시/버튼 상태를 즉시 반영
         }
@@ -679,6 +713,7 @@ async function openCombinePreviewModal(category, id) {
     updateHeaderGold(reroll.remainingGold); // 재조합 비용도 미리보기 단계에서 즉시 차감된다
     refreshCombineButton();
     refreshDismantleButton();
+    refreshRenameButton();
     openCombinePreviewModal(category, reroll.id); // 새 미리보기로 모달을 다시 연다 (여전히 미확정)
   });
 

@@ -6,10 +6,8 @@
 // v0.1.5 : Implement_재조합(recombine) 기능 추가
 // v0.1.6 : Fix_조합 대상에서 머리 제외(적용 버튼 전용), 머리 미장착 시 조합 불가
 // v0.1.7 : Implement_해체(dismantle) 기능 추가
-// v0.1.8 : Refactor_조합/재조합을 미리보기(골드 차감만)와 확정(인벤토리 소비+저장)
-//          2단계로 분리. combineCharacter/recombineCharacter를 previewCombine/
-//          previewRecombine/confirmCombine으로 교체 — [확인]을 누르기 전까지는
-//          재조합을 반복해도 인벤토리/적용 상태가 전혀 바뀌지 않는다.
+// v0.1.8 : Refactor_조합/재조합을 미리보기+확정 2단계로 분리
+// v0.1.9 : Implement_canSaveCharacter/canRename/renameCharacter 추가
 //
 // Public API
 // - hasPart(id)
@@ -39,6 +37,11 @@
 // - canDismantle()
 // - dismantleCharacter()
 //
+// Character API
+// - canSaveCharacter()
+// - canRename()
+// - renameCharacter(name)
+//
 // Save Structure
 // character_save.parts : { [id]: number }
 // character_equip_save : { head, body, legs }
@@ -51,7 +54,7 @@ import {
 } from './characterData.js';
 import {
   getCharacterSave, setCharacterSave, getGold, spendGold,
-  getEquippedParts, setEquippedParts,
+  getEquippedParts, setEquippedParts, getCharacterName, setCharacterName,
 } from '../core/saveManager.js';
 
 /** 기본 보유 수량만 채운 인벤토리를 만든다. (현재는 기본 보유 파츠 없음) */
@@ -374,4 +377,26 @@ export function dismantleCharacter() {
     remainingGold: getGold(),
     remainingQuantity: getPartQuantity(id),
   };
+}
+
+/** 캐릭터 저장 버튼 활성화 조건: 머리 파츠 적용 + 이름 저장이 모두 끝났는지 확인한다. */
+export function canSaveCharacter() {
+  return Boolean(getEquippedPart('head')) && Boolean(getCharacterName());
+}
+
+/** 이름 변경 가능 여부: 이름이 이미 설정돼 있고, 골드가 변경 비용 이상일 때만 가능하다. */
+export function canRename() {
+  if (!getCharacterName()) return false;
+  if (getGold() < SHOP_COST.renameCharacter) return false;
+
+  return true;
+}
+
+/** 이름을 변경한다. 골드를 차감하고 새 이름을 저장한다. canRename()으로 사전에 걸러진 상태에서 호출하면 항상 성공한다. */
+export function renameCharacter(name) {
+  if (!spendGold(SHOP_COST.renameCharacter)) return { success: false, reason: 'insufficient-gold' };
+
+  setCharacterName(name);
+
+  return { success: true, name, remainingGold: getGold() };
 }

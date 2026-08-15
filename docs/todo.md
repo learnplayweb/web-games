@@ -9,9 +9,6 @@
 [완료] 인벤토리 / 구매 / 랜덤구입 / 머리 적용 / 조합 / 해체 / 이름 설정 및 변경
 
 # 이름 변경 / 메인 화면에 이름 노출
-
-이름 변경 버튼
-- 설정된 이름이 있으면 활성화
  
 * 을/를 자동 적용
 ----------------
@@ -69,7 +66,16 @@ Implement pattern-based color system and result modal
 
 ---
 
-### 2. 패턴 적용
+### 2. 색 섞기
+색 섞기 결과
+├─ pattern
+│  └─ pattern-01.svg
+└─ gradient
+   └─ SVG gradient 설정
+   - <linearGradient> <radialGradient>
+    - js가 색상, 방향 동적 생성
+
+#### 패턴 적용
 
 내용
 
