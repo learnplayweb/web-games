@@ -63,8 +63,10 @@ git switch main
 - docs : 문서 변경
 - chore : 빌드, 설정, 폴더 정리 등
 
-# 용어 참고
-- 모달(Modal), 다이얼로그(Dialog): 페이지 위에 반투명 배경(오버레이)과 함께 작은 창이 뜨는 UI 패턴
+# 모달 자동 닫기 시간 조정
+characters\character-shop.js
+const RESULT_AUTO_CLOSE_MS = 2000; 2.5초면 2500으로 수정
+
 
 # 프로젝트 운영
 

@@ -5,10 +5,9 @@
 // v0.1.4 : Implement - 적용(equip) 상태용 저장 키(character_equip_save) 및 get/set 추가
 // v0.1.5 : Implement - resetCharacterSave() 추가 (디버그 메뉴의 캐릭터샵 초기화용)
 // v0.1.6 : Implement - resetClockProgress() 추가 (골드는 유지하고 Clock 진행 상태만 초기화)
-// v0.1.7 : Update - character_equip_save 기본값에 body, legs 키 추가 (2단계/3단계
-//          상체/하체 슬롯 대응). head만 있던 것을 { head, body, legs } 3부위로 확장.
-// v0.1.8 : Implement_캐릭터 이름 저장 키(character_name_save) 및 get/set 추가.
-//          resetCharacterSave()가 이름도 함께 기본값(null)으로 되돌리도록 확장.
+// v0.1.7 : Update_character_equip_save 기본값에 body, legs 키 추가
+// v0.1.8 : Implement_캐릭터 이름 저장 키(character_name_save) 및 get/set 추가
+// v0.1.9 : Implement_색상 인벤토리 저장 키(character_color_save) 추가, equip 기본값에 color 필드 추가
 // 의존: 없음 (LocalStorage 직접 접근은 이 파일에서만 수행)
 // 기존 저장 데이터(clockGame_save) 구조/키를 그대로 유지하여 호환성 보장
 // 향후 다른 게임/캐릭터 시스템 저장 기능 추가 시 이 파일에 함수를 확장한다.
@@ -25,10 +24,14 @@
 // - getCharacterName(): 캐릭터 이름 반환 (없으면 null)
 // - setCharacterName(name): 캐릭터 이름 저장
 //
+// Public API (character_color_save 관련)
+// - getCharacterColorSave(): 색상 보유 수량 데이터 반환 (없으면 기본값)
+// - setCharacterColorSave(saveData): 색상 보유 수량 데이터 통째로 덮어쓰기
+//
 // Public API (디버그 전용)
 // - resetSave(): clockGame_save 전체 초기화 (골드 포함)
 // - resetClockProgress(): Clock 진행 상태만 초기화 (골드 유지, 신규)
-// - resetCharacterSave(): character_save + character_equip_save + character_name_save를 기본값으로 초기화
+// - resetCharacterSave(): character_save + character_equip_save + character_name_save + character_color_save를 기본값으로 초기화
 //
 // Public API (Gold 관련)
 // - spendGold(amount): 골드가 충분하면 차감 후 true, 부족하면 저장 없이 false
@@ -37,10 +40,13 @@
 // { parts: { [category]: { [id]: number } } }  // 카테고리별 파츠 id → 보유 수량 (예: { head: { circle: 2 } })
 //
 // Save Structure (character_equip_save)
-// { head: string | null, body: string | null, legs: string | null }  // 부위별 현재 적용된 파츠 id (예: { head: 'circle', body: 'star', legs: null })
+// { head: string | null, body: string | null, legs: string | null, color: string | null }  // 부위별 적용 파츠 id + 적용 색상
 //
 // Save Structure (character_name_save)
 // string | null  // 캐릭터 이름 (설정 전에는 null)
+//
+// Save Structure (character_color_save)
+// { colors: { [hex]: number } }  // 색상 hex → 보유 수량
 
   const SAVE_KEY = 'clockGame_save'; // localStorage 키 (기존 키 유지)
 
@@ -140,7 +146,9 @@ export function getClockSave() {
   const CHARACTER_EQUIP_KEY = 'character_equip_save';
 
   function getDefaultEquip() {
-    return { head: null, body: null, legs: null };
+    return {
+      head: null, body: null, legs: null, color: null,
+    };
   }
 
   function loadEquip() {
@@ -169,11 +177,12 @@ export function getClockSave() {
     return equipData;
   }
 
-  // 캐릭터 관련 저장(인벤토리 + 적용 상태 + 이름)을 모두 기본값으로 되돌린다. (디버그 전용)
+  // 캐릭터 관련 저장(인벤토리 + 적용 상태 + 이름 + 색상)을 모두 기본값으로 되돌린다. (디버그 전용)
   export function resetCharacterSave() {
     writeCharacter(getDefaultCharacterSave());
     writeEquip(getDefaultEquip());
     writeCharacterName(getDefaultCharacterName());
+    writeCharacterColor(getDefaultCharacterColorSave());
   }
 
   /* ===== 캐릭터 이름 (공통) =====
@@ -210,6 +219,42 @@ export function getClockSave() {
   export function setCharacterName(name) {
     writeCharacterName(name);
     return name;
+  }
+
+  /* ===== 캐릭터 색상 인벤토리 (공통) =====
+     파츠 인벤토리(character_save)와 구조가 같은 별도 키. 적용된 색상 자체는
+     character_equip_save.color에 저장하고, 여기는 "보유 수량"만 다룬다. */
+
+  const CHARACTER_COLOR_KEY = 'character_color_save';
+
+  function getDefaultCharacterColorSave() {
+    return { colors: {} };
+  }
+
+  function loadCharacterColor() {
+    try {
+      const raw = localStorage.getItem(CHARACTER_COLOR_KEY);
+      return raw ? JSON.parse(raw) : getDefaultCharacterColorSave();
+    } catch {
+      return getDefaultCharacterColorSave();
+    }
+  }
+
+  function writeCharacterColor(saveData) {
+    try {
+      localStorage.setItem(CHARACTER_COLOR_KEY, JSON.stringify(saveData));
+    } catch {
+      console.warn('저장 실패: localStorage를 사용할 수 없습니다.');
+    }
+  }
+
+  export function getCharacterColorSave() {
+    return loadCharacterColor();
+  }
+
+  export function setCharacterColorSave(saveData) {
+    writeCharacterColor(saveData);
+    return saveData;
   }
 
   /* ===== Clock Game 전용 ===== */

@@ -24,6 +24,7 @@
 // v0.1.23 : Update_#character-root 정렬에 scale 추가(단계별 전체 길이 통일)
 // v0.1.24 : Implement_캐릭터 이름 설정 모달 연결(머리 최초 적용 시 자동 표시)
 // v0.1.25 : Implement_저장하기 버튼 활성화 조건 추가, 이름 변경 기능 구현(모달 재사용)
+// v0.1.26 : Implement_색상 구매/적용 기능 및 보유 수량 배지 연결(파츠 시스템과 동일 구조)
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
@@ -32,6 +33,7 @@ import {
   getPartQuantity, purchasePart, purchaseRandomPart, getEquippedPart, applyPart,
   canCombine, previewCombine, canRecombine, previewRecombine, confirmCombine,
   canDismantle, dismantleCharacter, canSaveCharacter, canRename, renameCharacter,
+  getColorQuantity, purchaseColor, canApplyColor, applyColor, getEquippedColor,
 } from './inventory.js';
 import { getGold, getCharacterName, setCharacterName } from '../core/saveManager.js';
 
@@ -112,6 +114,13 @@ function applyCharacterRootTransform(rootElement, hasBody, hasLegs, viewBoxHeigh
   rootElement.setAttribute('transform', computeCharacterRootTransform(hasBody, hasLegs, viewBoxHeight));
 }
 
+// 색상 적용: svgRoot 안의 path/line은 선(stroke), circle은 채우기(fill)를 지정한 색으로
+// 바꾼다. 실제 캐릭터(characterPlaceholder)와 색상 모달의 미리보기 클론이 이 함수를 공유한다.
+function applyColorTint(svgRoot, color) {
+  svgRoot.querySelectorAll('path, line').forEach((element) => element.setAttribute('stroke', color));
+  svgRoot.querySelectorAll('circle').forEach((element) => element.setAttribute('fill', color));
+}
+
 // renderCharacterPreview()는 embedSvgFragment(fetch 기반, 비동기)의 완료를 기다렸다가
 // 반환한다. 조합/재조합 직후 캐릭터 전체를 복제해 모달에 보여줘야 하는 곳에서는
 // 반드시 이 함수의 완료(await)를 기다린 뒤 복제해야 최신 상태가 보인다.
@@ -168,6 +177,11 @@ async function renderCharacterPreview() {
   applyCharacterRootTransform(characterRoot, Boolean(equippedBodyId), Boolean(equippedLegsId), getViewBoxHeight(characterPlaceholder));
 
   await Promise.all(pendingEmbeds);
+
+  const equippedColor = getEquippedColor();
+  if (equippedColor) {
+    applyColorTint(characterPlaceholder, equippedColor);
+  }
 }
 
 renderCharacterPreview();
@@ -721,20 +735,68 @@ async function openCombinePreviewModal(category, id) {
   partModal.classList.remove('modal-overlay--hidden');
 }
 
+// ===========================
+// 색상 슬롯 보유 수량 배지 갱신
+// - inventory.js의 getColorQuantity()를 기준으로 표시한다.
+// - 배지 디자인은 파츠 슬롯과 동일하게 .part-slot__badge를 그대로 재사용한다
+//   (character-shop.css에서 .color-slot에 position:relative만 추가해 기준점을 맞춤).
+// ===========================
+function refreshColorSlot(slot) {
+  const color = slot.dataset.color;
+  const quantity = getColorQuantity(color);
+
+  let badge = slot.querySelector('.part-slot__badge');
+  if (quantity > 0) {
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'part-slot__badge';
+      slot.appendChild(badge);
+    }
+    renderBadgeContent(badge, quantity);
+  } else if (badge) {
+    badge.remove();
+  }
+}
+
+function refreshAllColorSlots() {
+  document.querySelectorAll('.color-slot[data-color]').forEach(refreshColorSlot);
+}
+
+refreshAllColorSlots();
+
 const colorModal = document.getElementById('color-modal');
 const colorModalPreview = document.getElementById('color-modal-preview');
 const colorModalActions = document.getElementById('color-modal-actions');
 
 function openColorModal(color) {
   const previewSvg = characterPlaceholder.cloneNode(true);
-  previewSvg.querySelectorAll('path, line').forEach((element) => element.setAttribute('stroke', color));
-  previewSvg.querySelectorAll('circle').forEach((element) => element.setAttribute('fill', color));
+  applyColorTint(previewSvg, color);
   colorModalPreview.replaceChildren(previewSvg);
   colorModalActions.replaceChildren();
 
   const canAffordColorBuy = getGold() >= SHOP_COST.colorPurchase;
   const buyButton = createPricedButton('modal-card__btn--cancel', '구입', `💎 ${SHOP_COST.colorPurchase}`, !canAffordColorBuy);
-  const applyButton = createPricedButton('modal-card__btn--cancel', '적용', `💎 ${SHOP_COST.colorApply}`);
+  buyButton.addEventListener('click', () => {
+    const result = purchaseColor(color);
+    if (!result.success) return; // 골드 부족 등: 구매/저장/화면 갱신 없음
+
+    updateHeaderGold(result.remainingGold);
+    refreshAllColorSlots();
+    openColorModal(color); // 구입 직후 버튼 상태(적용 활성화 등)를 반영해 다시 연다
+  });
+
+  const canApplyColorNow = canApplyColor(color);
+  const applyButton = createPricedButton('modal-card__btn--cancel', '적용', `💎 ${SHOP_COST.colorApply}`, !canApplyColorNow);
+  applyButton.addEventListener('click', async () => {
+    const result = applyColor(color);
+    if (!result.success) return; // canApplyColor()로 사전에 걸러지므로 사실상 도달하지 않음
+
+    updateHeaderGold(result.remainingGold);
+    refreshAllColorSlots();
+    await renderCharacterPreview(); // 실제 캐릭터에도 색이 반영된 뒤 모달을 닫는다
+    colorModal.classList.add('modal-overlay--hidden');
+  });
+
   colorModalActions.append(buyButton, applyButton);
   colorModal.classList.remove('modal-overlay--hidden');
 }

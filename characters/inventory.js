@@ -8,6 +8,7 @@
 // v0.1.7 : Implement_해체(dismantle) 기능 추가
 // v0.1.8 : Refactor_조합/재조합을 미리보기+확정 2단계로 분리
 // v0.1.9 : Implement_canSaveCharacter/canRename/renameCharacter 추가
+// v0.1.10 : Implement_색상 인벤토리·구매·적용 기능 추가(파츠 시스템과 동일 구조)
 //
 // Public API
 // - hasPart(id)
@@ -42,19 +43,31 @@
 // - canRename()
 // - renameCharacter(name)
 //
+// Color API
+// - getColorQuantity(color)
+// - hasColor(color)
+// - getOwnedColors()
+// - grantColor(color)
+// - purchaseColor(color)
+// - getEquippedColor()
+// - canApplyColor(color)
+// - applyColor(color)
+//
 // Save Structure
 // character_save.parts : { [id]: number }
-// character_equip_save : { head, body, legs }
+// character_equip_save : { head, body, legs, color }
+// character_color_save.colors : { [hex]: number }
 //
 // Data Source
-// characterData.js(BASE_PARTS, PART_CATEGORIES, SHOP_COST)
+// characterData.js(BASE_PARTS, PART_CATEGORIES, CHARACTER_COLORS, SHOP_COST)
 
 import {
-  BASE_PARTS, PART_CATEGORIES, getPart, SHOP_COST,
+  BASE_PARTS, PART_CATEGORIES, CHARACTER_COLORS, SHOP_COST, getPart,
 } from './characterData.js';
 import {
   getCharacterSave, setCharacterSave, getGold, spendGold,
   getEquippedParts, setEquippedParts, getCharacterName, setCharacterName,
+  getCharacterColorSave, setCharacterColorSave,
 } from '../core/saveManager.js';
 
 /** 기본 보유 수량만 채운 인벤토리를 만든다. (현재는 기본 보유 파츠 없음) */
@@ -399,4 +412,103 @@ export function renameCharacter(name) {
   setCharacterName(name);
 
   return { success: true, name, remainingGold: getGold() };
+}
+
+/** 저장된 색상 인벤토리를 불러온다. */
+function loadColorInventory() {
+  const save = getCharacterColorSave();
+  return { colors: { ...(save.colors ?? {}) } };
+}
+
+/** 색상 보유 수량 반환 (미보유 시 0) */
+export function getColorQuantity(color) {
+  const inventory = loadColorInventory();
+  return inventory.colors[color] ?? 0;
+}
+
+/** 색상 보유 여부 확인 */
+export function hasColor(color) {
+  return getColorQuantity(color) > 0;
+}
+
+/** 보유 중인(수량 > 0) 색상 목록. */
+export function getOwnedColors() {
+  const inventory = loadColorInventory();
+  return Object.entries(inventory.colors)
+    .filter(([, quantity]) => quantity > 0)
+    .map(([color]) => color);
+}
+
+/** 색상 수량을 1 증가시킨다. characterData.js에 없는 색상은 무시한다. */
+export function grantColor(color) {
+  if (!CHARACTER_COLORS.includes(color)) return false;
+
+  const inventory = loadColorInventory();
+  inventory.colors[color] = (inventory.colors[color] ?? 0) + 1;
+  setCharacterColorSave(inventory);
+
+  return true;
+}
+
+/** 골드로 색상 1개를 구매한다 (수량 1 증가). 골드 부족 시 저장하지 않는다. */
+export function purchaseColor(color) {
+  if (!CHARACTER_COLORS.includes(color)) return { success: false, reason: 'invalid-color' };
+  if (!spendGold(SHOP_COST.colorPurchase)) return { success: false, reason: 'insufficient-gold' };
+
+  grantColor(color);
+
+  return {
+    success: true,
+    color,
+    quantity: getColorQuantity(color),
+    remainingGold: getGold(),
+  };
+}
+
+/** 색상 수량을 1 감소시킨다 (0 이하로는 내려가지 않음). 보유 수량이 없으면 false. */
+function consumeColor(color) {
+  const inventory = loadColorInventory();
+  const current = inventory.colors[color] ?? 0;
+  if (current <= 0) return false;
+
+  inventory.colors[color] = current - 1;
+  setCharacterColorSave(inventory);
+
+  return true;
+}
+
+/** 현재 적용된 색상을 반환한다 (미적용 시 null). */
+export function getEquippedColor() {
+  return getEquippedParts().color ?? null;
+}
+
+/** 색상 적용 가능 여부: 골드가 적용 비용 이상이고, 해당 색상을 보유하고 있어야 한다. */
+export function canApplyColor(color) {
+  if (getColorQuantity(color) <= 0) return false;
+  if (getGold() < SHOP_COST.colorApply) return false;
+
+  return true;
+}
+
+/**
+ * 보유한 색상을 골드로 적용한다. 순서: 골드 차감 → 적용 상태 갱신 → 보유 수량 1 감소.
+ * 미보유거나 골드가 부족하면 아무것도 차감/저장하지 않는다.
+ */
+export function applyColor(color) {
+  if (!CHARACTER_COLORS.includes(color)) return { success: false, reason: 'invalid-color' };
+  if (getColorQuantity(color) <= 0) return { success: false, reason: 'not-owned' };
+  if (!spendGold(SHOP_COST.colorApply)) return { success: false, reason: 'insufficient-gold' };
+
+  const equipped = getEquippedParts();
+  equipped.color = color;
+  setEquippedParts(equipped);
+
+  consumeColor(color);
+
+  return {
+    success: true,
+    color,
+    remainingGold: getGold(),
+    remainingQuantity: getColorQuantity(color),
+  };
 }
