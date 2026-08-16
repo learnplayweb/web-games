@@ -28,6 +28,10 @@
 // v0.1.27 : Implement_색상 랜덤 구입 슬롯 및 기능 구현(파츠 랜덤 구입과 동일 흐름)
 // v0.1.28 : Update_색상 랜덤 미리보기를 원+물음표 SVG로 교체, 파츠 일반 구입 결과
 //           모달 제거하고 미리보기 배지 갱신+파티클로 대체(색상도 동일 적용)
+// v0.1.29 : Refactor_색상 적용을 외곽선(stroke)에서 내부(fill)로 변경, 머리/상체/
+//           하체 3개 슬롯에만 적용(눈/입/팔/다리는 항상 원래 모습 유지)
+// v0.1.30 : Fix_.fill-part 클래스만 정확히 선택하도록 수정(파츠 SVG가 fill-part/
+//           outline-part 두 경로로 구성됨을 반영) — 상체/하체 미적용 문제 해결
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
@@ -117,11 +121,26 @@ function applyCharacterRootTransform(rootElement, hasBody, hasLegs, viewBoxHeigh
   rootElement.setAttribute('transform', computeCharacterRootTransform(hasBody, hasLegs, viewBoxHeight));
 }
 
-// 색상 적용: svgRoot 안의 path/line은 선(stroke), circle은 채우기(fill)를 지정한 색으로
-// 바꾼다. 실제 캐릭터(characterPlaceholder)와 색상 모달의 미리보기 클론이 이 함수를 공유한다.
+// 캐릭터 색상은 머리/상체/하체 "모양(shape)" 파츠의 내부(fill)에만 적용된다.
+// 파츠 SVG는 항상 동일한 구조(class="fill-part": 내부 채우기, class="outline-part":
+// 외곽선, 둘 다 같은 d 경로)로 만들어지므로, .fill-part만 정확히 선택해 fill을
+// 바꾸고 .outline-part는 절대 건드리지 않는다 — 이렇게 하면 외곽선·눈·입·팔·다리는
+// 항상 원래 모습 그대로 유지된다.
+// 세 슬롯(head/body/leg-part-slot)에 같은 색을 적용해 캐릭터 전체가 하나의 색으로
+// 이어지도록 하고, 슬롯이 비어 있으면(아직 조합 전) 조용히 건너뛴다 — 나중에
+// 조합으로 채워질 때 renderCharacterPreview()가 다시 호출되며 자동으로 반영된다.
+// 실제 캐릭터(characterPlaceholder)와 색상 모달의 미리보기 클론이 이 함수를 공유한다.
+const COLOR_TARGET_SLOT_IDS = ['head-part-slot', 'body-part-slot', 'leg-part-slot'];
+
 function applyColorTint(svgRoot, color) {
-  svgRoot.querySelectorAll('path, line').forEach((element) => element.setAttribute('stroke', color));
-  svgRoot.querySelectorAll('circle').forEach((element) => element.setAttribute('fill', color));
+  COLOR_TARGET_SLOT_IDS.forEach((slotId) => {
+    const slot = svgRoot.querySelector(`#${slotId}`);
+    if (!slot) return;
+
+    slot.querySelectorAll('.fill-part').forEach((shape) => {
+      shape.setAttribute('fill', color);
+    });
+  });
 }
 
 // renderCharacterPreview()는 embedSvgFragment(fetch 기반, 비동기)의 완료를 기다렸다가
