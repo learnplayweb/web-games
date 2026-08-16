@@ -9,6 +9,7 @@
 // v0.1.8 : Refactor_조합/재조합을 미리보기+확정 2단계로 분리
 // v0.1.9 : Implement_canSaveCharacter/canRename/renameCharacter 추가
 // v0.1.10 : Implement_색상 인벤토리·구매·적용 기능 추가(파츠 시스템과 동일 구조)
+// v0.1.11 : Implement_purchaseRandomColor 추가(파츠 랜덤 구입과 동일 구조)
 //
 // Public API
 // - hasPart(id)
@@ -49,6 +50,7 @@
 // - getOwnedColors()
 // - grantColor(color)
 // - purchaseColor(color)
+// - purchaseRandomColor()
 // - getEquippedColor()
 // - canApplyColor(color)
 // - applyColor(color)
@@ -461,6 +463,21 @@ export function purchaseColor(color) {
     success: true,
     color,
     quantity: getColorQuantity(color),
+    remainingGold: getGold(),
+  };
+}
+
+/** 골드로 전체 색상 중 랜덤 1개를 구매한다. 골드 부족 시 저장하지 않는다. */
+export function purchaseRandomColor() {
+  if (!spendGold(SHOP_COST.colorRandomPurchase)) return { success: false, reason: 'insufficient-gold' };
+
+  const randomColor = CHARACTER_COLORS[Math.floor(Math.random() * CHARACTER_COLORS.length)];
+  grantColor(randomColor);
+
+  return {
+    success: true,
+    color: randomColor,
+    quantity: getColorQuantity(randomColor),
     remainingGold: getGold(),
   };
 }

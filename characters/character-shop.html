@@ -7,11 +7,10 @@
      v0.1.6 : Implement_2·3단계 조합 슬롯(body, lowerBody) 추가
      v0.1.7 : Update_상체/하체 슬롯 위치 조정 및 팔·다리 슬롯 추가
      v0.1.8 : Update_애니메이션 대응을 위해 팔·다리 슬롯을 좌우 분리
-     v0.1.9 : Implement_조합 단계에 따라 세로 중앙 정렬되도록 파츠 슬롯을
-              <g id="character-root">로 묶음 (character-shop.js가 transform 계산)
+     v0.1.9 : Implement_조합 단계별 세로 중앙 정렬용 <g id="character-root"> 추가
      v0.1.10 : Update_상체·하체 크기를 62.5%(100×100)로, 위치를 재조정
-     v0.1.11 : Implement_이름 설정 모달(#name-modal) 마크업 추가 (머리 최초 적용 시
-               자동으로 뜨는, [저장]으로만 닫히는 이름 입력 모달) -->
+     v0.1.11 : Implement_이름 설정 모달(#name-modal) 마크업 추가
+     v0.1.12 : Update_임시 흰색 색상 슬롯을 랜덤 구입 슬롯("?" 아이콘)으로 교체 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -184,7 +183,7 @@
           <button type="button" class="color-slot" data-color="#A2E8F1" style="background:#A2E8F1;" aria-label="민트"></button>
           <button type="button" class="color-slot" data-color="#8CD3CD" style="background:#8CD3CD;" aria-label="틸"></button>
           <button type="button" class="color-slot" data-color="#BBC8CE" style="background:#BBC8CE;" aria-label="청회색"></button>
-          <button type="button" class="color-slot" data-color="#ffffff" style="background:#ffffff;" aria-label="랜덤"></button>
+          <button type="button" class="color-slot color-slot--random" data-color="random" aria-label="랜덤 색상">?</button>
           
         </div>
         <button type="button" class="color-mix-btn">색 섞기 <span>💎 50</span></button>

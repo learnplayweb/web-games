@@ -25,6 +25,7 @@
 // v0.1.24 : Implement_캐릭터 이름 설정 모달 연결(머리 최초 적용 시 자동 표시)
 // v0.1.25 : Implement_저장하기 버튼 활성화 조건 추가, 이름 변경 기능 구현(모달 재사용)
 // v0.1.26 : Implement_색상 구매/적용 기능 및 보유 수량 배지 연결(파츠 시스템과 동일 구조)
+// v0.1.27 : Implement_색상 랜덤 구입 슬롯 및 기능 구현(파츠 랜덤 구입과 동일 흐름)
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
@@ -33,7 +34,7 @@ import {
   getPartQuantity, purchasePart, purchaseRandomPart, getEquippedPart, applyPart,
   canCombine, previewCombine, canRecombine, previewRecombine, confirmCombine,
   canDismantle, dismantleCharacter, canSaveCharacter, canRename, renameCharacter,
-  getColorQuantity, purchaseColor, canApplyColor, applyColor, getEquippedColor,
+  getColorQuantity, purchaseColor, purchaseRandomColor, canApplyColor, applyColor, getEquippedColor,
 } from './inventory.js';
 import { getGold, getCharacterName, setCharacterName } from '../core/saveManager.js';
 
@@ -743,6 +744,8 @@ async function openCombinePreviewModal(category, id) {
 // ===========================
 function refreshColorSlot(slot) {
   const color = slot.dataset.color;
+  if (color === 'random') return; // 랜덤 슬롯은 보유 수량 배지 대상이 아님(파츠 랜덤 박스와 동일)
+
   const quantity = getColorQuantity(color);
 
   let badge = slot.querySelector('.part-slot__badge');
@@ -782,6 +785,9 @@ function openColorModal(color) {
 
     updateHeaderGold(result.remainingGold);
     refreshAllColorSlots();
+    refreshCombineButton(); // 구매로 골드가 줄어 조합/해체/이름 변경 가능 여부가 바뀔 수 있음
+    refreshDismantleButton();
+    refreshRenameButton();
     openColorModal(color); // 구입 직후 버튼 상태(적용 활성화 등)를 반영해 다시 연다
   });
 
@@ -793,6 +799,9 @@ function openColorModal(color) {
 
     updateHeaderGold(result.remainingGold);
     refreshAllColorSlots();
+    refreshCombineButton(); // 적용으로 골드가 줄어 조합/해체/이름 변경 가능 여부가 바뀔 수 있음
+    refreshDismantleButton();
+    refreshRenameButton();
     await renderCharacterPreview(); // 실제 캐릭터에도 색이 반영된 뒤 모달을 닫는다
     colorModal.classList.add('modal-overlay--hidden');
   });
@@ -801,8 +810,92 @@ function openColorModal(color) {
   colorModal.classList.remove('modal-overlay--hidden');
 }
 
+// ===========================
+// 색상 랜덤 구입 (기존 #part-modal 재사용 — 파츠 랜덤 구입과 동일한 흐름:
+// [구입] → "뽑는 중..." → 🎉결과 → 자동으로 랜덤 구입 화면 복귀)
+// ===========================
+let lastDrawnColor = null; // showColorRandomDrawing → showColorPurchaseResult로 전달할 값
+
+// 색상 랜덤 구입 결과를 표시하고 RESULT_AUTO_CLOSE_MS 후 랜덤 구입 화면으로 자동 복귀한다.
+function showColorPurchaseResult(color) {
+  const swatch = document.createElement('div');
+  swatch.className = 'part-modal__result-icon';
+  swatch.style.cssText = 'width:100%;height:100%;border-radius:50%;';
+  swatch.style.background = color;
+  partModalSvg.replaceChildren(swatch);
+  spawnResultParticles();
+
+  partModalName.textContent = '';
+  partModalActions.replaceChildren();
+  const resultText = document.createElement('p');
+  resultText.className = 'part-modal__result-text';
+  resultText.textContent = '🎉 색상 획득';
+  partModalActions.appendChild(resultText);
+
+  clearResultTimers();
+  autoCloseTimerId = setTimeout(openColorRandomModal, RESULT_AUTO_CLOSE_MS);
+}
+
+// 색상 랜덤 구입 전용: "뽑는 중..." 로딩 연출 후 결과를 표시한다.
+function showColorRandomDrawing() {
+  const spinner = document.createElement('div');
+  spinner.className = 'part-modal__spinner';
+  spinner.textContent = '💎';
+  partModalSvg.replaceChildren(spinner);
+
+  partModalName.textContent = '';
+  partModalActions.replaceChildren();
+  const drawingText = document.createElement('p');
+  drawingText.className = 'part-modal__drawing-text';
+  drawingText.textContent = '뽑는 중...';
+  partModalActions.appendChild(drawingText);
+
+  clearResultTimers();
+  reopenTimerId = setTimeout(() => {
+    reopenTimerId = null;
+    // 연출 도중 모달이 닫혔다면 결과를 표시하지 않는다.
+    if (partModal.classList.contains('modal-overlay--hidden')) return;
+    showColorPurchaseResult(lastDrawnColor);
+  }, RANDOM_DRAW_DELAY_MS);
+}
+
+function openColorRandomModal() {
+  clearResultTimers();
+
+  const questionIcon = document.createElement('div');
+  questionIcon.className = 'part-modal__random-icon';
+  questionIcon.textContent = '?';
+  partModalSvg.replaceChildren(questionIcon);
+  partModalName.textContent = '';
+  partModalActions.replaceChildren();
+
+  const canAffordBuy = getGold() >= SHOP_COST.colorRandomPurchase;
+  const buyButton = createPricedButton('modal-card__btn--cancel', '구입', `💎 ${SHOP_COST.colorRandomPurchase}`, !canAffordBuy);
+  buyButton.addEventListener('click', () => {
+    const result = purchaseRandomColor();
+    if (!result.success) return; // 골드 부족 등: 구매/저장/화면 갱신 없음
+
+    updateHeaderGold(result.remainingGold);
+    refreshAllColorSlots();
+    refreshCombineButton(); // 구매로 골드가 줄어 조합/해체/이름 변경 가능 여부가 바뀔 수 있음
+    refreshDismantleButton();
+    refreshRenameButton();
+    lastDrawnColor = result.color;
+    showColorRandomDrawing();
+  });
+  partModalActions.appendChild(buyButton);
+
+  partModal.classList.remove('modal-overlay--hidden');
+}
+
 document.querySelectorAll('.color-slot[data-color]').forEach((slot) => {
-  slot.addEventListener('click', () => openColorModal(slot.dataset.color));
+  slot.addEventListener('click', () => {
+    if (slot.dataset.color === 'random') {
+      openColorRandomModal();
+    } else {
+      openColorModal(slot.dataset.color);
+    }
+  });
 });
 colorModal.addEventListener('click', (event) => {
   if (event.target === colorModal) colorModal.classList.add('modal-overlay--hidden');
