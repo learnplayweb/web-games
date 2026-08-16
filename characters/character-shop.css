@@ -10,7 +10,8 @@
    v0.1.9 : Polish_펼침/접힘 화살표 헤더 전체에 포인터 커서 적용
    v0.1.10 : Implement_이름 설정 모달(#name-modal) 스타일 추가
    v0.1.11 : Implement_색상 슬롯에 수량 배지 표시용 position:relative 추가(배지 자체는 part-slot__badge 재사용)
-   v0.1.12 : Implement_색상 랜덤 구입 슬롯("?") 및 결과 모달 아이콘 스타일 추가 */
+   v0.1.12 : Implement_색상 랜덤 구입 슬롯("?") 및 결과 모달 아이콘 스타일 추가
+   v0.1.13 : Update_랜덤 구입 진입 아이콘을 다른 파츠 아이콘과 같은 svg 방식으로 통일 */
 
 /* ===========================
    1. 전역 초기화 & 변수
@@ -395,17 +396,9 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* 색상 랜덤 구입 진입 화면의 "?" 아이콘 (파츠 랜덤 박스와 같은 무게감) */
-.part-modal__random-icon {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2.6rem;
-  font-weight: 700;
-  color: var(--color-soon-text);
-}
+/* 색상 랜덤 구입 진입 화면 아이콘은 다른 파츠 아이콘과 같은 <svg>(viewBox 0 0 56 56)를
+   써서 .part-modal__preview svg { width:100%; height:100%; } 규칙을 그대로 공유한다 —
+   별도 클래스 불필요. */
 
 .part-modal__drawing-text,
 .part-modal__result-text {

@@ -26,6 +26,8 @@
 // v0.1.25 : Implement_저장하기 버튼 활성화 조건 추가, 이름 변경 기능 구현(모달 재사용)
 // v0.1.26 : Implement_색상 구매/적용 기능 및 보유 수량 배지 연결(파츠 시스템과 동일 구조)
 // v0.1.27 : Implement_색상 랜덤 구입 슬롯 및 기능 구현(파츠 랜덤 구입과 동일 흐름)
+// v0.1.28 : Update_색상 랜덤 미리보기를 원+물음표 SVG로 교체, 파츠 일반 구입 결과
+//           모달 제거하고 미리보기 배지 갱신+파티클로 대체(색상도 동일 적용)
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
@@ -482,8 +484,9 @@ function closePartModal() {
   partModal.classList.add('modal-overlay--hidden');
 }
 
-// 파츠 아이콘 주변에 원형 파티클을 잠깐 흩뿌린다. (Canvas/외부 라이브러리 미사용)
-function spawnResultParticles() {
+// 지정한 컨테이너 주변에 원형 파티클을 잠깐 흩뿌린다. (Canvas/외부 라이브러리 미사용)
+// container는 position:relative인 .part-modal__preview 계열 요소여야 한다.
+function spawnResultParticles(container) {
   const layer = document.createElement('div');
   layer.className = 'part-modal__particles';
 
@@ -502,12 +505,13 @@ function spawnResultParticles() {
     layer.appendChild(particle);
   }
 
-  partModalSvg.appendChild(layer);
+  container.appendChild(layer);
   setTimeout(() => layer.remove(), 900);
 }
 
 // 구입 결과(획득한 파츠)를 표시하고 RESULT_AUTO_CLOSE_MS 후 원래 파츠 모달(구입/적용
-// 버튼이 있는)로 자동 복귀한다 — 모달을 닫지 않아 연속 구입이 가능하다.
+// 버튼이 있는)로 자동 복귀한다 — 모달을 닫지 않아 연속 구입이 가능하다. (랜덤 구입 전용 —
+// 일반 구입은 openPartModal()이 배지 갱신 + 파티클로 제자리에서 처리한다.)
 function showPurchaseResult(id, slot) {
   const part = getPart(id);
 
@@ -516,7 +520,7 @@ function showPurchaseResult(id, slot) {
   iconSvg.classList.add('part-modal__result-icon');
   partModalSvg.replaceChildren(iconSvg);
   replaceSvgContent(iconSvg, part.assetPath);
-  spawnResultParticles();
+  spawnResultParticles(partModalSvg);
 
   partModalName.textContent = '';
   partModalActions.replaceChildren();
@@ -583,6 +587,15 @@ function openPartModal(slot) {
   partModalName.textContent = '';
   partModalActions.replaceChildren();
 
+  // 일반 구입(랜덤 제외)은 보유 수량 배지를 미리보기 위에 그대로 보여준다 —
+  // 그리드의 .part-slot__badge와 같은 디자인을 재사용한다.
+  if (!isRandom && owned > 0) {
+    const badge = document.createElement('span');
+    badge.className = 'part-slot__badge';
+    renderBadgeContent(badge, owned);
+    partModalSvg.appendChild(badge);
+  }
+
   const buyPrice = isRandom ? SHOP_COST.partRandomPurchase : SHOP_COST.partPurchase;
   const canAffordBuy = getGold() >= buyPrice;
   const buyButton = createPricedButton('modal-card__btn--cancel', '구입', `💎 ${buyPrice}`, !canAffordBuy);
@@ -603,7 +616,9 @@ function openPartModal(slot) {
     if (isRandom) {
       showRandomDrawing(result.id, slot);
     } else {
-      showPurchaseResult(headPartId, slot);
+      // 일반 구입은 별도 결과 모달 없이, 제자리에서 배지 수량만 갱신하고 파티클을 터뜨린다.
+      openPartModal(slot);
+      spawnResultParticles(partModalSvg);
     }
   });
   partModalActions.appendChild(buyButton);
@@ -777,6 +792,15 @@ function openColorModal(color) {
   colorModalPreview.replaceChildren(previewSvg);
   colorModalActions.replaceChildren();
 
+  // 보유 수량 배지를 미리보기 위에 그대로 보여준다 — 파츠 모달과 같은 디자인(.part-slot__badge) 재사용.
+  const ownedColorQuantity = getColorQuantity(color);
+  if (ownedColorQuantity > 0) {
+    const badge = document.createElement('span');
+    badge.className = 'part-slot__badge';
+    renderBadgeContent(badge, ownedColorQuantity);
+    colorModalPreview.appendChild(badge);
+  }
+
   const canAffordColorBuy = getGold() >= SHOP_COST.colorPurchase;
   const buyButton = createPricedButton('modal-card__btn--cancel', '구입', `💎 ${SHOP_COST.colorPurchase}`, !canAffordColorBuy);
   buyButton.addEventListener('click', () => {
@@ -788,7 +812,8 @@ function openColorModal(color) {
     refreshCombineButton(); // 구매로 골드가 줄어 조합/해체/이름 변경 가능 여부가 바뀔 수 있음
     refreshDismantleButton();
     refreshRenameButton();
-    openColorModal(color); // 구입 직후 버튼 상태(적용 활성화 등)를 반영해 다시 연다
+    openColorModal(color); // 구입 직후 배지 수량·버튼 상태(적용 활성화 등)를 반영해 다시 연다
+    spawnResultParticles(colorModalPreview);
   });
 
   const canApplyColorNow = canApplyColor(color);
@@ -823,7 +848,7 @@ function showColorPurchaseResult(color) {
   swatch.style.cssText = 'width:100%;height:100%;border-radius:50%;';
   swatch.style.background = color;
   partModalSvg.replaceChildren(swatch);
-  spawnResultParticles();
+  spawnResultParticles(partModalSvg);
 
   partModalName.textContent = '';
   partModalActions.replaceChildren();
@@ -862,10 +887,11 @@ function showColorRandomDrawing() {
 function openColorRandomModal() {
   clearResultTimers();
 
-  const questionIcon = document.createElement('div');
-  questionIcon.className = 'part-modal__random-icon';
-  questionIcon.textContent = '?';
-  partModalSvg.replaceChildren(questionIcon);
+  const questionSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  questionSvg.setAttribute('viewBox', '0 0 56 56');
+  questionSvg.innerHTML = '<circle cx="28" cy="28" r="21" fill="none" stroke="#b0bac6" stroke-width="2.5"/>'
+    + '<text x="28" y="34" font-size="18" text-anchor="middle" fill="#b0bac6">?</text>';
+  partModalSvg.replaceChildren(questionSvg);
   partModalName.textContent = '';
   partModalActions.replaceChildren();
 
