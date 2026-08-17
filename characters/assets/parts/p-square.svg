@@ -3,32 +3,10 @@
    viewBox="0 0 160 160"
    version="1.1"
    id="svg2"
-   sodipodi:docname="p-diamond.svg"
-   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
   <defs
      id="defs2" />
-  <sodipodi:namedview
-     id="namedview2"
-     pagecolor="#ffffff"
-     bordercolor="#000000"
-     borderopacity="0.25"
-     inkscape:showpageshadow="2"
-     inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="0"
-     inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="4.035"
-     inkscape:cx="80.049566"
-     inkscape:cy="119.57869"
-     inkscape:window-width="1920"
-     inkscape:window-height="1009"
-     inkscape:window-x="-8"
-     inkscape:window-y="-8"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="svg2" />
   <!-- 채워지는 영역 -->
   <!-- 외곽선 -->
   <!-- svg 제작 디버그 선-->
@@ -39,7 +17,6 @@
   <path
      style="display:inline;fill:none;fill-opacity:1;stroke:#b0bac6;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
      d="m 37.695854,55.339623 c 1.960433,-6.061665 3.73107,-13.696486 10.442435,-16.212753 7.600098,-2.968995 15.945111,-2.23595 23.926923,-2.71789 11.395537,0.628809 22.815481,0.501124 34.219498,0.621073 5.84306,0.239962 11.08458,3.996214 13.25589,9.349608 5.27087,10.419439 3.5088,22.343405 3.52619,33.543808 0.56511,9.019285 2.13069,18.283319 -0.78629,27.095451 -0.93061,5.29315 -4.33246,9.77726 -9.22574,12.10999 -8.88792,5.25589 -19.565731,4.89935 -29.520268,4.41692 C 72.790499,123.29475 61.599635,124.37034 51.29947,120.72574 44.757932,118.21655 39.256272,112.46909 38.492951,105.36169 35.88491,93.510909 35.851732,81.297317 36.878117,69.260467 37.273274,64.628273 36.256266,59.857298 37.695854,55.339623 Z"
-     id="path6" 
-     vector-effect="non-scaling-stroke"/>
-  
+     id="path6"
+     vector-effect="non-scaling-stroke" />
 </svg>

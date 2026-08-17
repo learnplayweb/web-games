@@ -26,12 +26,14 @@
 // v0.1.25 : Implement_저장하기 버튼 활성화 조건 추가, 이름 변경 기능 구현(모달 재사용)
 // v0.1.26 : Implement_색상 구매/적용 기능 및 보유 수량 배지 연결(파츠 시스템과 동일 구조)
 // v0.1.27 : Implement_색상 랜덤 구입 슬롯 및 기능 구현(파츠 랜덤 구입과 동일 흐름)
-// v0.1.28 : Update_색상 랜덤 미리보기를 원+물음표 SVG로 교체, 파츠 일반 구입 결과
-//           모달 제거하고 미리보기 배지 갱신+파티클로 대체(색상도 동일 적용)
-// v0.1.29 : Refactor_색상 적용을 외곽선(stroke)에서 내부(fill)로 변경, 머리/상체/
-//           하체 3개 슬롯에만 적용(눈/입/팔/다리는 항상 원래 모습 유지)
-// v0.1.30 : Fix_.fill-part 클래스만 정확히 선택하도록 수정(파츠 SVG가 fill-part/
-//           outline-part 두 경로로 구성됨을 반영) — 상체/하체 미적용 문제 해결
+// v0.1.28 : Update_색상 랜덤 미리보기 SVG 교체, 파츠 일반 구입 결과 모달을 배지+파티클로 대체
+// v0.1.29 : Refactor_색상 적용을 stroke에서 fill로 변경, 머리/상체/하체 3슬롯에만 적용
+// v0.1.30 : Fix_.fill-part 클래스만 정확히 선택하도록 수정(상체/하체 미적용 문제 해결)
+// v0.1.31 : Fix_머리 적용 핸들러에 누락된 await 추가(렌더 경합으로 인한 색상 미적용 문제 해결)
+// v0.1.32 : Fix_renderCharacterPreview 호출을 완전히 순차 실행되도록 큐잉(경합 재발 방지)
+// v0.1.33 : Fix_.fill-part에 !important 인라인 스타일 추가(내부 style이 attribute를 덮어쓰는 문제 대응)
+// v0.1.34 : Fix_클래스명 대신 "외곽선은 fill:none" 규칙으로 채우는 영역을 판별(파츠마다
+//           다른 SVG 작성 방식 대응) — 마름모 등 class="fill-part"가 없는 파츠 색 미적용 해결
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
@@ -122,9 +124,10 @@ function applyCharacterRootTransform(rootElement, hasBody, hasLegs, viewBoxHeigh
 }
 
 // 캐릭터 색상은 머리/상체/하체 "모양(shape)" 파츠의 내부(fill)에만 적용된다.
-// 파츠 SVG는 항상 동일한 구조(class="fill-part": 내부 채우기, class="outline-part":
-// 외곽선, 둘 다 같은 d 경로)로 만들어지므로, .fill-part만 정확히 선택해 fill을
-// 바꾸고 .outline-part는 절대 건드리지 않는다 — 이렇게 하면 외곽선·눈·입·팔·다리는
+// 파츠 SVG 작성 방식이 파일마다 달라(class="fill-part" 표기 유무, fill을 속성으로
+// 쓰는지 style로 쓰는지 등) 클래스명에는 의존하지 않는다. 대신 모든 파츠 파일에서
+// 공통인 규칙 — "외곽선은 항상 fill:none, 채우는 영역은 항상 실제 fill 값을 가진다" —
+// 을 이용해 채우는 영역만 정확히 찾아낸다. 이렇게 하면 외곽선·눈·입·팔·다리는
 // 항상 원래 모습 그대로 유지된다.
 // 세 슬롯(head/body/leg-part-slot)에 같은 색을 적용해 캐릭터 전체가 하나의 색으로
 // 이어지도록 하고, 슬롯이 비어 있으면(아직 조합 전) 조용히 건너뛴다 — 나중에
@@ -132,13 +135,25 @@ function applyCharacterRootTransform(rootElement, hasBody, hasLegs, viewBoxHeigh
 // 실제 캐릭터(characterPlaceholder)와 색상 모달의 미리보기 클론이 이 함수를 공유한다.
 const COLOR_TARGET_SLOT_IDS = ['head-part-slot', 'body-part-slot', 'leg-part-slot'];
 
+// fill이 style 속성(style="fill:...")과 fill 속성(fill="...") 중 어느 쪽으로 지정돼
+// 있든 실제 적용되는 값을 읽어서, "none"이 아닌 경우만(= 채우는 영역만) true를 반환한다.
+function isFillLayer(shape) {
+  const effectiveFill = shape.style.fill || shape.getAttribute('fill');
+  return Boolean(effectiveFill) && effectiveFill !== 'none';
+}
+
 function applyColorTint(svgRoot, color) {
   COLOR_TARGET_SLOT_IDS.forEach((slotId) => {
     const slot = svgRoot.querySelector(`#${slotId}`);
     if (!slot) return;
 
-    slot.querySelectorAll('.fill-part').forEach((shape) => {
+    slot.querySelectorAll('path, circle, ellipse, polygon, rect').forEach((shape) => {
+      if (!isFillLayer(shape)) return; // 외곽선(fill:none)은 건드리지 않는다
+
       shape.setAttribute('fill', color);
+      // 일부 파츠 SVG는 fill을 style 속성으로 지정해 두는데, 이는 fill 속성보다
+      // 우선순위가 높아 setAttribute만으로는 덮어써지지 않는다. !important로 확실히 이기도록 강제한다.
+      shape.style.setProperty('fill', color, 'important');
     });
   });
 }
@@ -146,7 +161,19 @@ function applyColorTint(svgRoot, color) {
 // renderCharacterPreview()는 embedSvgFragment(fetch 기반, 비동기)의 완료를 기다렸다가
 // 반환한다. 조합/재조합 직후 캐릭터 전체를 복제해 모달에 보여줘야 하는 곳에서는
 // 반드시 이 함수의 완료(await)를 기다린 뒤 복제해야 최신 상태가 보인다.
-async function renderCharacterPreview() {
+// renderCharacterPreview()가 겹쳐 호출되면(예: 색 적용 직후 곧바로 다른 파츠를
+// 적용하는 등) 먼저 시작된 호출의 embedSvgFragment가 나중에 끝나면서 나중 호출의
+// 결과(색상 포함)를 덮어쓰는 경합이 있었다. renderChain으로 모든 호출을 한 줄로
+// 줄 세워, 항상 이전 호출이 완전히 끝난 뒤에만 다음 호출이 시작되도록 만든다 —
+// 두 렌더가 동시에 같은 슬롯에 쓰는 일 자체가 아예 없어진다.
+let renderChain = Promise.resolve();
+
+function renderCharacterPreview() {
+  renderChain = renderChain.then(() => renderCharacterPreviewOnce());
+  return renderChain;
+}
+
+async function renderCharacterPreviewOnce() {
   const equippedHeadId = getEquippedPart('head');
 
   if (!equippedHeadId) {
@@ -652,7 +679,7 @@ function openPartModal(slot) {
     } else {
       const canApply = owned > 0 && getGold() >= SHOP_COST.partApply;
       const applyButton = createPricedButton('modal-card__btn--cancel', '적용', `💎 ${SHOP_COST.partApply}`, !canApply);
-      applyButton.addEventListener('click', () => {
+      applyButton.addEventListener('click', async () => {
         const isFirstSave = !getEquippedPart('head'); // 머리를 아직 한 번도 적용한 적 없으면 캐릭터 최초 생성
         const result = applyPart('head', headPartId);
         if (!result.success) return; // 미보유/골드 부족 등: 적용/저장/화면 갱신 없음
@@ -663,7 +690,7 @@ function openPartModal(slot) {
         refreshDismantleButton(); // 적용으로 골드가 줄어 해체 가능 여부가 바뀔 수 있음
         refreshRenameButton(); // 적용으로 골드가 줄어 이름 변경 가능 여부가 바뀔 수 있음
         refreshSaveButton(); // 머리가 적용됐으니 저장하기 활성화 조건이 바뀔 수 있음
-        renderCharacterPreview();
+        await renderCharacterPreview(); // await 필수 — 다른 렌더 호출과 겹치면 색 적용이 꼬일 수 있음
 
         if (isFirstSave) {
           closePartModal();
