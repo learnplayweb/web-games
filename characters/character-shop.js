@@ -32,8 +32,8 @@
 // v0.1.31 : Fix_머리 적용 핸들러에 누락된 await 추가(렌더 경합으로 인한 색상 미적용 문제 해결)
 // v0.1.32 : Fix_renderCharacterPreview 호출을 완전히 순차 실행되도록 큐잉(경합 재발 방지)
 // v0.1.33 : Fix_.fill-part에 !important 인라인 스타일 추가(내부 style이 attribute를 덮어쓰는 문제 대응)
-// v0.1.34 : Fix_클래스명 대신 "외곽선은 fill:none" 규칙으로 채우는 영역을 판별(파츠마다
-//           다른 SVG 작성 방식 대응) — 마름모 등 class="fill-part"가 없는 파츠 색 미적용 해결
+// v0.1.34 : Fix_클래스명 대신 "외곽선은 fill:none" 규칙으로 채우는 영역 판별(마름모 등 색 미적용 해결)
+// v0.1.35 : Fix_조합 미리보기 모달에도 적용된 색상 반영(확인 전에는 새 부위에 색이 안 보이던 문제)
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
@@ -748,6 +748,13 @@ async function buildCombinePreviewClone(category, id) {
   const hasBody = category === 'body' || Boolean(getEquippedPart('body'));
   const hasLegs = category === 'legs' || Boolean(getEquippedPart('legs'));
   applyCharacterRootTransform(clone.querySelector('#character-root'), hasBody, hasLegs, getViewBoxHeight(clone));
+
+  // 이미 적용된 색이 있으면 방금 끼워 넣은 미리보기 파츠에도 같이 반영한다(머리에만
+  // 남아있던 클론 상태를 그대로 두면 새로 합쳐진 부위는 색이 빠진 것처럼 보인다).
+  const equippedColor = getEquippedColor();
+  if (equippedColor) {
+    applyColorTint(clone, equippedColor);
+  }
 
   return clone;
 }
