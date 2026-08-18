@@ -1,15 +1,9 @@
-// v0.1.0 : 최초 생성 - 캐릭터 파츠 인벤토리 시스템 최초 구현
-// v0.1.1 : Implement_보유 수량 구조 및 구매 함수(purchasePart, purchaseRandomPart) 추가
-// v0.1.2 : Implement_파츠 적용(equip) 함수 추가
-// v0.1.3 : Refactor_인벤토리를 부위별에서 파츠별(공유 수량) 구조로 변경
-// v0.1.4 : Implement_조합(combine) 기능 추가
-// v0.1.5 : Implement_재조합(recombine) 기능 추가
-// v0.1.6 : Fix_조합 대상에서 머리 제외(적용 버튼 전용), 머리 미장착 시 조합 불가
-// v0.1.7 : Implement_해체(dismantle) 기능 추가
-// v0.1.8 : Refactor_조합/재조합을 미리보기+확정 2단계로 분리
-// v0.1.9 : Implement_canSaveCharacter/canRename/renameCharacter 추가
-// v0.1.10 : Implement_색상 인벤토리·구매·적용 기능 추가(파츠 시스템과 동일 구조)
-// v0.1.11 : Implement_purchaseRandomColor 추가(파츠 랜덤 구입과 동일 구조)
+// v0.1.12
+// Inventory
+// - 파츠/색상 보유·구매(일반/랜덤), 적용(equip) 관리
+// - 조합/재조합은 미리보기+확정 2단계, 해체는 즉시 실행
+// - 색 섞기/다시 섞기 가능 여부 판단 추가
+// - 캐릭터 저장 가능 여부·이름 변경 가능 여부 판단
 //
 // Public API
 // - hasPart(id)
@@ -54,6 +48,8 @@
 // - getEquippedColor()
 // - canApplyColor(color)
 // - applyColor(color)
+// - canMixColor()
+// - canRemixColor()
 //
 // Save Structure
 // character_save.parts : { [id]: number }
@@ -500,7 +496,9 @@ export function getEquippedColor() {
 }
 
 /** 색상 적용 가능 여부: 골드가 적용 비용 이상이고, 해당 색상을 보유하고 있어야 한다. */
+/** 색상 적용 가능 여부: 캐릭터가 있어야(머리 적용) 하고, 골드가 적용 비용 이상이며, 해당 색상을 보유해야 한다. */
 export function canApplyColor(color) {
+  if (!getEquippedPart('head')) return false;
   if (getColorQuantity(color) <= 0) return false;
   if (getGold() < SHOP_COST.colorApply) return false;
 
@@ -528,4 +526,17 @@ export function applyColor(color) {
     remainingGold: getGold(),
     remainingQuantity: getColorQuantity(color),
   };
+}
+
+/** 색 섞기 가능 여부: 골드가 섞기 비용 이상이어야 한다. */
+export function canMixColor() {
+  return getGold() >= SHOP_COST.colorMix;
+}
+
+/** 다시 섞기 가능 여부: 골드가 다시 섞기 비용 이상이고, 지금 적용된 색 외에 다른 보유 색이 있어야 한다. */
+export function canRemixColor() {
+  if (getGold() < SHOP_COST.colorRemix) return false;
+
+  const equippedColor = getEquippedColor();
+  return getOwnedColors().some((color) => color !== equippedColor);
 }

@@ -1,39 +1,9 @@
-// v0.1.0  : 최초 생성 - 캐릭터 상점 화면 스크립트 (섹션 토글, 파츠/색상/저장 모달)
-// v0.1.1  : Refactor_눈/입 및 파츠 아이콘을 fetch 기반 inline SVG로 변경
-// v0.1.2  : Implement_파츠 구매 기능 추가
-// v0.1.3  : Polish_구매/적용 버튼 UI 및 가격 상수 적용
-// v0.1.4  : Polish_구매 버튼 비활성화 및 수량 배지 개선
-// v0.1.5  : Implement_일반/랜덤 구입 결과 모달 추가
-// v0.1.6  : Implement_파츠 적용(equip) 기능 추가
-// v0.1.7  : Refactor_조합 슬롯 위치·크기를 HTML에서 관리하도록 변경
-// v0.1.8  : Refactor_SVG 제작 규격(viewBox 160×160) 적용
-// v0.1.9  : Fix_GitHub Pages import 경로 대소문자 문제 수정
-// v0.1.10 : Refactor_부위 공유 인벤토리 구조 반영
-// v0.1.11 : Implement_조합 기능 및 body/lowerBody 미리보기 추가
-// v0.1.12 : Implement_조합 결과 모달 및 재조합 기능 추가
-// v0.1.13 : Fix_조합 결과 모달 갱신 타이밍 문제 수정
-// v0.1.14 : Implement_상체 조합 시 팔, 하체 조합 시 다리 자동 표시
-// v0.1.15 : Update_애니메이션 대응을 위해 팔·다리를 좌우 분리
-// v0.1.16 : Fix_조합은 머리를 대상으로 하지 않도록 변경, 머리 미적용 시 조합 버튼 비활성화, 해체 버튼 기본 비활성화
-// v0.1.17 : Implement_해체(dismantle) 기능 및 결과 모달 추가, 결과 자동 닫힘 3초→2초 통일
-// v0.1.18 : Update_버튼 없는 안내 모달 자동 닫힘을 2.5초로 통일
-// v0.1.19 : Implement_조합 단계에 따라 #character-root를 세로 중앙 정렬
-// v0.1.20 : Refactor_조합/재조합을 미리보기+확정 2단계로 분리
-// v0.1.21 : Update_구입 성공 후 원래 파츠 모달로 자동 복귀, 섹션 헤더 클릭 영역 확장
-// v0.1.22 : Implement_이름 변경/색 섞기 버튼 기본 비활성화
-// v0.1.23 : Update_#character-root 정렬에 scale 추가(단계별 전체 길이 통일)
-// v0.1.24 : Implement_캐릭터 이름 설정 모달 연결(머리 최초 적용 시 자동 표시)
-// v0.1.25 : Implement_저장하기 버튼 활성화 조건 추가, 이름 변경 기능 구현(모달 재사용)
-// v0.1.26 : Implement_색상 구매/적용 기능 및 보유 수량 배지 연결(파츠 시스템과 동일 구조)
-// v0.1.27 : Implement_색상 랜덤 구입 슬롯 및 기능 구현(파츠 랜덤 구입과 동일 흐름)
-// v0.1.28 : Update_색상 랜덤 미리보기 SVG 교체, 파츠 일반 구입 결과 모달을 배지+파티클로 대체
-// v0.1.29 : Refactor_색상 적용을 stroke에서 fill로 변경, 머리/상체/하체 3슬롯에만 적용
-// v0.1.30 : Fix_.fill-part 클래스만 정확히 선택하도록 수정(상체/하체 미적용 문제 해결)
-// v0.1.31 : Fix_머리 적용 핸들러에 누락된 await 추가(렌더 경합으로 인한 색상 미적용 문제 해결)
-// v0.1.32 : Fix_renderCharacterPreview 호출을 완전히 순차 실행되도록 큐잉(경합 재발 방지)
-// v0.1.33 : Fix_.fill-part에 !important 인라인 스타일 추가(내부 style이 attribute를 덮어쓰는 문제 대응)
-// v0.1.34 : Fix_클래스명 대신 "외곽선은 fill:none" 규칙으로 채우는 영역 판별(마름모 등 색 미적용 해결)
-// v0.1.35 : Fix_조합 미리보기 모달에도 적용된 색상 반영(확인 전에는 새 부위에 색이 안 보이던 문제)
+// v0.1.36
+// Character Shop
+// - 파츠/색상 구매(일반/랜덤)·적용, 조합·재조합·해체, 이름 설정/변경, 색 섞기 UI
+// - 조합/재조합/색 섞기는 미리보기 후 확인 시에만 확정, renderCharacterPreview는 큐로 순차 실행
+// - 색상은 fill:none이 아닌 영역에만 적용, #character-root가 조합 단계별로 자동 정렬·확대
+// - 모든 기능 버튼은 조건 기반 활성화, 결과 모달은 확인 버튼 유무에 따라 자동 닫힘/수동 닫힘 구분
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment } from '../core/svgloader.js';
@@ -43,6 +13,7 @@ import {
   canCombine, previewCombine, canRecombine, previewRecombine, confirmCombine,
   canDismantle, dismantleCharacter, canSaveCharacter, canRename, renameCharacter,
   getColorQuantity, purchaseColor, purchaseRandomColor, canApplyColor, applyColor, getEquippedColor,
+  canMixColor, canRemixColor,
 } from './inventory.js';
 import { getGold, getCharacterName, setCharacterName } from '../core/saveManager.js';
 
@@ -283,6 +254,7 @@ nameModalSaveButton.addEventListener('click', () => {
   characterNameLabel.textContent = name;
   refreshSaveButton(); // 저장하기 버튼 활성화 조건에 이름이 포함되므로
   refreshRenameButton(); // rename이었다면 골드가 줄어 다시 판단해야 함
+  refreshColorMixButton();
   nameModal.classList.add('modal-overlay--hidden');
 });
 
@@ -403,6 +375,7 @@ combineButton.addEventListener('click', () => {
   refreshCombineButton();
   refreshDismantleButton();
   refreshRenameButton();
+  refreshColorMixButton();
   openCombinePreviewModal(preview.category, preview.id);
 });
 
@@ -430,6 +403,7 @@ dismantleButton.addEventListener('click', async () => {
   refreshCombineButton();
   refreshDismantleButton();
   refreshRenameButton();
+  refreshColorMixButton();
   await renderCharacterPreview(); // 해체된 상태(팔/다리 숨김 등)가 반영된 뒤 모달에 복제한다
   showDismantleResult();
 });
@@ -455,10 +429,15 @@ function refreshSaveButton() {
 
 refreshSaveButton();
 
-// 색 섞기는 활성화 조건(골드 50↑ + 색상 2종↑ 보유)이 아직 구현되지 않았으므로
-// 기본 비활성화해 둔다. 앞으로 추가할 버튼도 조건 로직이 붙기 전까지는 기본을
-// 비활성화 상태로 둔다.
-document.querySelector('.color-mix-btn').disabled = true;
+// 색 섞기 버튼: 골드가 섞기 비용 이상일 때만 활성화 (inventory.js의 canMixColor()).
+const colorMixButton = document.querySelector('.color-mix-btn');
+
+function refreshColorMixButton() {
+  colorMixButton.disabled = !canMixColor();
+}
+
+colorMixButton.addEventListener('click', () => openColorMixModal());
+refreshColorMixButton();
 
 // 헤더 바(섹션 명이 적힌 사각형) 전체를 클릭 영역으로 사용한다 — 화살표 버튼만
 // 클릭 대상이면 영역이 좁아 불편하다는 피드백을 반영. 화살표 버튼도 헤더 안에
@@ -658,6 +637,7 @@ function openPartModal(slot) {
     refreshCombineButton(); // 구매로 인벤토리가 늘어 조합 가능 여부가 바뀔 수 있음
     refreshDismantleButton(); // 구매로 골드가 줄어 해체 가능 여부가 바뀔 수 있음
     refreshRenameButton(); // 구매로 골드가 줄어 이름 변경 가능 여부가 바뀔 수 있음
+    refreshColorMixButton();
 
     if (isRandom) {
       showRandomDrawing(result.id, slot);
@@ -689,6 +669,7 @@ function openPartModal(slot) {
         refreshCombineButton(); // 적용으로 인벤토리가 줄어 조합 가능 여부가 바뀔 수 있음
         refreshDismantleButton(); // 적용으로 골드가 줄어 해체 가능 여부가 바뀔 수 있음
         refreshRenameButton(); // 적용으로 골드가 줄어 이름 변경 가능 여부가 바뀔 수 있음
+        refreshColorMixButton();
         refreshSaveButton(); // 머리가 적용됐으니 저장하기 활성화 조건이 바뀔 수 있음
         await renderCharacterPreview(); // await 필수 — 다른 렌더 호출과 겹치면 색 적용이 꼬일 수 있음
 
@@ -797,6 +778,7 @@ async function openCombinePreviewModal(category, id) {
     refreshCombineButton();
     refreshDismantleButton();
     refreshRenameButton();
+    refreshColorMixButton();
     openCombinePreviewModal(category, reroll.id); // 새 미리보기로 모달을 다시 연다 (여전히 미확정)
   });
 
@@ -865,6 +847,7 @@ function openColorModal(color) {
     refreshCombineButton(); // 구매로 골드가 줄어 조합/해체/이름 변경 가능 여부가 바뀔 수 있음
     refreshDismantleButton();
     refreshRenameButton();
+    refreshColorMixButton();
     openColorModal(color); // 구입 직후 배지 수량·버튼 상태(적용 활성화 등)를 반영해 다시 연다
     spawnResultParticles(colorModalPreview);
   });
@@ -880,6 +863,7 @@ function openColorModal(color) {
     refreshCombineButton(); // 적용으로 골드가 줄어 조합/해체/이름 변경 가능 여부가 바뀔 수 있음
     refreshDismantleButton();
     refreshRenameButton();
+    refreshColorMixButton();
     await renderCharacterPreview(); // 실제 캐릭터에도 색이 반영된 뒤 모달을 닫는다
     colorModal.classList.add('modal-overlay--hidden');
   });
@@ -959,6 +943,7 @@ function openColorRandomModal() {
     refreshCombineButton(); // 구매로 골드가 줄어 조합/해체/이름 변경 가능 여부가 바뀔 수 있음
     refreshDismantleButton();
     refreshRenameButton();
+    refreshColorMixButton();
     lastDrawnColor = result.color;
     showColorRandomDrawing();
   });
@@ -979,6 +964,43 @@ document.querySelectorAll('.color-slot[data-color]').forEach((slot) => {
 colorModal.addEventListener('click', (event) => {
   if (event.target === colorModal) colorModal.classList.add('modal-overlay--hidden');
 });
+
+// ===========================
+// 색 섞기 모달 (기존 #part-modal 재사용 — 조합 미리보기 모달과 같은 흐름:
+// 미리보기 + [확인] + [다시 섞기 💎N]).
+// 지금은 UI 흐름만 구성한다 — 실제로 색을 섞어 새로 생성/저장하는 로직은
+// 아직 없다(요청에 따라 이후 별도 구현 예정). confirmButton/remixButton은
+// 그때 실제 로직으로 교체한다.
+// ===========================
+function openColorMixModal() {
+  clearResultTimers();
+
+  const preview = characterPlaceholder.cloneNode(true); // TODO: 실제로 섞인 색 미리보기로 교체
+  partModalSvg.replaceChildren(preview);
+  partModalName.textContent = '';
+  partModalActions.replaceChildren();
+
+  const confirmButton = document.createElement('button');
+  confirmButton.type = 'button';
+  confirmButton.className = 'modal-card__btn modal-card__btn--confirm';
+  confirmButton.textContent = '확인';
+  confirmButton.addEventListener('click', closePartModal); // TODO: 확정 로직(저장/적용) 연결
+
+  const canRemixNow = canRemixColor();
+  const remixButton = createPricedButton(
+    'modal-card__btn--cancel',
+    '다시 섞기',
+    `💎 ${SHOP_COST.colorRemix}`,
+    !canRemixNow,
+  );
+  remixButton.addEventListener('click', () => {
+    // TODO: 골드 차감 + 새로운 색 생성 로직 연결. 지금은 모달만 다시 연다.
+    openColorMixModal();
+  });
+
+  partModalActions.append(confirmButton, remixButton);
+  partModal.classList.remove('modal-overlay--hidden');
+}
 
 const saveModal = document.getElementById('save-modal');
 document.getElementById('btn-save').addEventListener('click', () => saveModal.classList.remove('modal-overlay--hidden'));
