@@ -1,28 +1,8 @@
-// v0.1.0 : 최초 생성
-// v0.1.1 : Fix - replaceSvgContent() viewBox 여백 제거 (2배 확대, 고정 비율)
-// v0.1.2 : Fix - 고정 비율 대신 실제 도형 bounding box(getBBox) 기반으로
-//          viewBox를 재계산하도록 변경. 파일별 여백 차이로 도형이 잘리던
-//          문제 해결.
-// v0.1.3 : Refactor - embedSvgFragment()가 x/y/width/height를 인자로 받던 방식을
-//          제거. 슬롯의 위치·크기는 호출부 SVG(<svg id="..." x y width height>)에서
-//          미리 지정해두고, 이 함수는 그 슬롯 엘리먼트에 내용(children)과 viewBox만
-//          채워 넣는다. → "위치/크기 = HTML, 표시할 대상 = JS" 역할 분리.
-// v0.1.4 : Refactor - "SVG 제작 규격"(모든 캐릭터 SVG는 viewBox="0 0 160 160",
-//          중심좌표 (80,80) 기준)이 확정됨에 따라 embedSvgFragment()가 원본 파일에서
-//          viewBox를 읽어와 슬롯에 반영하던 동작을 제거. viewBox는 이제 규격값으로
-//          고정되어 있으므로 슬롯 쪽 HTML에 정적으로 선언해두면 되고, 이 함수는
-//          정말로 "내용(children)만" 채워 넣는다.
-//
-// Public API
-// - replaceSvgContent(svgElement, path): 단일 SVG 슬롯(자체 viewBox 보유)의
-//   내용을 fetch한 파일로 교체하고, 실제 도형 bbox 기준으로 viewBox를 재계산한다.
-//   (예: 파츠 아이콘처럼 그 자체로 완결된 미리보기 슬롯. 규격을 따르지 않는 임의
-//   크기의 아이콘 프리뷰에 적합하므로 이 동작은 유지한다.)
-// - embedSvgFragment(slotElement, path): 이미 위치(x, y)·표시 크기(width, height)·
-//   viewBox(규격상 "0 0 160 160"으로 고정)가 지정된 슬롯 <svg> 엘리먼트에 fetch한
-//   SVG의 내용만 삽입한다. 슬롯의 x/y/width/height/viewBox는 전혀 건드리지 않는다.
-//   같은 레벨(예: 머리 파츠 + 눈 + 입)의 슬롯은 서로 동일한 x/y/width/height/viewBox를
-//   가지므로, 파츠를 교체해도 위치를 다시 맞출 필요가 없다.
+// v0.1.5
+// SVG Loader
+// - replaceSvgContent: 자체 완결형 슬롯(아이콘 등)에 SVG 삽입, bbox 기준 viewBox 재계산
+// - embedSvgFragment: 위치/크기가 이미 정해진 슬롯에 SVG 내용(children)만 삽입
+// - fetchSvgFragmentRoot: 슬롯에 바로 넣지 않고 SVG 내용을 커스텀 조립할 때 사용(패턴 등)
 
 // 동일 경로 중복 fetch를 막기 위한 캐시 (경로 → 원본 SVG 텍스트)
 const svgTextCache = new Map();
@@ -50,6 +30,15 @@ async function parseSvgRoot(path) {
   }
 
   return root;
+}
+
+/**
+ * fetch한 SVG 파일을 파싱해 그 root <svg> 엘리먼트를 그대로 반환한다(DOM에 삽입하지
+ * 않음). 슬롯에 바로 끼워 넣는 embedSvgFragment와 달리, 내용 일부만 꺼내 쓰거나
+ * 커스텀하게 조립해야 하는 경우(예: 색 패턴의 특정 그룹만 색칠해 재사용)에 쓴다.
+ */
+export async function fetchSvgFragmentRoot(path) {
+  return parseSvgRoot(path);
 }
 
 /**

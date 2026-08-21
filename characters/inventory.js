@@ -1,8 +1,7 @@
-// v0.1.12
+// v0.1.13
 // Inventory
 // - 파츠/색상 보유·구매(일반/랜덤), 적용(equip) 관리
-// - 조합/재조합은 미리보기+확정 2단계, 해체는 즉시 실행
-// - 색 섞기/다시 섞기 가능 여부 판단 추가
+// - 조합/재조합/색 섞기·다시 섞기는 미리보기+확정 2단계, 해체는 즉시 실행
 // - 캐릭터 저장 가능 여부·이름 변경 가능 여부 판단
 //
 // Public API
@@ -46,21 +45,25 @@
 // - purchaseColor(color)
 // - purchaseRandomColor()
 // - getEquippedColor()
+// - getEquippedColorMix()
 // - canApplyColor(color)
 // - applyColor(color)
 // - canMixColor()
-// - canRemixColor()
+// - canRemixColor(previewColor)
+// - previewColorMix()
+// - previewColorRemix(previewColor)
+// - confirmColorMix(patternId, colors)
 //
 // Save Structure
 // character_save.parts : { [id]: number }
-// character_equip_save : { head, body, legs, color }
+// character_equip_save : { head, body, legs, color, colorMix: { patternId, colors } | null }
 // character_color_save.colors : { [hex]: number }
 //
 // Data Source
-// characterData.js(BASE_PARTS, PART_CATEGORIES, CHARACTER_COLORS, SHOP_COST)
+// characterData.js(BASE_PARTS, PART_CATEGORIES, CHARACTER_COLORS, PATTERNS, SHOP_COST)
 
 import {
-  BASE_PARTS, PART_CATEGORIES, CHARACTER_COLORS, SHOP_COST, getPart,
+  BASE_PARTS, PART_CATEGORIES, CHARACTER_COLORS, PATTERNS, SHOP_COST, getPart,
 } from './characterData.js';
 import {
   getCharacterSave, setCharacterSave, getGold, spendGold,
@@ -490,12 +493,28 @@ function consumeColor(color) {
   return true;
 }
 
-/** 현재 적용된 색상을 반환한다 (미적용 시 null). */
+/** 현재 적용된 단색(색 섞기 미사용 시)을 반환한다 (미적용 시 null). */
 export function getEquippedColor() {
   return getEquippedParts().color ?? null;
 }
 
-/** 색상 적용 가능 여부: 골드가 적용 비용 이상이고, 해당 색상을 보유하고 있어야 한다. */
+/** 현재 적용된 색 섞기 결과({ patternId, colors })를 반환한다 (미적용 시 null). */
+export function getEquippedColorMix() {
+  return getEquippedParts().colorMix ?? null;
+}
+
+/**
+ * 색 섞기의 "베이스 색" 목록을 구한다 — 이미 색 섞기가 적용돼 있으면 그 3색 중
+ * 서로 다른 색만, 단색만 적용돼 있으면 그 1색만, 아무 것도 없으면 빈 배열을 반환한다.
+ * 다음 섞기에서 "현재 적용된 색은 항상 포함"하기 위한 기준값이다.
+ */
+function getBaseMixColors() {
+  const equipped = getEquippedParts();
+  if (equipped.colorMix?.colors) return [...new Set(equipped.colorMix.colors)];
+  if (equipped.color) return [equipped.color];
+  return [];
+}
+
 /** 색상 적용 가능 여부: 캐릭터가 있어야(머리 적용) 하고, 골드가 적용 비용 이상이며, 해당 색상을 보유해야 한다. */
 export function canApplyColor(color) {
   if (!getEquippedPart('head')) return false;
@@ -506,7 +525,8 @@ export function canApplyColor(color) {
 }
 
 /**
- * 보유한 색상을 골드로 적용한다. 순서: 골드 차감 → 적용 상태 갱신 → 보유 수량 1 감소.
+ * 보유한 색상을 골드로 단색 적용한다. 색 섞기 결과와는 배타적이므로 적용 시
+ * colorMix를 초기화한다. 순서: 골드 차감 → 적용 상태 갱신 → 보유 수량 1 감소.
  * 미보유거나 골드가 부족하면 아무것도 차감/저장하지 않는다.
  */
 export function applyColor(color) {
@@ -516,6 +536,7 @@ export function applyColor(color) {
 
   const equipped = getEquippedParts();
   equipped.color = color;
+  equipped.colorMix = null;
   setEquippedParts(equipped);
 
   consumeColor(color);
@@ -528,15 +549,95 @@ export function applyColor(color) {
   };
 }
 
-/** 색 섞기 가능 여부: 골드가 섞기 비용 이상이어야 한다. */
+/** 색 섞기 가능 여부: 골드가 섞기 비용 이상이고, 보유 색(적용 색 포함)이 2개 이상이어야 한다. */
 export function canMixColor() {
-  return getGold() >= SHOP_COST.colorMix;
+  if (getGold() < SHOP_COST.colorMix) return false;
+
+  const pool = new Set(getOwnedColors());
+  getBaseMixColors().forEach((color) => pool.add(color));
+
+  return pool.size >= 2;
 }
 
-/** 다시 섞기 가능 여부: 골드가 다시 섞기 비용 이상이고, 지금 적용된 색 외에 다른 보유 색이 있어야 한다. */
-export function canRemixColor() {
+/** 다시 섞기 가능 여부: 골드가 비용 이상이고, 베이스 색·현재 미리보기의 새 색 외에 고를 수 있는 보유 색이 있어야 한다. */
+export function canRemixColor(previewColor) {
   if (getGold() < SHOP_COST.colorRemix) return false;
 
-  const equippedColor = getEquippedColor();
-  return getOwnedColors().some((color) => color !== equippedColor);
+  const excluded = [...getBaseMixColors(), previewColor];
+  return getOwnedColors().some((color) => !excluded.includes(color));
+}
+
+/** 베이스 색 + 새로 뽑은 색으로 3칸(color-a/b/c) 배열을 만든다. */
+function buildColorGroups(baseColors, newColor) {
+  if (baseColors.length === 0) return [newColor, newColor, newColor]; // 1색
+  if (baseColors.length === 1) return [baseColors[0], baseColors[0], newColor]; // 2색
+  return [baseColors[0], baseColors[1], newColor]; // 3색
+}
+
+function pickRandomPattern() {
+  return PATTERNS[Math.floor(Math.random() * PATTERNS.length)];
+}
+
+/**
+ * 색 섞기를 "미리보기"한다. 현재 베이스 색(들)에 보유 색 중 무작위 하나를 더해
+ * 최대 3색까지 구성하고, 패턴도 무작위로 고른다. 골드만 차감하고 저장은 하지
+ * 않는다 — [확인]을 눌러야 confirmColorMix()로 확정된다.
+ */
+export function previewColorMix() {
+  const base = getBaseMixColors();
+  if (base.length >= 3) return { success: false, reason: 'max-colors' };
+
+  const candidates = getOwnedColors().filter((color) => !base.includes(color));
+  if (candidates.length === 0) return { success: false, reason: 'no-candidate' };
+
+  if (!spendGold(SHOP_COST.colorMix)) return { success: false, reason: 'insufficient-gold' };
+
+  const newColor = candidates[Math.floor(Math.random() * candidates.length)];
+  const pattern = pickRandomPattern();
+
+  return {
+    success: true,
+    patternId: pattern.id,
+    colors: buildColorGroups(base, newColor),
+    remainingGold: getGold(),
+  };
+}
+
+/**
+ * 다시 섞기를 "미리보기"한다. 베이스 색은 그대로 두고, 지금 미리보기 중인 새 색
+ * (previewColor)과 다른 보유 색을 무작위로 골라 패턴까지 다시 뽑는다. previewCombine과
+ * 마찬가지로 골드만 차감하고 저장은 하지 않는다.
+ */
+export function previewColorRemix(previewColor) {
+  const base = getBaseMixColors();
+  const excluded = [...base, previewColor];
+  const candidates = getOwnedColors().filter((color) => !excluded.includes(color));
+  if (candidates.length === 0) return { success: false, reason: 'no-candidate' };
+
+  if (!spendGold(SHOP_COST.colorRemix)) return { success: false, reason: 'insufficient-gold' };
+
+  const newColor = candidates[Math.floor(Math.random() * candidates.length)];
+  const pattern = pickRandomPattern();
+
+  return {
+    success: true,
+    patternId: pattern.id,
+    colors: buildColorGroups(base, newColor),
+    remainingGold: getGold(),
+  };
+}
+
+/**
+ * 색 섞기 미리보기를 확정한다. [확인] 버튼을 눌렀을 때만 호출되므로, 그 전까지
+ * (다시 섞기를 몇 번 반복하든) 저장 상태는 전혀 바뀌지 않는다. 단색 적용과는
+ * 배타적이므로 확정 시 color를 초기화한다. 색상 보유 수량은 소비하지 않는다
+ * (색 섞기 비용은 미리보기/다시 섞기 단계의 골드로만 지불한다).
+ */
+export function confirmColorMix(patternId, colors) {
+  const equipped = getEquippedParts();
+  equipped.colorMix = { patternId, colors };
+  equipped.color = null;
+  setEquippedParts(equipped);
+
+  return { success: true, patternId, colors };
 }

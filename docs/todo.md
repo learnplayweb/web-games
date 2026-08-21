@@ -1,6 +1,6 @@
 # 수정
 1. 디버그 모드
-2. 꾸밈 메뉴 
+2. 꾸밈 메뉴 > 효과 구입으로 변경?
 3. 
 
 
@@ -28,6 +28,27 @@ function 을를(이름) {
 
 # 색상 시스템 
 [완료] 구입 / 랜덤구입 / 적용 / 색 섞기
+
+
+id-stamping은 렌더링된 각 .fill-part DOM 인스턴스에 런타임에서 고유 ID를 부여하는 방식으로 구현
+
+----
+**필수 (색 렌더링 핵심 로직):**
+1. `characters/character-shop.js` — `applyColorMixToRoot`, `clearColorMixOverlay`, `rescopeColorInstanceIds`, `stampFillPartId`, `renderCharacterPreviewOnce`, `openColorMixModal` 등 전체 렌더/색 로직
+2. `characters/character-shop.html` — 슬롯 구조(`#character-root`, `#head-part-slot` 등 x/y/width/viewBox 값)
+3. `characters/inventory.js` — `previewColorMix`/`confirmColorMix` 등 색 섞기 데이터 로직
+4. `characters/characterData.js` — `PATTERNS`, `SHOP_COST` 등 상수 정의
+
+**중요 (직접 관련된 헬퍼/에셋):**
+5. `core/svgloader.js` — `fetchSvgFragmentRoot`, `embedSvgFragment` 구현
+
+7. `characters/assets/parts/p-circle.svg` (또는 현재 테스트 중인 아무 파츠 SVG 1개) — `.fill-part`/`fill:none` 구조 재확인용
+
+**참고용 (선택):**
+8. `core/saveManager.js` — `character_equip_save`의 `colorMix` 저장/기본값
+9. 브라우저 콘솔 에러 메시지나 스크린샷이 있다면 함께 — 어디서 실패하는지 훨씬 빨리 좁혀집니다
+----
+
 
 그래디언트 구현
 색 섞기 결과
@@ -93,7 +114,7 @@ function 을를(이름) {
 ---
 
 
-# 꾸밈 시스템
+# 꾸밈 시스템 / 효과(연출) 구입으로 변경?
 
 # 캐릭터 저장 / 도움말 페이지
 

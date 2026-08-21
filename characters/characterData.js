@@ -1,16 +1,9 @@
-// v0.1.0 : 최초 생성
-// v0.1.1 : Refactor - PARTS_BY_CATEGORY(부위별 개별 목록) → BASE_PARTS(공유 목록) +
-//          PART_CATEGORIES(부위 목록)로 변경. 머리/상체/하체가 동일한 파츠 데이터를
-//          공유하며 중복 정의하지 않는다. getPart(category, id) → getPart(id)로 변경
-//          (부위 구분 없이 파츠 id만으로 조회).
-// v0.1.2 : Update - 애니메이션 적용을 대비해 BODY_ASSETS를 좌우 분리. arms/legs
-//          단일 파일 대신 leftArm/rightArm/leftLeg/rightLeg 4개로 변경
-//          (assets/left-arm.svg, right-arm.svg, left-leg.svg, right-leg.svg).
-//
-// Public API
-// - BASE_PARTS: 머리/상체/하체가 공유하는 파츠 목록 (부위별로 따로 정의하지 않음)
-// - PART_CATEGORIES: 파츠를 적용할 수 있는 부위 목록 ['head', 'body', 'legs']
-// - getPart(id): id로 파츠 조회 (부위 구분 없음)
+// v0.1.3
+// Character Data
+// - BODY_ASSETS/FACE_ASSETS: 좌우 분리된 팔·다리, 표정별 눈·입 에셋 경로
+// - BASE_PARTS/PART_CATEGORIES: 머리/상체/하체가 공유하는 파츠 목록과 부위 목록
+// - CHARACTER_COLORS/PATTERNS: 구매 가능한 색상 팔레트, 색 섞기용 패턴 목록
+// - SHOP_COST: 구매/적용/조합/해체/색상 관련 비용 상수
 
 const ASSET_ROOT = 'assets';
 
@@ -52,6 +45,11 @@ export const CHARACTER_COLORS = Object.freeze([
   '#FFCCBC', '#FCE8B2', '#ffffba', '#C4E2A0',
   '#ACC9FE', '#C4C3F7', '#FAE5EA', '#F6E1CF',
   '#A2E8F1', '#8CD3CD', '#BBC8CE', '#ffffff',
+]);
+
+/** 색 섞기(패턴 마블링)에 쓰는 패턴 파일 목록. 새 패턴은 여기에만 추가하면 된다. */
+export const PATTERNS = Object.freeze([
+  { id: 'pattern-01', assetPath: `${ASSET_ROOT}/pattern/pattern-01.svg` },
 ]);
 
 /** id로 파츠를 조회한다. 부위 구분 없이 BASE_PARTS 하나만 조회한다. */

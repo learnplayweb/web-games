@@ -10,11 +10,13 @@
   <!-- 채워지는 영역 -->
   <!-- 외곽선 -->
   <path
+  class="fill-part"
      style="fill:#f0f4ff;stroke:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;fill-opacity:1"
      id="path1"
      d="M 96.158612,54.275094 71.684316,79.656192 36.431228,80.297398 11.05013,55.823102 10.408924,20.570014 34.88322,-4.8110841 70.136307,-5.45229 95.517406,19.022006 Z"
      transform="matrix(1.0252926,0.02004166,-0.02009885,1.0223745,26.294179,40.721807)" />
   <path
+  class="outline-part"
      style="fill:none;stroke:#b0bac6;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round"
      id="path2"
      d="M 96.158612,54.275094 71.684316,79.656192 36.431228,80.297398 11.05013,55.823102 10.408924,20.570014 34.88322,-4.8110841 70.136307,-5.45229 95.517406,19.022006 Z"
