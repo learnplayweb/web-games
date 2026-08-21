@@ -1,9 +1,10 @@
-// v0.1.38
-// Character Shop
+// v0.1.41
+// - Fix: 색 섞기(패턴 마블링) 렌더링 방식 개선 (clipPath 중첩 충돌 제거 및 patternTransform 좌표 역보정)
+// - Fix: 최상위 defs 탐색 경로 보정으로 머리/상체/하체 전체에 160×300 단일 패턴 1:1 연속 렌더링
 // - 파츠/색상 구매(일반/랜덤)·적용, 조합·재조합·해체, 이름 설정/변경, 색 섞기(패턴 마블링)
 // - 조합/재조합/색 섞기는 미리보기 후 확인 시에만 확정, renderCharacterPreview는 큐로 순차 실행
-// - 색은 단색이거나 패턴+최대3색을 clipPath로 캐릭터 전체에 연속 적용, id는 렌더마다 인스턴스 스코프
 // - #character-root가 조합 단계별로 자동 정렬·확대, 모든 기능 버튼은 조건 기반 활성화
+
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment, fetchSvgFragmentRoot } from '../core/svgloader.js';
@@ -20,25 +21,8 @@ import { getGold, getCharacterName, setCharacterName } from '../core/saveManager
 
 createHeader();
 
-
-
 // ===========================
 // 캐릭터 placeholder 렌더링
-// - 아직 한 번도 적용하지 않았으면(getEquippedPart('head') === null) 안내 문구만 표시.
-// - 적용된 머리 파츠가 있으면 해당 파츠 SVG + 눈/입(idle)을 fetch해 표시한다.
-// - 상체(body)/하체(legs)는 적용(조합)된 경우에만 그리고, 없으면 비워둔다
-//   (기존 head 전용 적용 흐름과 충돌하지 않음 — head 없이 body/legs만 채워지는
-//   경우는 없다. 조합은 항상 head → body → legs 순서로 채우고, 실제 저장은
-//   confirmCombine()이 호출되는 [확인] 클릭 시점에만 일어나기 때문).
-// - 머리에 눈/입이 딸려오듯, 상체가 적용되면 왼팔/오른팔(BODY_ASSETS.leftArm/
-//   rightArm)이, 하체가 적용되면 왼다리/오른다리(BODY_ASSETS.leftLeg/rightLeg)가
-//   같은 박스에 함께 그려진다. (애니메이션 적용을 대비해 좌우가 분리된 파일)
-// - 조합 단계(머리만/머리+상체/전체)에 따라 내용의 세로 범위·전체 길이가 달라지므로,
-//   #character-root의 translate+scale을 매번 다시 계산해 항상 가운데 정렬 + 같은
-//   전체 길이로 보이도록 한다 (computeCharacterRootTransform 참고).
-// - 기존 정적 head outline(<path>)은 실제 파츠로 대체되므로 숨긴다.
-// - 슬롯(head/eyes/mouth/body/left-arm/right-arm/leg-part/left-leg/right-leg-slot)의
-//   위치·표시 크기는 character-shop.html에서 관리한다. 여기서는 어떤 SVG를 넣을지만 결정한다.
 // ===========================
 const characterPlaceholder = document.querySelector('.character-placeholder');
 const headOutlinePath = characterPlaceholder.querySelector('path');
@@ -54,19 +38,11 @@ const legPartSlot = document.getElementById('leg-part-slot');
 const leftLegSlot = document.getElementById('left-leg-slot');
 const rightLegSlot = document.getElementById('right-leg-slot');
 
-// viewBox="minX minY width height" 문자열에서 height만 뽑아낸다. cloneNode로 만든
-// 분리된(off-DOM) 엘리먼트에서도 항상 정확히 동작하도록 속성 문자열을 직접 읽는다.
 function getViewBoxHeight(svgElement) {
   const viewBox = svgElement.getAttribute('viewBox') ?? '';
   return Number(viewBox.trim().split(/\s+/)[3] ?? 0);
 }
 
-// 조합 단계(머리만 / 머리+상체 / 전체)에 따라 실제로 그려지는 내용의 세로 범위가
-// 달라진다. 이 함수는 #character-root에 적용할 translate+scale을 계산해
-// (1) 항상 viewBox 세로 중앙에 오고, (2) 부족한 단계는 그만큼 확대해 항상
-// "전체(머리+상체+하체)"와 같은 전체 길이로 보이도록 만든다.
-// 슬롯의 x/y/width/height 자체는 여전히 character-shop.html이 관리하며,
-// 여기서는 이미 선언된 값(headPartSlot 등)을 읽어 계산만 한다.
 function computeCharacterRootTransform(hasBody, hasLegs, viewBoxHeight) {
   const centerX = Number(headPartSlot.getAttribute('x')) + Number(headPartSlot.getAttribute('width')) / 2;
 
@@ -76,15 +52,10 @@ function computeCharacterRootTransform(hasBody, hasLegs, viewBoxHeight) {
   if (hasLegs) bottomSlot = legPartSlot;
   const bottom = Number(bottomSlot.getAttribute('y')) + Number(bottomSlot.getAttribute('height'));
 
-  // "전체(머리+상체+하체)" 단계의 길이를 기준으로 삼아, 그보다 짧은 단계는
-  // 그 비율만큼 확대한다(scale > 1). 전체 단계에서는 scale이 1이 된다.
   const referenceBottom = Number(legPartSlot.getAttribute('y')) + Number(legPartSlot.getAttribute('height'));
   const referenceHeight = referenceBottom - top;
   const scale = referenceHeight / (bottom - top);
 
-  // SVG의 "translate(...) scale(...)"은 점에 스케일을 먼저 적용한 뒤 이동시키므로
-  // (p' = scale*p + translate), 중심(centerX, 콘텐츠 세로 중심)이 스케일 후에도
-  // 제자리(가로 centerX, 세로 viewBox 중앙)에 오도록 translate 값을 역산한다.
   const offsetX = centerX * (1 - scale);
   const offsetY = (viewBoxHeight / 2) - ((top + bottom) / 2) * scale;
 
@@ -95,20 +66,8 @@ function applyCharacterRootTransform(rootElement, hasBody, hasLegs, viewBoxHeigh
   rootElement.setAttribute('transform', computeCharacterRootTransform(hasBody, hasLegs, viewBoxHeight));
 }
 
-// 캐릭터 색상은 머리/상체/하체 "모양(shape)" 파츠의 내부(fill)에만 적용된다.
-// 파츠 SVG 작성 방식이 파일마다 달라(class="fill-part" 표기 유무, fill을 속성으로
-// 쓰는지 style로 쓰는지 등) 클래스명에는 의존하지 않는다. 대신 모든 파츠 파일에서
-// 공통인 규칙 — "외곽선은 항상 fill:none, 채우는 영역은 항상 실제 fill 값을 가진다" —
-// 을 이용해 채우는 영역만 정확히 찾아낸다. 이렇게 하면 외곽선·눈·입·팔·다리는
-// 항상 원래 모습 그대로 유지된다.
-// 세 슬롯(head/body/leg-part-slot)에 같은 색을 적용해 캐릭터 전체가 하나의 색으로
-// 이어지도록 하고, 슬롯이 비어 있으면(아직 조합 전) 조용히 건너뛴다 — 나중에
-// 조합으로 채워질 때 renderCharacterPreview()가 다시 호출되며 자동으로 반영된다.
-// 실제 캐릭터(characterPlaceholder)와 색상 모달의 미리보기 클론이 이 함수를 공유한다.
 const COLOR_TARGET_SLOT_IDS = ['head-part-slot', 'body-part-slot', 'leg-part-slot'];
 
-// fill이 style 속성(style="fill:...")과 fill 속성(fill="...") 중 어느 쪽으로 지정돼
-// 있든 실제 적용되는 값을 읽어서, "none"이 아닌 경우만(= 채우는 영역만) true를 반환한다.
 function isFillLayer(shape) {
   const effectiveFill = shape.style.fill || shape.getAttribute('fill');
   return Boolean(effectiveFill) && effectiveFill !== 'none';
@@ -120,30 +79,20 @@ function applyColorTint(svgRoot, color) {
     if (!slot) return;
 
     slot.querySelectorAll('path, circle, ellipse, polygon, rect').forEach((shape) => {
-      if (!isFillLayer(shape)) return; // 외곽선(fill:none)은 건드리지 않는다
+      if (shape.getAttribute('fill') === 'none' && !shape.style.fill) return;
 
       shape.setAttribute('fill', color);
-      // 일부 파츠 SVG는 fill을 style 속성으로 지정해 두는데, 이는 fill 속성보다
-      // 우선순위가 높아 setAttribute만으로는 덮어써지지 않는다. !important로 확실히 이기도록 강제한다.
       shape.style.setProperty('fill', color, 'important');
     });
   });
 }
 
-// 색 섞기(패턴)를 위해 각 부위의 "채우는 영역" 도형에 안정적인 id를 붙인다.
-// <clipPath>에서 <use href="#id">로 재사용하기 위함이며, 파츠를 바꿀 때마다
-// (embedSvgFragment로 내용이 통째로 새로 생기므로) 매 렌더마다 다시 붙여야 한다.
 const FILL_PART_ID_BY_SLOT = {
   'head-part-slot': 'head-fill-part',
   'body-part-slot': 'body-fill-part',
   'leg-part-slot': 'leg-fill-part',
 };
 
-// 모든 캐릭터 SVG "인스턴스"(실제 화면의 캐릭터, 조합/색섞기 미리보기 클론 등)에
-// 겹치지 않는 고유 접미사를 붙이기 위한 카운터. cloneNode(true)는 id도 그대로
-// 복제하므로, 같은 id를 쓰는 인스턴스가 동시에 문서에 여러 개 존재하면(예: 실제
-// 캐릭터가 떠 있는 채로 미리보기 모달을 열 때) url(#id)/href="#id" 참조가 뒤섞여
-// 엉뚱한 것을 가리킬 수 있다. 매번 새 접미사를 붙여 이 문제를 원천적으로 막는다.
 let colorInstanceCounter = 0;
 function nextColorInstanceId() {
   colorInstanceCounter += 1;
@@ -154,20 +103,18 @@ function stampFillPartId(svgRoot, slotId, instanceId) {
   const slot = svgRoot.querySelector(`#${slotId}`);
   if (!slot) return;
 
-  const fillPart = Array.from(slot.querySelectorAll('path, circle, ellipse, polygon, rect')).find(isFillLayer);
+  const shapes = Array.from(slot.querySelectorAll('path, circle, ellipse, polygon, rect'));
+  const fillPart = shapes.find((shape) => shape.id.includes('fill-part'))
+    || shapes.find(isFillLayer)
+    || shapes.find((shape) => shape.getAttribute('fill') !== 'none');
+
   if (fillPart) fillPart.id = `${FILL_PART_ID_BY_SLOT[slotId]}-${instanceId}`;
 }
 
-// 지금 svgRoot(실제 캐릭터 또는 클론) 안에 실제로 존재하는 head/body/leg 슬롯 모두에
-// 새 instanceId로 채우는 영역 id를 다시 붙인다. renderCharacterPreviewOnce()나
-// 미리보기 클론을 만들 때마다 "이 인스턴스 전용" id 집합을 새로 발급하는 셈이다.
 function stampAllFillPartIds(svgRoot, instanceId) {
   Object.keys(FILL_PART_ID_BY_SLOT).forEach((slotId) => stampFillPartId(svgRoot, slotId, instanceId));
 }
 
-// 슬롯의 x/y/width(및 규격상 고정인 viewBox="0 0 160 160")로부터 "슬롯 로컬(0~160)
-// 좌표 → character-root 좌표"로 가는 translate+scale 문자열을 만든다.
-// scale은 width/160(=height/160, 정사각형 슬롯이므로 동일)이다.
 function getSlotLocalTransform(slot) {
   const x = Number(slot.getAttribute('x'));
   const y = Number(slot.getAttribute('y'));
@@ -178,21 +125,24 @@ function getSlotLocalTransform(slot) {
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const PATTERN_GROUP_IDS = ['pattern-a', 'pattern-b', 'pattern-c'];
 
-// 이전 렌더에서 만들어둔 색 섞기용 rect/clipPath/pattern 정의를 이 svgRoot에서만
-// 지운다(instanceId가 매번 바뀌므로 "이전 것"이 자동으로 정리되지 않으면 렌더할
-// 때마다 rect가 계속 쌓인다). 색 섞기를 끄거나 단색으로 바꿀 때도 호출해 잔여물을 치운다.
 function clearColorMixOverlay(svgRoot) {
   svgRoot.querySelectorAll('[id^="character-color-rect-"]').forEach((el) => el.remove());
-  svgRoot.querySelector('defs')
-    ?.querySelectorAll('[id^="character-color-clip-"], [id^="character-color-pattern-"]')
-    .forEach((el) => el.remove());
+  // 모든 defs(루트 및 슬롯 내부)에서 패턴 정리
+  svgRoot.querySelectorAll('defs').forEach((defs) => {
+    defs.querySelectorAll('[id^="character-color-clip-"], [id^="character-color-pattern-"]').forEach((el) => el.remove());
+  });
+
+  COLOR_TARGET_SLOT_IDS.forEach((slotId) => {
+    const slot = svgRoot.querySelector(`#${slotId}`);
+    if (!slot) return;
+    slot.querySelectorAll('path, circle, ellipse, polygon, rect').forEach((shape) => {
+      if (shape.style.fill === 'none') {
+        shape.style.removeProperty('fill');
+      }
+    });
+  });
 }
 
-// cloneNode(true)는 id를 그대로 물려받는다. "지금 실제 화면에 보이는 상태를 그대로
-// 보여주기만 하면 되는" 클론(해체 결과 모달 등, 색을 다시 계산하지 않음)에서
-// 실제 캐릭터와 동시에 같은 id가 존재하지 않도록, 클론 안에서 서로 참조 중인
-// 색 섞기 관련 id(채우는 영역/clipPath/pattern/rect)를 전부 새 instanceId로
-// 한 번에 바꿔치기한다. 색 섞기가 적용된 적이 없으면 아무 것도 하지 않는다.
 function rescopeColorInstanceIds(svgRoot) {
   const scopedEls = svgRoot.querySelectorAll(
     '[id^="head-fill-part-"], [id^="body-fill-part-"], [id^="leg-fill-part-"], '
@@ -223,118 +173,84 @@ function rescopeColorInstanceIds(svgRoot) {
   });
 }
 
-// 색 섞기가 적용된 상태를 복제해 "단색 미리보기"로 다시 쓸 때(openColorModal), 색
-// 섞기용으로 투명 처리(fill:none)해뒀던 채우는 영역을 다시 채울 수 있는 상태로
-// 되돌린다. applyColorTint()가 바로 실제 색으로 덮어쓸 것이므로 임시 표식일 뿐이다.
 function prepareSimpleColorPreview(svgRoot) {
   clearColorMixOverlay(svgRoot);
   svgRoot.querySelectorAll('[id^="head-fill-part-"], [id^="body-fill-part-"], [id^="leg-fill-part-"]').forEach((el) => {
-    el.removeAttribute('id'); // 더 이상 참조되지 않으므로 정리
-    if (!isFillLayer(el)) {
-      el.style.removeProperty('fill');
-      el.setAttribute('fill', '#000000'); // applyColorTint가 바로 실제 색으로 덮어씀
-    }
+    el.removeAttribute('id');
+    el.style.removeProperty('fill');
   });
 }
 
 /**
- * 색 섞기 결과(패턴 + 최대 3색)를 svgRoot(실제 캐릭터 또는 미리보기 클론) 전체에
- * 적용한다. 파츠별로 따로 반복되는 무늬가 아니라, 캐릭터 전체(머리/상체/하체)를
- * #character-root 하나의 좌표계에서 다루는 <rect fill="url(#패턴)">를 그리고, 그
- * rect를 머리/상체/하체의 실제 채우는 도형 모양으로 <clipPath>를 씌워 잘라낸다.
- * - 클립 도형은 각 부위의 채우는 영역을 <use>로 재사용하고, 그 부위 슬롯의
- *   로컬→character-root 좌표 변환만 추가로 건다(rect 자체가 이미 character-root
- *   안에 있어 character-root의 변환은 자동으로 걸리므로 중복 적용하지 않는다).
- * - 원래 채우는 영역은 fill을 지워(투명) 아래 깔린 rect의 패턴이 비쳐 보이게 하고,
- *   외곽선(stroke)은 손대지 않아 그 위에 그대로 그려지게 한다.
- * - clip/pattern/rect id도 instanceId로 스코프해, 다른 인스턴스(실제 캐릭터 vs
- *   미리보기 클론)의 정의와 절대 충돌하지 않게 한다. 호출 전에 이 svgRoot에
- *   stampAllFillPartIds(svgRoot, instanceId)를 같은 instanceId로 먼저 실행해둬야 한다.
+ * 색 섞기 결과(패턴 + 최대 3색)를 svgRoot 전체에 적용한다.
  */
 async function applyColorMixToRoot(svgRoot, patternId, colors, instanceId) {
   const patternDef = PATTERNS.find((pattern) => pattern.id === patternId);
   if (!patternDef) return;
 
   const patternRoot = await fetchSvgFragmentRoot(patternDef.assetPath);
-  const patternGroup = patternRoot.querySelector('#pattern')?.cloneNode(true);
+  let patternGroup = patternRoot.querySelector('#pattern')?.cloneNode(true);
+  if (!patternGroup && patternRoot.id === 'pattern') {
+    patternGroup = patternRoot.cloneNode(true);
+  }
   if (!patternGroup) return;
 
+  // 3가지 색상 주입
   PATTERN_GROUP_IDS.forEach((groupId, index) => {
     const shape = patternGroup.querySelector(`#${groupId}`);
-    if (shape) shape.setAttribute('fill', colors[index] ?? colors[colors.length - 1]);
+    if (shape) {
+      const chosenColor = colors[index] ?? colors[colors.length - 1];
+      shape.setAttribute('fill', chosenColor);
+      shape.style.setProperty('fill', chosenColor, 'important');
+    }
   });
 
-  const characterRootEl = svgRoot.querySelector('#character-root');
-  if (!characterRootEl) return;
+  clearColorMixOverlay(svgRoot);
 
-  clearColorMixOverlay(svgRoot); // 이전 인스턴스의 rect/clip/pattern 잔여물 정리
-
-  const clipId = `character-color-clip-${instanceId}`;
-  const patternElId = `character-color-pattern-${instanceId}`;
-  const rectId = `character-color-rect-${instanceId}`;
-
-  const clipPath = document.createElementNS(SVG_NS, 'clipPath');
-  clipPath.setAttribute('id', clipId);
-  clipPath.setAttribute('clipPathUnits', 'userSpaceOnUse');
-
-  Object.entries(FILL_PART_ID_BY_SLOT).forEach(([slotId, fillIdBase]) => {
-    const fillId = `${fillIdBase}-${instanceId}`;
-    const slot = svgRoot.querySelector(`#${slotId}`);
-    const target = svgRoot.querySelector(`#${fillId}`);
-    if (!slot || !target) return; // 아직 조합 전인 부위는 클립에서 제외(자연히 빠짐)
-
-    const g = document.createElementNS(SVG_NS, 'g');
-    g.setAttribute('transform', getSlotLocalTransform(slot));
-    const use = document.createElementNS(SVG_NS, 'use');
-    use.setAttribute('href', `#${fillId}`);
-    g.appendChild(use);
-    clipPath.appendChild(g);
-  });
-
-  const patternEl = document.createElementNS(SVG_NS, 'pattern');
-  patternEl.setAttribute('id', patternElId);
-  patternEl.setAttribute('patternUnits', 'userSpaceOnUse');
-  patternEl.setAttribute('x', '0');
-  patternEl.setAttribute('y', '0');
-  patternEl.setAttribute('width', '160');
-  patternEl.setAttribute('height', '300');
-  patternEl.setAttribute('viewBox', '0 0 160 300');
-  patternEl.appendChild(patternGroup);
-
-  let defs = svgRoot.querySelector('defs');
+  // [핵심 수정] 자식 슬롯 내부의 defs가 아니라, 최상위 루트 svgRoot의 직속 defs를 찾거나 생성
+  let defs = Array.from(svgRoot.children).find((el) => el.tagName.toLowerCase() === 'defs');
   if (!defs) {
     defs = document.createElementNS(SVG_NS, 'defs');
     svgRoot.insertBefore(defs, svgRoot.firstChild);
   }
-  defs.append(clipPath, patternEl);
 
-  Object.keys(FILL_PART_ID_BY_SLOT).forEach((slotId) => {
-    const fillId = `${FILL_PART_ID_BY_SLOT[slotId]}-${instanceId}`;
-    const target = svgRoot.querySelector(`#${fillId}`);
-    if (!target) return;
-    target.setAttribute('fill', 'none');
-    target.style.setProperty('fill', 'none', 'important');
+  // 슬롯별(head, body, leg) 수학적 역변환 행렬 적용
+  COLOR_TARGET_SLOT_IDS.forEach((slotId) => {
+    const slot = svgRoot.querySelector(`#${slotId}`);
+    if (!slot) return;
+
+    const x = Number(slot.getAttribute('x')) || 0;
+    const y = Number(slot.getAttribute('y')) || 0;
+    const width = Number(slot.getAttribute('width')) || 160;
+
+    // 슬롯 축소 배율의 역수 (160/width)
+    const scaleFactor = 160 / width;
+    const tx = -x * scaleFactor;
+    const ty = -y * scaleFactor;
+
+    const patternElId = `character-color-pattern-${slotId}-${instanceId}`;
+
+    const patternEl = document.createElementNS(SVG_NS, 'pattern');
+    patternEl.setAttribute('id', patternElId);
+    patternEl.setAttribute('patternUnits', 'userSpaceOnUse');
+    patternEl.setAttribute('width', '160');
+    patternEl.setAttribute('height', '300');
+    patternEl.setAttribute('viewBox', '0 0 160 300');
+    // 정확한 오프셋 및 스케일 역변환
+    patternEl.setAttribute('patternTransform', `translate(${tx}, ${ty}) scale(${scaleFactor})`);
+    patternEl.appendChild(patternGroup.cloneNode(true));
+    defs.appendChild(patternEl);
+
+    // 슬롯 내부의 채우는 도형에 해당 패턴 적용
+    slot.querySelectorAll('path, circle, ellipse, polygon, rect').forEach((shape) => {
+      if (shape.getAttribute('fill') === 'none' && !shape.style.fill) return;
+
+      shape.setAttribute('fill', `url(#${patternElId})`);
+      shape.style.setProperty('fill', `url(#${patternElId})`, 'important');
+    });
   });
-
-  const colorRect = document.createElementNS(SVG_NS, 'rect');
-  colorRect.setAttribute('id', rectId);
-  colorRect.setAttribute('x', '0');
-  colorRect.setAttribute('y', '0');
-  colorRect.setAttribute('width', '160');
-  colorRect.setAttribute('height', '300');
-  colorRect.setAttribute('fill', `url(#${patternElId})`);
-  colorRect.setAttribute('clip-path', `url(#${clipId})`);
-  characterRootEl.insertBefore(colorRect, characterRootEl.firstChild);
 }
 
-// renderCharacterPreview()는 embedSvgFragment(fetch 기반, 비동기)의 완료를 기다렸다가
-// 반환한다. 조합/재조합 직후 캐릭터 전체를 복제해 모달에 보여줘야 하는 곳에서는
-// 반드시 이 함수의 완료(await)를 기다린 뒤 복제해야 최신 상태가 보인다.
-// renderCharacterPreview()가 겹쳐 호출되면(예: 색 적용 직후 곧바로 다른 파츠를
-// 적용하는 등) 먼저 시작된 호출의 embedSvgFragment가 나중에 끝나면서 나중 호출의
-// 결과(색상 포함)를 덮어쓰는 경합이 있었다. renderChain으로 모든 호출을 한 줄로
-// 줄 세워, 항상 이전 호출이 완전히 끝난 뒤에만 다음 호출이 시작되도록 만든다 —
-// 두 렌더가 동시에 같은 슬롯에 쓰는 일 자체가 아예 없어진다.
 let renderChain = Promise.resolve();
 
 function renderCharacterPreview() {
@@ -414,17 +330,13 @@ async function renderCharacterPreviewOnce() {
 renderCharacterPreview();
 
 // ===========================
-// 이름 설정/변경 모달 (같은 #name-modal을 두 모드로 재사용)
-// - create: 머리 파츠 최초 적용 시 자동으로 뜬다. 무료, [저장]으로만 닫힘(바깥 클릭 불가).
-// - rename: [이름 변경] 버튼으로 연다. 💎(SHOP_COST.renameCharacter) 차감, 바깥 클릭으로도 닫힘.
-// - 입력창은 비어 있으면 placeholder("10글자까지 가능합니다.")를 보여주고(HTML 기본 동작),
-//   maxlength="10"으로 10자 초과 입력을 막는다(붙여넣기 대비 JS에서 한 번 더 자름).
+// 이름 설정/변경 모달
 // ===========================
 const nameModal = document.getElementById('name-modal');
 const nameModalInput = document.getElementById('name-modal-input');
 const nameModalSaveButton = document.getElementById('name-modal-save');
 const characterNameLabel = document.querySelector('.character-name');
-let nameModalMode = 'create'; // 'create' | 'rename' — openNameModal()이 설정
+let nameModalMode = 'create';
 
 function refreshNameModalSaveButton() {
   nameModalSaveButton.disabled = nameModalInput.value.trim().length === 0;
@@ -432,7 +344,7 @@ function refreshNameModalSaveButton() {
 
 nameModalInput.addEventListener('input', () => {
   if (nameModalInput.value.length > 10) {
-    nameModalInput.value = nameModalInput.value.slice(0, 10); // maxlength 우회(붙여넣기 등) 대비
+    nameModalInput.value = nameModalInput.value.slice(0, 10);
   }
   refreshNameModalSaveButton();
 });
@@ -448,31 +360,29 @@ function openNameModal(mode) {
 
 nameModalSaveButton.addEventListener('click', () => {
   const name = nameModalInput.value.trim();
-  if (!name) return; // 버튼이 비활성화되어 있어 사실상 도달하지 않음
+  if (!name) return;
 
   if (nameModalMode === 'rename') {
     const result = renameCharacter(name);
-    if (!result.success) return; // canRename()으로 사전에 걸러지므로 사실상 도달하지 않음
+    if (!result.success) return;
     updateHeaderGold(result.remainingGold);
   } else {
     setCharacterName(name);
   }
 
   characterNameLabel.textContent = name;
-  refreshSaveButton(); // 저장하기 버튼 활성화 조건에 이름이 포함되므로
-  refreshRenameButton(); // rename이었다면 골드가 줄어 다시 판단해야 함
+  refreshSaveButton();
+  refreshRenameButton();
   refreshColorMixButton();
   nameModal.classList.add('modal-overlay--hidden');
 });
 
-// create 모드는 바깥 클릭으로 닫히지 않지만, rename 모드는 닫힌다.
 nameModal.addEventListener('click', (event) => {
   if (event.target !== nameModal) return;
   if (nameModalMode !== 'rename') return;
   nameModal.classList.add('modal-overlay--hidden');
 });
 
-// 이미 저장된 이름이 있으면(재방문) 기본 표시 문구 대신 그 이름을 보여준다.
 const savedCharacterName = getCharacterName();
 if (savedCharacterName) {
   characterNameLabel.textContent = savedCharacterName;
@@ -480,10 +390,6 @@ if (savedCharacterName) {
 
 // ===========================
 // 파츠 슬롯 아이콘 인라인 로딩
-// - data-part(HTML 슬롯 번호) → characterData.js의 head 파츠 id 매핑.
-// - '원/세모/네모/마름모/별/럭비공/역세모' UI 명칭과 characterData.js의
-//   circle/triangle-up/square/diamond/star/lens/triangle-down id를 연결한다.
-// - 랜덤 박스(data-part="random")는 고정 아이콘이므로 대상에서 제외한다.
 // ===========================
 const PART_ID_BY_SLOT = {
   1: 'circle',
@@ -509,9 +415,6 @@ document.querySelectorAll('.part-slot[data-part]').forEach((slot) => {
 
 // ===========================
 // 파츠 슬롯 보유 수량 배지 갱신
-// - inventory.js의 getPartQuantity()를 기준으로 표시한다.
-// - 수량 0: 배지 숨김 + part-slot--locked 유지, 1 이상: 배지 표시 + locked 해제
-// - 1~99는 실제 수량, 100 이상은 "99" + 위첨자 "+"로 표시(.part-slot__badge-plus)
 // ===========================
 function renderBadgeContent(badge, quantity) {
   const displayNumber = quantity > 99 ? '99' : String(quantity);
@@ -558,15 +461,7 @@ function refreshAllPartSlots() {
 refreshAllPartSlots();
 
 // ===========================
-// 조합(combine) 기능
-// - inventory.js의 canCombine()으로 버튼 활성/비활성을 관리한다.
-//   (머리 미장착 / 두 부위(body/legs) 완료 / 보유 파츠 없음 / 골드 부족 시 비활성 —
-//   시각적 처리는 구입 등 기존 비활성 버튼과 동일하게 CSS :disabled 스타일에 맡긴다.)
-// - 골드/인벤토리가 바뀔 수 있는 모든 지점(구매/적용/조합/해체 직후, 최초 로드)에서
-//   refreshCombineButton()을 호출해 최신 상태를 반영한다.
-// - 조합/재조합은 "미리보기"만 한다(골드는 즉시 차감되지만 인벤토리 소비/적용
-//   저장은 하지 않음). 모달에서 [확인]을 눌러야 실제로 확정된다 — 원하지 않는
-//   결과를 재조합으로 몇 번을 다시 뽑든 확정 전까지는 파츠가 소모되지 않는다.
+// 조합 / 해체 / 저장 / 색 섞기 버튼
 // ===========================
 const combineButton = document.getElementById('btn-combine');
 
@@ -576,9 +471,9 @@ function refreshCombineButton() {
 
 combineButton.addEventListener('click', () => {
   const preview = previewCombine();
-  if (!preview.success) return; // canCombine()으로 사전에 걸러지므로 사실상 도달하지 않음
+  if (!preview.success) return;
 
-  updateHeaderGold(preview.remainingGold); // 조합 비용은 미리보기 단계에서 즉시 차감된다
+  updateHeaderGold(preview.remainingGold);
   refreshCombineButton();
   refreshDismantleButton();
   refreshRenameButton();
@@ -588,13 +483,6 @@ combineButton.addEventListener('click', () => {
 
 refreshCombineButton();
 
-// ===========================
-// 해체(dismantle) 기능
-// - inventory.js의 canDismantle()로 버튼 활성/비활성을 관리한다.
-//   (조합 이력 없음(머리만 있음) / 골드 부족 시 비활성)
-// - 가장 마지막으로 조합된 부위만 제거하고, 그 파츠는 인벤토리로 돌아간다.
-// - 결과는 버튼 없는 안내 모달(showDismantleResult)로 보여주고 잠시 후 자동으로 닫힌다.
-// ===========================
 const dismantleButton = document.getElementById('btn-dismantle');
 
 function refreshDismantleButton() {
@@ -603,7 +491,7 @@ function refreshDismantleButton() {
 
 dismantleButton.addEventListener('click', async () => {
   const result = dismantleCharacter();
-  if (!result.success) return; // canDismantle()으로 사전에 걸러지므로 사실상 도달하지 않음
+  if (!result.success) return;
 
   updateHeaderGold(result.remainingGold);
   refreshAllPartSlots();
@@ -611,13 +499,12 @@ dismantleButton.addEventListener('click', async () => {
   refreshDismantleButton();
   refreshRenameButton();
   refreshColorMixButton();
-  await renderCharacterPreview(); // 해체된 상태(팔/다리 숨김 등)가 반영된 뒤 모달에 복제한다
+  await renderCharacterPreview();
   showDismantleResult();
 });
 
 refreshDismantleButton();
 
-// 이름 변경 버튼: 이름이 설정돼 있고 골드가 충분할 때만 활성화 (inventory.js의 canRename()).
 const renameButton = document.getElementById('btn-rename');
 
 function refreshRenameButton() {
@@ -627,7 +514,6 @@ function refreshRenameButton() {
 renameButton.addEventListener('click', () => openNameModal('rename'));
 refreshRenameButton();
 
-// 캐릭터 저장하기 버튼: 캐릭터가 존재할 때(머리 적용 + 이름 저장)만 활성화 (inventory.js의 canSaveCharacter()).
 const saveButton = document.getElementById('btn-save');
 
 function refreshSaveButton() {
@@ -636,7 +522,6 @@ function refreshSaveButton() {
 
 refreshSaveButton();
 
-// 색 섞기 버튼: 골드가 섞기 비용 이상일 때만 활성화 (inventory.js의 canMixColor()).
 const colorMixButton = document.querySelector('.color-mix-btn');
 
 function refreshColorMixButton() {
@@ -645,17 +530,14 @@ function refreshColorMixButton() {
 
 colorMixButton.addEventListener('click', () => {
   const preview = previewColorMix();
-  if (!preview.success) return; // canMixColor()로 사전에 걸러지므로 사실상 도달하지 않음
+  if (!preview.success) return;
 
-  updateHeaderGold(preview.remainingGold); // 색 섞기 비용은 미리보기 단계에서 즉시 차감된다
+  updateHeaderGold(preview.remainingGold);
   refreshColorMixButton();
   openColorMixModal(preview.patternId, preview.colors);
 });
 refreshColorMixButton();
 
-// 헤더 바(섹션 명이 적힌 사각형) 전체를 클릭 영역으로 사용한다 — 화살표 버튼만
-// 클릭 대상이면 영역이 좁아 불편하다는 피드백을 반영. 화살표 버튼도 헤더 안에
-// 있으므로 클릭이 자연히 버블링되어 같은 핸들러로 처리된다(중복 바인딩 없음).
 function setupToggle(toggleId, bodyId) {
   const button = document.getElementById(toggleId);
   const header = button.closest('.shop-section__header');
@@ -675,11 +557,6 @@ const partModalSvg = document.getElementById('part-modal-svg');
 const partModalName = document.getElementById('part-modal-name');
 const partModalActions = document.getElementById('part-modal-actions');
 
-// 좌측 라벨("구입"/"적용") + 우측 가격(💎 n) 구조의 버튼을 생성한다.
-// textContent를 통째로 바꾸지 않고, 가격은 별도 span(.modal-card__btn-price)에만 넣어
-// 이후 가격만 갱신해야 할 때 이 span만 건드리면 되도록 한다.
-// 구입/적용 버튼은 동일한 modal-card__btn--cancel 스타일을 공유하며,
-// disabled 상태의 시각적 처리는 CSS(.modal-card__btn--priced:disabled)에서 일괄 담당한다.
 function createPricedButton(variantClass, label, price, disabled = false) {
   const button = document.createElement('button');
   button.type = 'button';
@@ -698,16 +575,8 @@ function createPricedButton(variantClass, label, price, disabled = false) {
   return button;
 }
 
-// ===========================
-// 구입 결과 연출 (기존 #part-modal을 재사용)
-// - 일반 구입: 결과를 바로 표시
-// - 랜덤 구입: "뽑는 중..." 연출(0.7초) 후 결과 표시
-// - 결과 표시 중에는 스케일 팝업 + 파티클(6~10개) 효과, RESULT_AUTO_CLOSE_MS 후 자동 닫힘
-//   (버튼 없이 안내만 하는 모달은 모두 이 상수를 공유한다 — 해체 결과 모달 포함)
-// - reopenTimerId: "뽑는 중" → 결과 전환 타이머, autoCloseTimerId: 자동 닫힘 타이머
-// ===========================
-const RANDOM_DRAW_DELAY_MS = 700; // 요구사항: 약 0.6~0.8초
-const RESULT_AUTO_CLOSE_MS = 2500; // 버튼 없는 결과 모달(구입 결과/해체 결과) 공통 자동 닫힘 시간
+const RANDOM_DRAW_DELAY_MS = 700;
+const RESULT_AUTO_CLOSE_MS = 2500;
 const PARTICLE_COLORS = ['#ffffff', '#bfe6ff', '#fff6b3'];
 
 let reopenTimerId = null;
@@ -723,19 +592,17 @@ function closePartModal() {
   partModal.classList.add('modal-overlay--hidden');
 }
 
-// 지정한 컨테이너 주변에 원형 파티클을 잠깐 흩뿌린다. (Canvas/외부 라이브러리 미사용)
-// container는 position:relative인 .part-modal__preview 계열 요소여야 한다.
 function spawnResultParticles(container) {
   const layer = document.createElement('div');
   layer.className = 'part-modal__particles';
 
-  const count = 6 + Math.floor(Math.random() * 5); // 6~10개
+  const count = 6 + Math.floor(Math.random() * 5);
   for (let i = 0; i < count; i += 1) {
     const particle = document.createElement('span');
     particle.className = 'part-modal__particle';
     const angle = (360 / count) * i + (Math.random() * 20 - 10);
-    const distance = 34 + Math.random() * 18; // px
-    const size = 4 + Math.random() * 4; // 4~8px
+    const distance = 34 + Math.random() * 18;
+    const size = 4 + Math.random() * 4;
     particle.style.setProperty('--angle', `${angle}deg`);
     particle.style.setProperty('--distance', `${distance}px`);
     particle.style.width = `${size}px`;
@@ -748,9 +615,6 @@ function spawnResultParticles(container) {
   setTimeout(() => layer.remove(), 900);
 }
 
-// 구입 결과(획득한 파츠)를 표시하고 RESULT_AUTO_CLOSE_MS 후 원래 파츠 모달(구입/적용
-// 버튼이 있는)로 자동 복귀한다 — 모달을 닫지 않아 연속 구입이 가능하다. (랜덤 구입 전용 —
-// 일반 구입은 openPartModal()이 배지 갱신 + 파티클로 제자리에서 처리한다.)
 function showPurchaseResult(id, slot) {
   const part = getPart(id);
 
@@ -772,7 +636,6 @@ function showPurchaseResult(id, slot) {
   autoCloseTimerId = setTimeout(() => openPartModal(slot), RESULT_AUTO_CLOSE_MS);
 }
 
-// 랜덤 구입 전용: "뽑는 중..." 로딩 연출 후 결과를 표시한다.
 function showRandomDrawing(id, slot) {
   const spinner = document.createElement('div');
   spinner.className = 'part-modal__spinner';
@@ -789,20 +652,16 @@ function showRandomDrawing(id, slot) {
   clearResultTimers();
   reopenTimerId = setTimeout(() => {
     reopenTimerId = null;
-    // 연출 도중 모달이 닫혔다면 결과를 표시하지 않는다.
     if (partModal.classList.contains('modal-overlay--hidden')) return;
     showPurchaseResult(id, slot);
   }, RANDOM_DRAW_DELAY_MS);
 }
 
-// 해체 결과를 보여준다 (기존 #part-modal 재사용, 버튼 없이 RESULT_AUTO_CLOSE_MS 후 자동으로 닫힘).
-// 상단에는 해체된 상태가 반영된 캐릭터 전체를 보여준다 — 호출 전에 renderCharacterPreview()가
-// 이미 최신 상태로 갱신되어 있어야 한다 (dismantleButton 클릭 핸들러에서 await 후 호출).
 function showDismantleResult() {
   clearResultTimers();
 
   const preview = characterPlaceholder.cloneNode(true);
-  rescopeColorInstanceIds(preview); // 실제 캐릭터와 id가 겹치지 않도록(색 섞기 적용 중일 때)
+  rescopeColorInstanceIds(preview);
   partModalSvg.replaceChildren(preview);
   partModalName.textContent = '';
   partModalActions.replaceChildren();
@@ -827,8 +686,6 @@ function openPartModal(slot) {
   partModalName.textContent = '';
   partModalActions.replaceChildren();
 
-  // 일반 구입(랜덤 제외)은 보유 수량 배지를 미리보기 위에 그대로 보여준다 —
-  // 그리드의 .part-slot__badge와 같은 디자인을 재사용한다.
   if (!isRandom && owned > 0) {
     const badge = document.createElement('span');
     badge.className = 'part-slot__badge';
@@ -844,20 +701,18 @@ function openPartModal(slot) {
       ? purchaseRandomPart()
       : purchasePart(headPartId);
 
-    if (!result.success) return; // 골드 부족 등: 구매/저장/화면 갱신 없음
+    if (!result.success) return;
 
-    // 골드/수량 배지/버튼 상태는 연출과 무관하게 즉시 갱신한다.
     updateHeaderGold(result.remainingGold);
     refreshAllPartSlots();
-    refreshCombineButton(); // 구매로 인벤토리가 늘어 조합 가능 여부가 바뀔 수 있음
-    refreshDismantleButton(); // 구매로 골드가 줄어 해체 가능 여부가 바뀔 수 있음
-    refreshRenameButton(); // 구매로 골드가 줄어 이름 변경 가능 여부가 바뀔 수 있음
+    refreshCombineButton();
+    refreshDismantleButton();
+    refreshRenameButton();
     refreshColorMixButton();
 
     if (isRandom) {
       showRandomDrawing(result.id, slot);
     } else {
-      // 일반 구입은 별도 결과 모달 없이, 제자리에서 배지 수량만 갱신하고 파티클을 터뜨린다.
       openPartModal(slot);
       spawnResultParticles(partModalSvg);
     }
@@ -875,24 +730,24 @@ function openPartModal(slot) {
       const canApply = owned > 0 && getGold() >= SHOP_COST.partApply;
       const applyButton = createPricedButton('modal-card__btn--cancel', '적용', `💎 ${SHOP_COST.partApply}`, !canApply);
       applyButton.addEventListener('click', async () => {
-        const isFirstSave = !getEquippedPart('head'); // 머리를 아직 한 번도 적용한 적 없으면 캐릭터 최초 생성
+        const isFirstSave = !getEquippedPart('head');
         const result = applyPart('head', headPartId);
-        if (!result.success) return; // 미보유/골드 부족 등: 적용/저장/화면 갱신 없음
+        if (!result.success) return;
 
         updateHeaderGold(result.remainingGold);
         refreshAllPartSlots();
-        refreshCombineButton(); // 적용으로 인벤토리가 줄어 조합 가능 여부가 바뀔 수 있음
-        refreshDismantleButton(); // 적용으로 골드가 줄어 해체 가능 여부가 바뀔 수 있음
-        refreshRenameButton(); // 적용으로 골드가 줄어 이름 변경 가능 여부가 바뀔 수 있음
+        refreshCombineButton();
+        refreshDismantleButton();
+        refreshRenameButton();
         refreshColorMixButton();
-        refreshSaveButton(); // 머리가 적용됐으니 저장하기 활성화 조건이 바뀔 수 있음
-        await renderCharacterPreview(); // await 필수 — 다른 렌더 호출과 겹치면 색 적용이 꼬일 수 있음
+        refreshSaveButton();
+        await renderCharacterPreview();
 
         if (isFirstSave) {
           closePartModal();
           openNameModal('create');
         } else {
-          openPartModal(slot); // 적용 중 표시/버튼 상태를 즉시 반영
+          openPartModal(slot);
         }
       });
       partModalActions.appendChild(applyButton);
@@ -909,19 +764,8 @@ partModal.addEventListener('click', (event) => {
 });
 
 // ===========================
-// 조합 미리보기 모달 (기존 #part-modal 재사용)
-// - 상단: 지금 실제로 저장된 캐릭터(확정된 상태) 위에, 아직 확정되지 않은 미리보기
-//   파츠(category/id)만 겹쳐서 보여준다. characterPlaceholder 자체나 저장 데이터는
-//   전혀 건드리지 않는다 — 그래서 재조합을 몇 번 반복해도 인벤토리가 줄지 않는다.
-// - 하단: [확인](confirmCombine으로 확정 + placeholder 반영 + 모달 닫기) /
-//   [재조합 💎30](다른 모양으로 새 미리보기, 아직 미확정 상태 유지).
-// - 조합/재조합 버튼을 누르는 시점에 골드만 즉시 차감된다(previewCombine/
-//   previewRecombine). 인벤토리 소비와 적용 상태 저장은 오직 confirmCombine()이
-//   호출되는 [확인] 클릭 시점에만 일어난다.
+// 조합 미리보기 모달
 // ===========================
-
-// 미리보기 전용 캐릭터 이미지를 만든다. 실제 저장된 상태를 복제한 뒤, 아직
-// 확정되지 않은 미리보기 파츠만 해당 슬롯에 겹쳐 그린다.
 async function buildCombinePreviewClone(category, id) {
   const clone = characterPlaceholder.cloneNode(true);
   const part = getPart(id);
@@ -940,21 +784,15 @@ async function buildCombinePreviewClone(category, id) {
     ]);
   }
 
-  // 미리보기 파츠까지 포함한 세로 범위를 기준으로 가운데 정렬·전체 길이를 다시 계산한다.
   const hasBody = category === 'body' || Boolean(getEquippedPart('body'));
   const hasLegs = category === 'legs' || Boolean(getEquippedPart('legs'));
   applyCharacterRootTransform(clone.querySelector('#character-root'), hasBody, hasLegs, getViewBoxHeight(clone));
 
-  // 클론은 실제 캐릭터를 복제한 것이라 id도 그대로 딸려온다 — 실제 캐릭터가 화면에
-  // 함께 떠 있는 채로 이 클론을 모달에 표시하면 id가 겹치므로, 이 클론 전용 새
-  // instanceId로 전부 다시 스탬프한다(새로 끼운 부위뿐 아니라 머리 포함 전체).
   const instanceId = nextColorInstanceId();
   stampFillPartId(clone, 'head-part-slot', instanceId);
   if (hasBody) stampFillPartId(clone, 'body-part-slot', instanceId);
   if (hasLegs) stampFillPartId(clone, 'leg-part-slot', instanceId);
 
-  // 이미 적용된 색/패턴이 있으면 방금 끼워 넣은 미리보기 파츠에도 같이 반영한다
-  // (그대로 두면 새로 합쳐진 부위는 색이 빠진 것처럼 보인다).
   const equippedColorMix = getEquippedColorMix();
   const equippedColor = getEquippedColor();
   if (equippedColorMix) {
@@ -968,7 +806,7 @@ async function buildCombinePreviewClone(category, id) {
 }
 
 async function openCombinePreviewModal(category, id) {
-  clearResultTimers(); // 구입 결과 연출과 같은 DOM/타이머를 공유하므로 정리하고 시작
+  clearResultTimers();
 
   const preview = await buildCombinePreviewClone(category, id);
   partModalSvg.replaceChildren(preview);
@@ -981,16 +819,16 @@ async function openCombinePreviewModal(category, id) {
   confirmButton.textContent = '확인';
   confirmButton.addEventListener('click', async () => {
     const result = confirmCombine(category, id);
-    if (!result.success) return; // 이론상 도달하지 않음(미리보기 시점에 이미 검증됨)
+    if (!result.success) return;
 
     refreshAllPartSlots();
     refreshCombineButton();
     refreshDismantleButton();
-    await renderCharacterPreview(); // 확정된 상태를 실제 placeholder에 반영
+    await renderCharacterPreview();
     closePartModal();
   });
 
-  const canRecombineNow = canRecombine(id); // id(지금 미리보기 중인 파츠)와 다른 모양 후보가 있는지
+  const canRecombineNow = canRecombine(id);
   const recombineButton = createPricedButton(
     'modal-card__btn--cancel',
     '재조합',
@@ -999,14 +837,14 @@ async function openCombinePreviewModal(category, id) {
   );
   recombineButton.addEventListener('click', () => {
     const reroll = previewRecombine(id);
-    if (!reroll.success) return; // canRecombine()으로 사전에 걸러지므로 사실상 도달하지 않음
+    if (!reroll.success) return;
 
-    updateHeaderGold(reroll.remainingGold); // 재조합 비용도 미리보기 단계에서 즉시 차감된다
+    updateHeaderGold(reroll.remainingGold);
     refreshCombineButton();
     refreshDismantleButton();
     refreshRenameButton();
     refreshColorMixButton();
-    openCombinePreviewModal(category, reroll.id); // 새 미리보기로 모달을 다시 연다 (여전히 미확정)
+    openCombinePreviewModal(category, reroll.id);
   });
 
   partModalActions.append(confirmButton, recombineButton);
@@ -1014,14 +852,11 @@ async function openCombinePreviewModal(category, id) {
 }
 
 // ===========================
-// 색상 슬롯 보유 수량 배지 갱신
-// - inventory.js의 getColorQuantity()를 기준으로 표시한다.
-// - 배지 디자인은 파츠 슬롯과 동일하게 .part-slot__badge를 그대로 재사용한다
-//   (character-shop.css에서 .color-slot에 position:relative만 추가해 기준점을 맞춤).
+// 색상 슬롯 및 모달
 // ===========================
 function refreshColorSlot(slot) {
   const color = slot.dataset.color;
-  if (color === 'random') return; // 랜덤 슬롯은 보유 수량 배지 대상이 아님(파츠 랜덤 박스와 동일)
+  if (color === 'random') return;
 
   const quantity = getColorQuantity(color);
 
@@ -1050,12 +885,11 @@ const colorModalActions = document.getElementById('color-modal-actions');
 
 function openColorModal(color) {
   const previewSvg = characterPlaceholder.cloneNode(true);
-  prepareSimpleColorPreview(previewSvg); // 색 섞기 잔여물 제거 + id 정리, 채우는 영역을 다시 칠할 수 있게 복구
+  prepareSimpleColorPreview(previewSvg);
   applyColorTint(previewSvg, color);
   colorModalPreview.replaceChildren(previewSvg);
   colorModalActions.replaceChildren();
 
-  // 보유 수량 배지를 미리보기 위에 그대로 보여준다 — 파츠 모달과 같은 디자인(.part-slot__badge) 재사용.
   const ownedColorQuantity = getColorQuantity(color);
   if (ownedColorQuantity > 0) {
     const badge = document.createElement('span');
@@ -1068,15 +902,15 @@ function openColorModal(color) {
   const buyButton = createPricedButton('modal-card__btn--cancel', '구입', `💎 ${SHOP_COST.colorPurchase}`, !canAffordColorBuy);
   buyButton.addEventListener('click', () => {
     const result = purchaseColor(color);
-    if (!result.success) return; // 골드 부족 등: 구매/저장/화면 갱신 없음
+    if (!result.success) return;
 
     updateHeaderGold(result.remainingGold);
     refreshAllColorSlots();
-    refreshCombineButton(); // 구매로 골드가 줄어 조합/해체/이름 변경 가능 여부가 바뀔 수 있음
+    refreshCombineButton();
     refreshDismantleButton();
     refreshRenameButton();
     refreshColorMixButton();
-    openColorModal(color); // 구입 직후 배지 수량·버튼 상태(적용 활성화 등)를 반영해 다시 연다
+    openColorModal(color);
     spawnResultParticles(colorModalPreview);
   });
 
@@ -1084,15 +918,15 @@ function openColorModal(color) {
   const applyButton = createPricedButton('modal-card__btn--cancel', '적용', `💎 ${SHOP_COST.colorApply}`, !canApplyColorNow);
   applyButton.addEventListener('click', async () => {
     const result = applyColor(color);
-    if (!result.success) return; // canApplyColor()로 사전에 걸러지므로 사실상 도달하지 않음
+    if (!result.success) return;
 
     updateHeaderGold(result.remainingGold);
     refreshAllColorSlots();
-    refreshCombineButton(); // 적용으로 골드가 줄어 조합/해체/이름 변경 가능 여부가 바뀔 수 있음
+    refreshCombineButton();
     refreshDismantleButton();
     refreshRenameButton();
     refreshColorMixButton();
-    await renderCharacterPreview(); // 실제 캐릭터에도 색이 반영된 뒤 모달을 닫는다
+    await renderCharacterPreview();
     colorModal.classList.add('modal-overlay--hidden');
   });
 
@@ -1100,13 +934,8 @@ function openColorModal(color) {
   colorModal.classList.remove('modal-overlay--hidden');
 }
 
-// ===========================
-// 색상 랜덤 구입 (기존 #part-modal 재사용 — 파츠 랜덤 구입과 동일한 흐름:
-// [구입] → "뽑는 중..." → 🎉결과 → 자동으로 랜덤 구입 화면 복귀)
-// ===========================
-let lastDrawnColor = null; // showColorRandomDrawing → showColorPurchaseResult로 전달할 값
+let lastDrawnColor = null;
 
-// 색상 랜덤 구입 결과를 표시하고 RESULT_AUTO_CLOSE_MS 후 랜덤 구입 화면으로 자동 복귀한다.
 function showColorPurchaseResult(color) {
   const swatch = document.createElement('div');
   swatch.className = 'part-modal__result-icon';
@@ -1126,7 +955,6 @@ function showColorPurchaseResult(color) {
   autoCloseTimerId = setTimeout(openColorRandomModal, RESULT_AUTO_CLOSE_MS);
 }
 
-// 색상 랜덤 구입 전용: "뽑는 중..." 로딩 연출 후 결과를 표시한다.
 function showColorRandomDrawing() {
   const spinner = document.createElement('div');
   spinner.className = 'part-modal__spinner';
@@ -1143,7 +971,6 @@ function showColorRandomDrawing() {
   clearResultTimers();
   reopenTimerId = setTimeout(() => {
     reopenTimerId = null;
-    // 연출 도중 모달이 닫혔다면 결과를 표시하지 않는다.
     if (partModal.classList.contains('modal-overlay--hidden')) return;
     showColorPurchaseResult(lastDrawnColor);
   }, RANDOM_DRAW_DELAY_MS);
@@ -1164,11 +991,11 @@ function openColorRandomModal() {
   const buyButton = createPricedButton('modal-card__btn--cancel', '구입', `💎 ${SHOP_COST.colorRandomPurchase}`, !canAffordBuy);
   buyButton.addEventListener('click', () => {
     const result = purchaseRandomColor();
-    if (!result.success) return; // 골드 부족 등: 구매/저장/화면 갱신 없음
+    if (!result.success) return;
 
     updateHeaderGold(result.remainingGold);
     refreshAllColorSlots();
-    refreshCombineButton(); // 구매로 골드가 줄어 조합/해체/이름 변경 가능 여부가 바뀔 수 있음
+    refreshCombineButton();
     refreshDismantleButton();
     refreshRenameButton();
     refreshColorMixButton();
@@ -1194,19 +1021,11 @@ colorModal.addEventListener('click', (event) => {
 });
 
 // ===========================
-// 색 섞기 모달 (기존 #part-modal 재사용 — 조합 미리보기 모달과 같은 흐름:
-// 미리보기 + [확인] + [다시 섞기 💎N]).
-// 조합과 마찬가지로 미리보기 단계에서는 골드만 차감하고 저장하지 않는다 —
-// [확인]을 눌러야 confirmColorMix()로 실제 캐릭터에 반영된다.
+// 색 섞기 모달
 // ===========================
-
-// 미리보기 전용 캐릭터 이미지를 만든다. 실제 저장된 상태를 복제한 뒤, 아직
-// 확정되지 않은 패턴+색을 그 클론에만 적용한다(실제 DOM/저장 데이터는 건드리지 않음).
 async function buildColorMixPreviewClone(patternId, colors) {
   const clone = characterPlaceholder.cloneNode(true);
 
-  // 클론은 실제 캐릭터의 id를 그대로 물려받으므로, 실제 캐릭터가 화면에 함께 떠 있는
-  // 채로 이 클론을 모달에 보여주면 id가 겹친다. 이 클론 전용 새 instanceId로 다시 스탬프한다.
   const instanceId = nextColorInstanceId();
   stampFillPartId(clone, 'head-part-slot', instanceId);
   if (getEquippedPart('body')) stampFillPartId(clone, 'body-part-slot', instanceId);
@@ -1231,11 +1050,11 @@ async function openColorMixModal(patternId, colors) {
   confirmButton.addEventListener('click', async () => {
     confirmColorMix(patternId, colors);
     refreshAllColorSlots();
-    await renderCharacterPreview(); // 확정된 패턴/색을 실제 placeholder에 반영
+    await renderCharacterPreview();
     closePartModal();
   });
 
-  const previewNewColor = colors[colors.length - 1]; // buildColorGroups()가 항상 마지막 칸에 새 색을 넣는다
+  const previewNewColor = colors[colors.length - 1];
   const canRemixNow = canRemixColor(previewNewColor);
   const remixButton = createPricedButton(
     'modal-card__btn--cancel',
@@ -1245,11 +1064,11 @@ async function openColorMixModal(patternId, colors) {
   );
   remixButton.addEventListener('click', () => {
     const reroll = previewColorRemix(previewNewColor);
-    if (!reroll.success) return; // canRemixColor()로 사전에 걸러지므로 사실상 도달하지 않음
+    if (!reroll.success) return;
 
-    updateHeaderGold(reroll.remainingGold); // 다시 섞기 비용도 미리보기 단계에서 즉시 차감된다
+    updateHeaderGold(reroll.remainingGold);
     refreshColorMixButton();
-    openColorMixModal(reroll.patternId, reroll.colors); // 새 미리보기로 모달을 다시 연다 (여전히 미확정)
+    openColorMixModal(reroll.patternId, reroll.colors);
   });
 
   partModalActions.append(confirmButton, remixButton);
