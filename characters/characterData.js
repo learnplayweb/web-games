@@ -43,9 +43,9 @@ export const BASE_PARTS = Object.freeze([
 export const PART_CATEGORIES = Object.freeze(['head', 'body', 'legs']);
 
 export const CHARACTER_COLORS = Object.freeze([
-  '#FFCCBC', '#FCE8B2', '#ffffba', '#C4E2A0',
-  '#ACC9FE', '#C4C3F7', '#FAE5EA', '#F6E1CF',
-  '#A2E8F1', '#8CD3CD', '#BBC8CE', '#ffffff',
+  '#FFCCBC', '#FCE8B2', '#ffffba', '#d0ebaf',
+  '#ACC9FE', '#cdccfa', '#ffe4ef', '#ebd0fa',
+  '#A2E8F1', '#96d3ce', '#c0e2f1', '#ffffff',
 ]);
 
 /** 색 섞기(패턴 마블링)에 쓰는 패턴 파일 목록. 새 패턴은 여기에만 추가하면 된다. */
