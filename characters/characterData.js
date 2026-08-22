@@ -1,4 +1,4 @@
-// v0.1.3
+// v0.1.4
 // Character Data
 // - BODY_ASSETS/FACE_ASSETS: 좌우 분리된 팔·다리, 표정별 눈·입 에셋 경로
 // - BASE_PARTS/PART_CATEGORIES: 머리/상체/하체가 공유하는 파츠 목록과 부위 목록
@@ -48,8 +48,14 @@ export const CHARACTER_COLORS = Object.freeze([
 ]);
 
 /** 색 섞기(패턴 마블링)에 쓰는 패턴 파일 목록. 새 패턴은 여기에만 추가하면 된다. */
+/** 색 섞기(패턴 마블링)에 쓰는 패턴 파일 목록. 새 패턴은 여기에만 추가하면 된다. */
 export const PATTERNS = Object.freeze([
   { id: 'pattern-01', assetPath: `${ASSET_ROOT}/pattern/pattern-01.svg` },
+  { id: 'pattern-02', assetPath: `${ASSET_ROOT}/pattern/pattern-02.svg` },
+  { id: 'pattern-03', assetPath: `${ASSET_ROOT}/pattern/pattern-03.svg` },
+  { id: 'pattern-04', assetPath: `${ASSET_ROOT}/pattern/pattern-04.svg` },
+  { id: 'pattern-05', assetPath: `${ASSET_ROOT}/pattern/pattern-05.svg` },
+  { id: 'pattern-06', assetPath: `${ASSET_ROOT}/pattern/pattern-06.svg` },
 ]);
 
 /** id로 파츠를 조회한다. 부위 구분 없이 BASE_PARTS 하나만 조회한다. */

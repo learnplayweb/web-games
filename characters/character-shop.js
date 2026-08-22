@@ -1,6 +1,6 @@
-// v0.1.42
+// v0.1.44
 // Character Shop
-// - Refactor: applyColorMixToRoot 최적화 (단일 전역 SVG pattern 재사용 및 불필요한 슬롯별 역변환 연산 제거)
+// - Fix: 색상 적용 및 색 섞기 확정 시점에 refreshColorMixButton 호출을 연동하여 버튼 활성화/비활성화 상태 실시간 동기화
 // - 파츠/색상 구매(일반/랜덤)·적용, 조합·재조합·해체, 이름 설정/변경, 색 섞기(패턴 마블링)
 // - 조합/재조합/색 섞기는 미리보기 후 확인 시에만 확정, renderCharacterPreview는 큐로 순차 실행
 // - #character-root가 조합 단계별로 자동 정렬·확대, 모든 기능 버튼은 조건 기반 활성화
@@ -814,6 +814,7 @@ async function openCombinePreviewModal(category, id) {
     refreshAllPartSlots();
     refreshCombineButton();
     refreshDismantleButton();
+    refreshColorMixButton();
     await renderCharacterPreview();
     closePartModal();
   });
@@ -1040,12 +1041,13 @@ async function openColorMixModal(patternId, colors) {
   confirmButton.addEventListener('click', async () => {
     confirmColorMix(patternId, colors);
     refreshAllColorSlots();
+    refreshColorMixButton();
     await renderCharacterPreview();
     closePartModal();
   });
 
   const previewNewColor = colors[colors.length - 1];
-  const canRemixNow = canRemixColor(previewNewColor);
+  const canRemixNow = canRemixColor(previewNewColor, patternId);
   const remixButton = createPricedButton(
     'modal-card__btn--cancel',
     '다시 섞기',
@@ -1053,7 +1055,7 @@ async function openColorMixModal(patternId, colors) {
     !canRemixNow,
   );
   remixButton.addEventListener('click', () => {
-    const reroll = previewColorRemix(previewNewColor);
+    const reroll = previewColorRemix(previewNewColor, patternId);
     if (!reroll.success) return;
 
     updateHeaderGold(reroll.remainingGold);

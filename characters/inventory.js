@@ -1,5 +1,6 @@
-// v0.1.14
+// v0.1.16
 // Inventory
+// - Fix: 보유 색상이 추가로 없어도 패턴이 2개 이상이면 다시 섞기(canRemixColor) 버튼 활성화
 // - 파츠/색상 보유·구매(일반/랜덤), 적용(equip) 관리
 // - 조합/재조합/색 섞기·다시 섞기는 미리보기+확정 2단계, 해체는 즉시 실행
 // - 색 섞기 확정(confirmColorMix) 시 새로 적용된 색상(1개) 수량 차감
@@ -560,12 +561,20 @@ export function canMixColor() {
   return pool.size >= 2;
 }
 
-/** 다시 섞기 가능 여부: 골드가 비용 이상이고, 베이스 색·현재 미리보기의 새 색 외에 고를 수 있는 보유 색이 있어야 한다. */
-export function canRemixColor(previewColor) {
+/**
+ * 다시 섞기 가능 여부:
+ * - 골드가 다시 섞기 비용(SHOP_COST.colorRemix) 이상이고,
+ * - 베이스 색·현재 미리보기의 새 색 외에 고를 수 있는 보유 색이 있거나, 등록된 패턴이 2개 이상(패턴 변경 가능)이면 항상 활성화한다.
+ */
+export function canRemixColor(previewColor, previewPatternId = null) {
   if (getGold() < SHOP_COST.colorRemix) return false;
 
   const excluded = [...getBaseMixColors(), previewColor];
-  return getOwnedColors().some((color) => !excluded.includes(color));
+  const hasOtherColor = getOwnedColors().some((color) => !excluded.includes(color));
+  const hasOtherPattern = PATTERNS.length > 1;
+
+  // 다른 색이 있거나 다른 패턴으로 바꿀 수 있다면 다시 섞기 가능
+  return hasOtherColor || hasOtherPattern;
 }
 
 /** 베이스 색 + 새로 뽑은 색으로 3칸(color-a/b/c) 배열을 만든다. */
@@ -575,8 +584,14 @@ function buildColorGroups(baseColors, newColor) {
   return [baseColors[0], baseColors[1], newColor]; // 3색
 }
 
-function pickRandomPattern() {
-  return PATTERNS[Math.floor(Math.random() * PATTERNS.length)];
+/** 패턴 목록 중 무작위 하나를 선택한다. excludePatternId가 주어지면 해당 패턴을 제외하고 선택한다. */
+function pickRandomPattern(excludePatternId = null) {
+  const candidates = excludePatternId
+    ? PATTERNS.filter((pattern) => pattern.id !== excludePatternId)
+    : PATTERNS;
+  
+  const pool = candidates.length > 0 ? candidates : PATTERNS;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 /**
@@ -606,19 +621,22 @@ export function previewColorMix() {
 
 /**
  * 다시 섞기를 "미리보기"한다. 베이스 색은 그대로 두고, 지금 미리보기 중인 새 색
- * (previewColor)과 다른 보유 색을 무작위로 골라 패턴까지 다시 뽑는다. previewCombine과
- * 마찬가지로 골드만 차감하고 저장은 하지 않는다.
+ * (previewColor)과 다른 보유 색을 무작위로 고르고, 직전 패턴(previewPatternId)을 제외한 다른 패턴을 다시 뽑는다.
  */
-export function previewColorRemix(previewColor) {
+export function previewColorRemix(previewColor, previewPatternId = null) {
   const base = getBaseMixColors();
   const excluded = [...base, previewColor];
-  const candidates = getOwnedColors().filter((color) => !excluded.includes(color));
-  if (candidates.length === 0) return { success: false, reason: 'no-candidate' };
+  let candidates = getOwnedColors().filter((color) => !excluded.includes(color));
+  
+  // 만약 남은 다른 보유 색이 없다면 현재 previewColor 유지 후 패턴만 변경
+  if (candidates.length === 0) {
+    candidates = [previewColor];
+  }
 
   if (!spendGold(SHOP_COST.colorRemix)) return { success: false, reason: 'insufficient-gold' };
 
   const newColor = candidates[Math.floor(Math.random() * candidates.length)];
-  const pattern = pickRandomPattern();
+  const pattern = pickRandomPattern(previewPatternId);
 
   return {
     success: true,
