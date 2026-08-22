@@ -1,6 +1,6 @@
-// v0.1.17
+// v0.1.18
 // Inventory
-// - Fix: 색 섞기(canMixColor) 활성화 조건을 "골드 충족 AND 현재 적용 색상을 제외한 보유 색상 1개 이상"으로 엄격하게 일치
+// - Fix: 3색 혼합 상태에서도 선입선출(FIFO) 방식으로 색 섞기 지속 지원 (최대 색상 도달 제한 제거)
 // - 파츠/색상 보유·구매(일반/랜덤), 적용(equip) 관리
 // - 조합/재조합/색 섞기·다시 섞기는 미리보기+확정 2단계, 해체는 즉시 실행
 // - 색 섞기 확정(confirmColorMix) 시 새로 적용된 색상(1개) 수량 차감
@@ -506,13 +506,18 @@ export function getEquippedColorMix() {
 }
 
 /**
- * 색 섞기의 "베이스 색" 목록을 구한다 — 이미 색 섞기가 적용돼 있으면 그 3색 중
- * 서로 다른 색만, 단색만 적용돼 있으면 그 1색만, 아무 것도 없으면 빈 배열을 반환한다.
- * 다음 섞기에서 "현재 적용된 색은 항상 포함"하기 위한 기준값이다.
+ * 색 섞기의 "베이스 색" 목록을 구한다.
+ * - colorMix가 적용되어 있으면 배열 순서를 그대로 유지하여 반환한다 (FIFO 교체 기준).
+ * - 단색만 적용되어 있으면 [equipped.color]를 반환한다.
+ * - 적용된 색이 없으면 빈 배열([])을 반환한다.
  */
 function getBaseMixColors() {
   const equipped = getEquippedParts();
-  if (equipped.colorMix?.colors) return [...new Set(equipped.colorMix.colors)];
+  if (equipped.colorMix?.colors) {
+    // 3색 순환 교체를 위해 Set으로 중복을 제거하지 않고 배열 순서/구성을 유지하거나 고유색 추출
+    // 단, 2색 상태([A, A, B])일 때는 고유색인 [A, B]를 반환하여 3색으로 확장되게 한다.
+    return [...new Set(equipped.colorMix.colors)];
+  }
   if (equipped.color) return [equipped.color];
   return [];
 }
@@ -581,11 +586,19 @@ export function canRemixColor(previewColor, previewPatternId = null) {
   return hasOtherColor || hasOtherPattern;
 }
 
-/** 베이스 색 + 새로 뽑은 색으로 3칸(color-a/b/c) 배열을 만든다. */
+/**
+ * 베이스 색 + 새로 뽑은 색으로 3칸(color-a/b/c) 배열을 만든다.
+ * - 0색: [newColor, newColor, newColor] (1색)
+ * - 1색 [A]: [A, A, newColor] (2색 조합)
+ * - 2색 [A, B]: [A, B, newColor] (3색 조합)
+ * - 3색 [A, B, C]: [B, C, newColor] (선입선출 방식으로 A 밀어내고 교체)
+ */
 function buildColorGroups(baseColors, newColor) {
-  if (baseColors.length === 0) return [newColor, newColor, newColor]; // 1색
-  if (baseColors.length === 1) return [baseColors[0], baseColors[0], newColor]; // 2색
-  return [baseColors[0], baseColors[1], newColor]; // 3색
+  if (baseColors.length === 0) return [newColor, newColor, newColor];
+  if (baseColors.length === 1) return [baseColors[0], baseColors[0], newColor];
+  if (baseColors.length === 2) return [baseColors[0], baseColors[1], newColor];
+  // 3색 이상인 경우: 가장 앞의 색을 제외하고 뒤의 2개 + 새 색상 결합
+  return [baseColors[baseColors.length - 2], baseColors[baseColors.length - 1], newColor];
 }
 
 /** 패턴 목록 중 무작위 하나를 선택한다. excludePatternId가 주어지면 해당 패턴을 제외하고 선택한다. */
@@ -599,14 +612,11 @@ function pickRandomPattern(excludePatternId = null) {
 }
 
 /**
- * 색 섞기를 "미리보기"한다. 현재 베이스 색(들)에 보유 색 중 무작위 하나를 더해
- * 최대 3색까지 구성하고, 패턴도 무작위로 고른다. 골드만 차감하고 저장은 하지
- * 않는다 — [확인]을 눌러야 confirmColorMix()로 확정된다.
+ * 색 섞기를 "미리보기"한다.
+ * 3색 상태에서도 제한 없이 기존 색 중 가장 오래된 색을 교체하며 새로운 3색을 생성한다.
  */
 export function previewColorMix() {
   const base = getBaseMixColors();
-  if (base.length >= 3) return { success: false, reason: 'max-colors' };
-
   const candidates = getOwnedColors().filter((color) => !base.includes(color));
   if (candidates.length === 0) return { success: false, reason: 'no-candidate' };
 
@@ -617,7 +627,7 @@ export function previewColorMix() {
 
   return {
     success: true,
-    patternId: pattern.id,
+    patternId: pattern ? pattern.id : 'pattern-01',
     colors: buildColorGroups(base, newColor),
     remainingGold: getGold(),
   };
@@ -644,7 +654,7 @@ export function previewColorRemix(previewColor, previewPatternId = null) {
 
   return {
     success: true,
-    patternId: pattern.id,
+    patternId: pattern ? pattern.id : 'pattern-01',
     colors: buildColorGroups(base, newColor),
     remainingGold: getGold(),
   };
