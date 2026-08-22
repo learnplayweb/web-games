@@ -1,6 +1,6 @@
-// v0.1.16
+// v0.1.17
 // Inventory
-// - Fix: 보유 색상이 추가로 없어도 패턴이 2개 이상이면 다시 섞기(canRemixColor) 버튼 활성화
+// - Fix: 색 섞기(canMixColor) 활성화 조건을 "골드 충족 AND 현재 적용 색상을 제외한 보유 색상 1개 이상"으로 엄격하게 일치
 // - 파츠/색상 보유·구매(일반/랜덤), 적용(equip) 관리
 // - 조합/재조합/색 섞기·다시 섞기는 미리보기+확정 2단계, 해체는 즉시 실행
 // - 색 섞기 확정(confirmColorMix) 시 새로 적용된 색상(1개) 수량 차감
@@ -551,14 +551,18 @@ export function applyColor(color) {
   };
 }
 
-/** 색 섞기 가능 여부: 골드가 섞기 비용 이상이고, 보유 색(적용 색 포함)이 2개 이상이어야 한다. */
+/**
+ * 색 섞기 가능 여부:
+ * - 골드가 색 섞기 비용(SHOP_COST.colorMix) 이상이어야 하고,
+ * - 현재 적용된 베이스 색상을 제외한 보유 색상이 1개 이상 존재해야 한다.
+ */
 export function canMixColor() {
   if (getGold() < SHOP_COST.colorMix) return false;
 
-  const pool = new Set(getOwnedColors());
-  getBaseMixColors().forEach((color) => pool.add(color));
+  const base = getBaseMixColors();
+  const candidates = getOwnedColors().filter((color) => !base.includes(color));
 
-  return pool.size >= 2;
+  return candidates.length > 0;
 }
 
 /**
