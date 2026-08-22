@@ -1,14 +1,11 @@
-// v0.1.44
+// v0.1.45
 // Character Shop
-// - Fix: 색상 적용 및 색 섞기 확정 시점에 refreshColorMixButton 호출을 연동하여 버튼 활성화/비활성화 상태 실시간 동기화
-// - 파츠/색상 구매(일반/랜덤)·적용, 조합·재조합·해체, 이름 설정/변경, 색 섞기(패턴 마블링)
-// - 조합/재조합/색 섞기는 미리보기 후 확인 시에만 확정, renderCharacterPreview는 큐로 순차 실행
-// - #character-root가 조합 단계별로 자동 정렬·확대, 모든 기능 버튼은 조건 기반 활성화
+// - Feat: 색 섞기 결과에 선형(4방향) 및 방사형(5좌표) 동적 SVG 그래디언트 렌더링 지원 추가
 
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent, embedSvgFragment, fetchSvgFragmentRoot } from '../core/svgloader.js';
-import { BODY_ASSETS, FACE_ASSETS, PATTERNS, getPart, SHOP_COST } from './characterData.js';
+import { BODY_ASSETS, FACE_ASSETS, PATTERNS, GRADIENT_PRESETS, getPart, SHOP_COST } from './characterData.js';
 import {
   getPartQuantity, purchasePart, purchaseRandomPart, getEquippedPart, applyPart,
   canCombine, previewCombine, canRecombine, previewRecombine, confirmCombine,
@@ -185,28 +182,9 @@ function prepareSimpleColorPreview(svgRoot) {
  * 색 섞기 결과(패턴 + 최대 3색)를 svgRoot 전체에 적용한다. (최적화 버전)
  * - 최상위 루트 defs에 단 1개의 160x300 pattern만 생성하여 전역 좌표계를 공유
  * - 슬롯별 중복 패턴 생성 및 불필요한 역변환 연산 제거
+ * 색 섞기 결과(패턴 또는 선형/방사형 그래디언트)를 svgRoot 전체에 적용한다.
  */
 async function applyColorMixToRoot(svgRoot, patternId, colors, instanceId) {
-  const patternDef = PATTERNS.find((pattern) => pattern.id === patternId);
-  if (!patternDef) return;
-
-  const patternRoot = await fetchSvgFragmentRoot(patternDef.assetPath);
-  let patternGroup = patternRoot.querySelector('#pattern')?.cloneNode(true);
-  if (!patternGroup && patternRoot.id === 'pattern') {
-    patternGroup = patternRoot.cloneNode(true);
-  }
-  if (!patternGroup) return;
-
-  // 3가지 색상 주입
-  PATTERN_GROUP_IDS.forEach((groupId, index) => {
-    const shape = patternGroup.querySelector(`#${groupId}`);
-    if (shape) {
-      const chosenColor = colors[index] ?? colors[colors.length - 1];
-      shape.setAttribute('fill', chosenColor);
-      shape.style.setProperty('fill', chosenColor, 'important');
-    }
-  });
-
   clearColorMixOverlay(svgRoot);
 
   // 최상위 루트 svgRoot의 직속 defs 생성/탐색
@@ -216,29 +194,106 @@ async function applyColorMixToRoot(svgRoot, patternId, colors, instanceId) {
     svgRoot.insertBefore(defs, svgRoot.firstChild);
   }
 
-  // 1개의 단일 공통 패턴 요소 생성 (160x300)
-  const patternElId = `character-color-pattern-${instanceId}`;
-  const patternEl = document.createElementNS(SVG_NS, 'pattern');
-  patternEl.setAttribute('id', patternElId);
-  patternEl.setAttribute('patternUnits', 'userSpaceOnUse');
-  patternEl.setAttribute('width', '160');
-  patternEl.setAttribute('height', '300');
-  patternEl.setAttribute('viewBox', '0 0 160 300');
-  patternEl.appendChild(patternGroup);
-  defs.appendChild(patternEl);
+  const gradientPreset = GRADIENT_PRESETS.find((g) => g.id === patternId);
 
-  // 모든 슬롯의 채우기 도형에 동일한 단일 패턴 적용
-  COLOR_TARGET_SLOT_IDS.forEach((slotId) => {
-    const slot = svgRoot.querySelector(`#${slotId}`);
-    if (!slot) return;
+  if (gradientPreset) {
+    // ------------------------------------
+    // 1) SVG 동적 그래디언트 처리 (선형 / 방사형)
+    // ------------------------------------
+    const gradElId = `character-color-pattern-${instanceId}`;
+    const tagName = gradientPreset.type === 'linear' ? 'linearGradient' : 'radialGradient';
+    const gradEl = document.createElementNS(SVG_NS, tagName);
+    gradEl.setAttribute('id', gradElId);
 
-    slot.querySelectorAll('path, circle, ellipse, polygon, rect').forEach((shape) => {
-      if (shape.getAttribute('fill') === 'none' && !shape.style.fill) return;
+    if (gradientPreset.type === 'linear') {
+      gradEl.setAttribute('x1', gradientPreset.x1);
+      gradEl.setAttribute('y1', gradientPreset.y1);
+      gradEl.setAttribute('x2', gradientPreset.x2);
+      gradEl.setAttribute('y2', gradientPreset.y2);
+    } else {
+      gradEl.setAttribute('cx', gradientPreset.cx);
+      gradEl.setAttribute('cy', gradientPreset.cy);
+      gradEl.setAttribute('r', gradientPreset.r);
+    }
 
-      shape.setAttribute('fill', `url(#${patternElId})`);
-      shape.style.setProperty('fill', `url(#${patternElId})`, 'important');
+    // 색상 Stops 생성
+    const uniqueColors = [...new Set(colors)];
+    const stops = uniqueColors.length === 2
+      ? [
+          { offset: '0%', color: uniqueColors[0] },
+          { offset: '100%', color: uniqueColors[1] },
+        ]
+      : [
+          { offset: '0%', color: colors[0] },
+          { offset: '50%', color: colors[1] },
+          { offset: '100%', color: colors[2] },
+        ];
+
+    stops.forEach(({ offset, color }) => {
+      const stop = document.createElementNS(SVG_NS, 'stop');
+      stop.setAttribute('offset', offset);
+      stop.setAttribute('stop-color', color);
+      gradEl.appendChild(stop);
     });
-  });
+
+    defs.appendChild(gradEl);
+
+    // 모든 슬롯의 채우기 도형에 그래디언트 연결
+    COLOR_TARGET_SLOT_IDS.forEach((slotId) => {
+      const slot = svgRoot.querySelector(`#${slotId}`);
+      if (!slot) return;
+
+      slot.querySelectorAll('path, circle, ellipse, polygon, rect').forEach((shape) => {
+        if (shape.getAttribute('fill') === 'none' && !shape.style.fill) return;
+        shape.setAttribute('fill', `url(#${gradElId})`);
+        shape.style.setProperty('fill', `url(#${gradElId})`, 'important');
+      });
+    });
+  } else {
+    // ------------------------------------
+    // 2) 기존 패턴 SVG 마블링 처리
+    // ------------------------------------
+    const patternDef = PATTERNS.find((pattern) => pattern.id === patternId);
+    if (!patternDef) return;
+
+    const patternRoot = await fetchSvgFragmentRoot(patternDef.assetPath);
+    let patternGroup = patternRoot.querySelector('#pattern')?.cloneNode(true);
+    if (!patternGroup && patternRoot.id === 'pattern') {
+      patternGroup = patternRoot.cloneNode(true);
+    }
+    if (!patternGroup) return;
+
+    // 3가지 색상 주입
+    PATTERN_GROUP_IDS.forEach((groupId, index) => {
+      const shape = patternGroup.querySelector(`#${groupId}`);
+      if (shape) {
+        const chosenColor = colors[index] ?? colors[colors.length - 1];
+        shape.setAttribute('fill', chosenColor);
+        shape.style.setProperty('fill', chosenColor, 'important');
+      }
+    });
+
+    const patternElId = `character-color-pattern-${instanceId}`;
+    const patternEl = document.createElementNS(SVG_NS, 'pattern');
+    patternEl.setAttribute('id', patternElId);
+    patternEl.setAttribute('patternUnits', 'userSpaceOnUse');
+    patternEl.setAttribute('width', '160');
+    patternEl.setAttribute('height', '300');
+    patternEl.setAttribute('viewBox', '0 0 160 300');
+    patternEl.appendChild(patternGroup);
+    defs.appendChild(patternEl);
+
+    COLOR_TARGET_SLOT_IDS.forEach((slotId) => {
+      const slot = svgRoot.querySelector(`#${slotId}`);
+      if (!slot) return;
+
+      slot.querySelectorAll('path, circle, ellipse, polygon, rect').forEach((shape) => {
+        if (shape.getAttribute('fill') === 'none' && !shape.style.fill) return;
+        shape.setAttribute('fill', `url(#${patternElId})`);
+        shape.style.setProperty('fill', `url(#${patternElId})`, 'important');
+      });
+    });
+  }
 }
 
 let renderChain = Promise.resolve();

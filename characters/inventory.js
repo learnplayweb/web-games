@@ -1,5 +1,6 @@
-// v0.1.18
+// v0.1.19
 // Inventory
+// - Feat: 색 섞기/다시 섞기 시 패턴 및 그래디언트를 아우르는 통합 추첨(pickRandomMixStyle) 연동
 // - Fix: 3색 혼합 상태에서도 선입선출(FIFO) 방식으로 색 섞기 지속 지원 (최대 색상 도달 제한 제거)
 // - 파츠/색상 보유·구매(일반/랜덤), 적용(equip) 관리
 // - 조합/재조합/색 섞기·다시 섞기는 미리보기+확정 2단계, 해체는 즉시 실행
@@ -72,6 +73,7 @@ import {
   getEquippedParts, setEquippedParts, getCharacterName, setCharacterName,
   getCharacterColorSave, setCharacterColorSave,
 } from '../core/saveManager.js';
+import { pickRandomMixStyle } from './characterData.js';
 
 /** 기본 보유 수량만 채운 인벤토리를 만든다. (현재는 기본 보유 파츠 없음) */
 function buildDefaultInventory() {
@@ -623,11 +625,11 @@ export function previewColorMix() {
   if (!spendGold(SHOP_COST.colorMix)) return { success: false, reason: 'insufficient-gold' };
 
   const newColor = candidates[Math.floor(Math.random() * candidates.length)];
-  const pattern = pickRandomPattern();
+  const styleId = pickRandomMixStyle();
 
   return {
     success: true,
-    patternId: pattern ? pattern.id : 'pattern-01',
+    patternId: styleId, // 패턴 및 그래디언트 공통 ID
     colors: buildColorGroups(base, newColor),
     remainingGold: getGold(),
   };
@@ -641,8 +643,7 @@ export function previewColorRemix(previewColor, previewPatternId = null) {
   const base = getBaseMixColors();
   const excluded = [...base, previewColor];
   let candidates = getOwnedColors().filter((color) => !excluded.includes(color));
-  
-  // 만약 남은 다른 보유 색이 없다면 현재 previewColor 유지 후 패턴만 변경
+
   if (candidates.length === 0) {
     candidates = [previewColor];
   }
@@ -650,11 +651,11 @@ export function previewColorRemix(previewColor, previewPatternId = null) {
   if (!spendGold(SHOP_COST.colorRemix)) return { success: false, reason: 'insufficient-gold' };
 
   const newColor = candidates[Math.floor(Math.random() * candidates.length)];
-  const pattern = pickRandomPattern(previewPatternId);
+  const styleId = pickRandomMixStyle(previewPatternId);
 
   return {
     success: true,
-    patternId: pattern ? pattern.id : 'pattern-01',
+    patternId: styleId,
     colors: buildColorGroups(base, newColor),
     remainingGold: getGold(),
   };
