@@ -1,7 +1,8 @@
-// v0.1.13
+// v0.1.14
 // Inventory
 // - 파츠/색상 보유·구매(일반/랜덤), 적용(equip) 관리
 // - 조합/재조합/색 섞기·다시 섞기는 미리보기+확정 2단계, 해체는 즉시 실행
+// - 색 섞기 확정(confirmColorMix) 시 새로 적용된 색상(1개) 수량 차감
 // - 캐릭터 저장 가능 여부·이름 변경 가능 여부 판단
 //
 // Public API
@@ -630,8 +631,7 @@ export function previewColorRemix(previewColor) {
 /**
  * 색 섞기 미리보기를 확정한다. [확인] 버튼을 눌렀을 때만 호출되므로, 그 전까지
  * (다시 섞기를 몇 번 반복하든) 저장 상태는 전혀 바뀌지 않는다. 단색 적용과는
- * 배타적이므로 확정 시 color를 초기화한다. 색상 보유 수량은 소비하지 않는다
- * (색 섞기 비용은 미리보기/다시 섞기 단계의 골드로만 지불한다).
+ * 배타적이므로 확정 시 color를 초기화한다. 새로 추가된 색상(마지막 색상)의 보유 수량을 1 감소시킨다.
  */
 export function confirmColorMix(patternId, colors) {
   const equipped = getEquippedParts();
@@ -639,5 +639,16 @@ export function confirmColorMix(patternId, colors) {
   equipped.color = null;
   setEquippedParts(equipped);
 
-  return { success: true, patternId, colors };
+  // 새로 조합에 사용된 색상(배열의 마지막 색상) 1개 차감
+  const newColor = colors[colors.length - 1];
+  if (newColor) {
+    consumeColor(newColor);
+  }
+
+  return {
+    success: true,
+    patternId,
+    colors,
+    remainingQuantity: newColor ? getColorQuantity(newColor) : 0,
+  };
 }
