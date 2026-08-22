@@ -1,6 +1,6 @@
-// v0.1.41
-// - Fix: 색 섞기(패턴 마블링) 렌더링 방식 개선 (clipPath 중첩 충돌 제거 및 patternTransform 좌표 역보정)
-// - Fix: 최상위 defs 탐색 경로 보정으로 머리/상체/하체 전체에 160×300 단일 패턴 1:1 연속 렌더링
+// v0.1.42
+// Character Shop
+// - Refactor: applyColorMixToRoot 최적화 (단일 전역 SVG pattern 재사용 및 불필요한 슬롯별 역변환 연산 제거)
 // - 파츠/색상 구매(일반/랜덤)·적용, 조합·재조합·해체, 이름 설정/변경, 색 섞기(패턴 마블링)
 // - 조합/재조합/색 섞기는 미리보기 후 확인 시에만 확정, renderCharacterPreview는 큐로 순차 실행
 // - #character-root가 조합 단계별로 자동 정렬·확대, 모든 기능 버튼은 조건 기반 활성화
@@ -182,7 +182,9 @@ function prepareSimpleColorPreview(svgRoot) {
 }
 
 /**
- * 색 섞기 결과(패턴 + 최대 3색)를 svgRoot 전체에 적용한다.
+ * 색 섞기 결과(패턴 + 최대 3색)를 svgRoot 전체에 적용한다. (최적화 버전)
+ * - 최상위 루트 defs에 단 1개의 160x300 pattern만 생성하여 전역 좌표계를 공유
+ * - 슬롯별 중복 패턴 생성 및 불필요한 역변환 연산 제거
  */
 async function applyColorMixToRoot(svgRoot, patternId, colors, instanceId) {
   const patternDef = PATTERNS.find((pattern) => pattern.id === patternId);
@@ -207,41 +209,29 @@ async function applyColorMixToRoot(svgRoot, patternId, colors, instanceId) {
 
   clearColorMixOverlay(svgRoot);
 
-  // [핵심 수정] 자식 슬롯 내부의 defs가 아니라, 최상위 루트 svgRoot의 직속 defs를 찾거나 생성
+  // 최상위 루트 svgRoot의 직속 defs 생성/탐색
   let defs = Array.from(svgRoot.children).find((el) => el.tagName.toLowerCase() === 'defs');
   if (!defs) {
     defs = document.createElementNS(SVG_NS, 'defs');
     svgRoot.insertBefore(defs, svgRoot.firstChild);
   }
 
-  // 슬롯별(head, body, leg) 수학적 역변환 행렬 적용
+  // 1개의 단일 공통 패턴 요소 생성 (160x300)
+  const patternElId = `character-color-pattern-${instanceId}`;
+  const patternEl = document.createElementNS(SVG_NS, 'pattern');
+  patternEl.setAttribute('id', patternElId);
+  patternEl.setAttribute('patternUnits', 'userSpaceOnUse');
+  patternEl.setAttribute('width', '160');
+  patternEl.setAttribute('height', '300');
+  patternEl.setAttribute('viewBox', '0 0 160 300');
+  patternEl.appendChild(patternGroup);
+  defs.appendChild(patternEl);
+
+  // 모든 슬롯의 채우기 도형에 동일한 단일 패턴 적용
   COLOR_TARGET_SLOT_IDS.forEach((slotId) => {
     const slot = svgRoot.querySelector(`#${slotId}`);
     if (!slot) return;
 
-    const x = Number(slot.getAttribute('x')) || 0;
-    const y = Number(slot.getAttribute('y')) || 0;
-    const width = Number(slot.getAttribute('width')) || 160;
-
-    // 슬롯 축소 배율의 역수 (160/width)
-    const scaleFactor = 160 / width;
-    const tx = -x * scaleFactor;
-    const ty = -y * scaleFactor;
-
-    const patternElId = `character-color-pattern-${slotId}-${instanceId}`;
-
-    const patternEl = document.createElementNS(SVG_NS, 'pattern');
-    patternEl.setAttribute('id', patternElId);
-    patternEl.setAttribute('patternUnits', 'userSpaceOnUse');
-    patternEl.setAttribute('width', '160');
-    patternEl.setAttribute('height', '300');
-    patternEl.setAttribute('viewBox', '0 0 160 300');
-    // 정확한 오프셋 및 스케일 역변환
-    patternEl.setAttribute('patternTransform', `translate(${tx}, ${ty}) scale(${scaleFactor})`);
-    patternEl.appendChild(patternGroup.cloneNode(true));
-    defs.appendChild(patternEl);
-
-    // 슬롯 내부의 채우는 도형에 해당 패턴 적용
     slot.querySelectorAll('path, circle, ellipse, polygon, rect').forEach((shape) => {
       if (shape.getAttribute('fill') === 'none' && !shape.style.fill) return;
 

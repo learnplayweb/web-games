@@ -27,27 +27,11 @@ function 을를(이름) {
 
 
 # 색상 시스템 
-[완료] 구입 / 랜덤구입 / 적용 / 색 섞기
+[완료] 구입 / 랜덤구입 / 적용 / 색 섞기 / 다시 섞기
+[보류] 색 분리
 
 
-id-stamping은 렌더링된 각 .fill-part DOM 인스턴스에 런타임에서 고유 ID를 부여하는 방식으로 구현
-
-----
-**필수 (색 렌더링 핵심 로직):**
-1. `characters/character-shop.js` — `applyColorMixToRoot`, `clearColorMixOverlay`, `rescopeColorInstanceIds`, `stampFillPartId`, `renderCharacterPreviewOnce`, `openColorMixModal` 등 전체 렌더/색 로직
-2. `characters/character-shop.html` — 슬롯 구조(`#character-root`, `#head-part-slot` 등 x/y/width/viewBox 값)
-3. `characters/inventory.js` — `previewColorMix`/`confirmColorMix` 등 색 섞기 데이터 로직
-4. `characters/characterData.js` — `PATTERNS`, `SHOP_COST` 등 상수 정의
-
-**중요 (직접 관련된 헬퍼/에셋):**
-5. `core/svgloader.js` — `fetchSvgFragmentRoot`, `embedSvgFragment` 구현
-
-7. `characters/assets/parts/p-circle.svg` (또는 현재 테스트 중인 아무 파츠 SVG 1개) — `.fill-part`/`fill:none` 구조 재확인용
-
-**참고용 (선택):**
-8. `core/saveManager.js` — `character_equip_save`의 `colorMix` 저장/기본값
-9. 브라우저 콘솔 에러 메시지나 스크린샷이 있다면 함께 — 어디서 실패하는지 훨씬 빨리 좁혀집니다
-----
+색 섞기 시 보유 수량 반영
 
 
 그래디언트 구현
@@ -60,58 +44,6 @@ id-stamping은 렌더링된 각 .fill-part DOM 인스턴스에 런타임에서 �
     - js가 색상, 방향 동적 생성
 
 
-2. 색 섞기 기능 (파츠 조합과 같은 논리)
-- 최대 3색 (현재 적용된 색 기본 선택 + 조합처럼 보유한 색 중 랜덤 선택)
- a색 적용 중 색 섞기> a+랜덤 선택된 b, a+b 적용 중 색 섞기 > a+b+랜덤 선택된 c
-- 패턴 및 크래디언트 중 랜덤 선택, 그 위에 파츠들을 클리핑(mask/clipPath): 패턴은 색 담당
-
-* 캐릭터 전체(머리/상체/하체)에 하나의 패턴이 연속적으로 적용되도록 한다.
-* 파츠별로 독립 패턴을 적용하지 않는다.
-
-### 5. 다시 섞기 기능 구현
-
-내용
-
-새로운 패턴과 색 조합을 생성한다.
-
-세부 조건
-
-* 💎30 차감한다.
-* 현재 적용 색은 유지한다.
-* 보유 색 중 다른 색을 다시 랜덤 선택한다.
-* 패턴도 다시 랜덤 선택한다.
-* 새로운 미리보기만 생성한다.
-* 실제 저장 데이터와 플레이스홀더는 변경하지 않는다.
-
-
-
----
-
-구현 원칙
-
-* 기존 조합 모달 구조를 재사용한다.
-* 기존 캐릭터 렌더링 구조를 최대한 유지한다.
-* 색상 데이터와 미리보기 데이터를 분리하여 관리한다.
-* 실제 저장은 확인 버튼에서만 수행한다.
-* 패턴 SVG는 재사용하며 내부 데이터만 변경한다.
-* 요구사항에 없는 색상 삭제, 색상 고정, 수동 색 선택 기능은 구현하지 않는다.
-
----
-
-작업 범위
-
-변경이 필요한 파일만 수정한다.
-
------
-
-# 색 분리
-색 분리 기능 (파츠 해체와 같은 논리)
-- 버튼 만들기 (색 섞기 아래에) 💎50
-- 버튼은 기본 비활성, 골드 50을 보유하고 섞인 색이 적용돼 있어야 활성화 
-- 색 분리 누르면 나중에 섞인 색부터 빠짐
-
-
----
 
 
 # 꾸밈 시스템 / 효과(연출) 구입으로 변경?
