@@ -1,11 +1,11 @@
-// v0.1.45
+// v0.1.46
 // Character Shop
-// - Feat: 색 섞기 결과에 선형(4방향) 및 방사형(5좌표) 동적 SVG 그래디언트 렌더링 지원 추가
-
+// - Refactor: 렌더링 세부 로직을 characterRenderer.js 모듈로 완전히 분리하고 API를 통해 위임
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
-import { replaceSvgContent, embedSvgFragment, fetchSvgFragmentRoot } from '../core/svgloader.js';
-import { BODY_ASSETS, FACE_ASSETS, PATTERNS, GRADIENT_PRESETS, getPart, SHOP_COST } from './characterData.js';
+import { replaceSvgContent } from '../core/svgloader.js';
+import { getPart, SHOP_COST } from './characterData.js';
+import { renderCharacterSvg } from './characterRenderer.js';
 import {
   getPartQuantity, purchasePart, purchaseRandomPart, getEquippedPart, applyPart,
   canCombine, previewCombine, canRecombine, previewRecombine, confirmCombine,
@@ -18,284 +18,7 @@ import { getGold, getCharacterName, setCharacterName } from '../core/saveManager
 
 createHeader();
 
-// ===========================
-// 캐릭터 placeholder 렌더링
-// ===========================
 const characterPlaceholder = document.querySelector('.character-placeholder');
-const headOutlinePath = characterPlaceholder.querySelector('path');
-const placeholderText = characterPlaceholder.querySelector('text');
-const characterRoot = document.getElementById('character-root');
-const headPartSlot = document.getElementById('head-part-slot');
-const faceEyesSlot = document.getElementById('face-eyes-slot');
-const faceMouthSlot = document.getElementById('face-mouth-slot');
-const bodyPartSlot = document.getElementById('body-part-slot');
-const leftArmSlot = document.getElementById('left-arm-slot');
-const rightArmSlot = document.getElementById('right-arm-slot');
-const legPartSlot = document.getElementById('leg-part-slot');
-const leftLegSlot = document.getElementById('left-leg-slot');
-const rightLegSlot = document.getElementById('right-leg-slot');
-
-function getViewBoxHeight(svgElement) {
-  const viewBox = svgElement.getAttribute('viewBox') ?? '';
-  return Number(viewBox.trim().split(/\s+/)[3] ?? 0);
-}
-
-function computeCharacterRootTransform(hasBody, hasLegs, viewBoxHeight) {
-  const centerX = Number(headPartSlot.getAttribute('x')) + Number(headPartSlot.getAttribute('width')) / 2;
-
-  const top = Number(headPartSlot.getAttribute('y'));
-  let bottomSlot = headPartSlot;
-  if (hasBody) bottomSlot = bodyPartSlot;
-  if (hasLegs) bottomSlot = legPartSlot;
-  const bottom = Number(bottomSlot.getAttribute('y')) + Number(bottomSlot.getAttribute('height'));
-
-  const referenceBottom = Number(legPartSlot.getAttribute('y')) + Number(legPartSlot.getAttribute('height'));
-  const referenceHeight = referenceBottom - top;
-  const scale = referenceHeight / (bottom - top);
-
-  const offsetX = centerX * (1 - scale);
-  const offsetY = (viewBoxHeight / 2) - ((top + bottom) / 2) * scale;
-
-  return `translate(${offsetX}, ${offsetY}) scale(${scale})`;
-}
-
-function applyCharacterRootTransform(rootElement, hasBody, hasLegs, viewBoxHeight) {
-  rootElement.setAttribute('transform', computeCharacterRootTransform(hasBody, hasLegs, viewBoxHeight));
-}
-
-const COLOR_TARGET_SLOT_IDS = ['head-part-slot', 'body-part-slot', 'leg-part-slot'];
-
-function isFillLayer(shape) {
-  const effectiveFill = shape.style.fill || shape.getAttribute('fill');
-  return Boolean(effectiveFill) && effectiveFill !== 'none';
-}
-
-function applyColorTint(svgRoot, color) {
-  COLOR_TARGET_SLOT_IDS.forEach((slotId) => {
-    const slot = svgRoot.querySelector(`#${slotId}`);
-    if (!slot) return;
-
-    slot.querySelectorAll('path, circle, ellipse, polygon, rect').forEach((shape) => {
-      if (shape.getAttribute('fill') === 'none' && !shape.style.fill) return;
-
-      shape.setAttribute('fill', color);
-      shape.style.setProperty('fill', color, 'important');
-    });
-  });
-}
-
-const FILL_PART_ID_BY_SLOT = {
-  'head-part-slot': 'head-fill-part',
-  'body-part-slot': 'body-fill-part',
-  'leg-part-slot': 'leg-fill-part',
-};
-
-let colorInstanceCounter = 0;
-function nextColorInstanceId() {
-  colorInstanceCounter += 1;
-  return `ci${colorInstanceCounter}`;
-}
-
-function stampFillPartId(svgRoot, slotId, instanceId) {
-  const slot = svgRoot.querySelector(`#${slotId}`);
-  if (!slot) return;
-
-  const shapes = Array.from(slot.querySelectorAll('path, circle, ellipse, polygon, rect'));
-  const fillPart = shapes.find((shape) => shape.id.includes('fill-part'))
-    || shapes.find(isFillLayer)
-    || shapes.find((shape) => shape.getAttribute('fill') !== 'none');
-
-  if (fillPart) fillPart.id = `${FILL_PART_ID_BY_SLOT[slotId]}-${instanceId}`;
-}
-
-function stampAllFillPartIds(svgRoot, instanceId) {
-  Object.keys(FILL_PART_ID_BY_SLOT).forEach((slotId) => stampFillPartId(svgRoot, slotId, instanceId));
-}
-
-function getSlotLocalTransform(slot) {
-  const x = Number(slot.getAttribute('x'));
-  const y = Number(slot.getAttribute('y'));
-  const width = Number(slot.getAttribute('width'));
-  return `translate(${x}, ${y}) scale(${width / 160})`;
-}
-
-const SVG_NS = 'http://www.w3.org/2000/svg';
-const PATTERN_GROUP_IDS = ['pattern-a', 'pattern-b', 'pattern-c'];
-
-function clearColorMixOverlay(svgRoot) {
-  svgRoot.querySelectorAll('[id^="character-color-rect-"]').forEach((el) => el.remove());
-  // 모든 defs(루트 및 슬롯 내부)에서 패턴 정리
-  svgRoot.querySelectorAll('defs').forEach((defs) => {
-    defs.querySelectorAll('[id^="character-color-clip-"], [id^="character-color-pattern-"]').forEach((el) => el.remove());
-  });
-
-  COLOR_TARGET_SLOT_IDS.forEach((slotId) => {
-    const slot = svgRoot.querySelector(`#${slotId}`);
-    if (!slot) return;
-    slot.querySelectorAll('path, circle, ellipse, polygon, rect').forEach((shape) => {
-      if (shape.style.fill === 'none') {
-        shape.style.removeProperty('fill');
-      }
-    });
-  });
-}
-
-function rescopeColorInstanceIds(svgRoot) {
-  const scopedEls = svgRoot.querySelectorAll(
-    '[id^="head-fill-part-"], [id^="body-fill-part-"], [id^="leg-fill-part-"], '
-    + '[id^="character-color-clip-"], [id^="character-color-pattern-"], [id^="character-color-rect-"]',
-  );
-  if (scopedEls.length === 0) return;
-
-  const newInstanceId = nextColorInstanceId();
-  const idMap = new Map();
-  scopedEls.forEach((el) => {
-    const newId = `${el.id.replace(/-[^-]+$/, '')}-${newInstanceId}`;
-    idMap.set(el.id, newId);
-    el.id = newId;
-  });
-
-  svgRoot.querySelectorAll('use[href^="#"]').forEach((use) => {
-    const target = idMap.get(use.getAttribute('href').slice(1));
-    if (target) use.setAttribute('href', `#${target}`);
-  });
-
-  svgRoot.querySelectorAll('[fill^="url(#"], [clip-path^="url(#"]').forEach((el) => {
-    ['fill', 'clip-path'].forEach((attr) => {
-      const value = el.getAttribute(attr);
-      if (!value?.startsWith('url(#')) return;
-      const target = idMap.get(value.slice(5, -1));
-      if (target) el.setAttribute(attr, `url(#${target})`);
-    });
-  });
-}
-
-function prepareSimpleColorPreview(svgRoot) {
-  clearColorMixOverlay(svgRoot);
-  svgRoot.querySelectorAll('[id^="head-fill-part-"], [id^="body-fill-part-"], [id^="leg-fill-part-"]').forEach((el) => {
-    el.removeAttribute('id');
-    el.style.removeProperty('fill');
-  });
-}
-
-/**
- * 색 섞기 결과(패턴 + 최대 3색)를 svgRoot 전체에 적용한다. (최적화 버전)
- * - 최상위 루트 defs에 단 1개의 160x300 pattern만 생성하여 전역 좌표계를 공유
- * - 슬롯별 중복 패턴 생성 및 불필요한 역변환 연산 제거
- * 색 섞기 결과(패턴 또는 선형/방사형 그래디언트)를 svgRoot 전체에 적용한다.
- */
-async function applyColorMixToRoot(svgRoot, patternId, colors, instanceId) {
-  clearColorMixOverlay(svgRoot);
-
-  // 최상위 루트 svgRoot의 직속 defs 생성/탐색
-  let defs = Array.from(svgRoot.children).find((el) => el.tagName.toLowerCase() === 'defs');
-  if (!defs) {
-    defs = document.createElementNS(SVG_NS, 'defs');
-    svgRoot.insertBefore(defs, svgRoot.firstChild);
-  }
-
-  const gradientPreset = GRADIENT_PRESETS.find((g) => g.id === patternId);
-
-  if (gradientPreset) {
-    // ------------------------------------
-    // 1) SVG 동적 그래디언트 처리 (선형 / 방사형)
-    // ------------------------------------
-    const gradElId = `character-color-pattern-${instanceId}`;
-    const tagName = gradientPreset.type === 'linear' ? 'linearGradient' : 'radialGradient';
-    const gradEl = document.createElementNS(SVG_NS, tagName);
-    gradEl.setAttribute('id', gradElId);
-
-    if (gradientPreset.type === 'linear') {
-      gradEl.setAttribute('x1', gradientPreset.x1);
-      gradEl.setAttribute('y1', gradientPreset.y1);
-      gradEl.setAttribute('x2', gradientPreset.x2);
-      gradEl.setAttribute('y2', gradientPreset.y2);
-    } else {
-      gradEl.setAttribute('cx', gradientPreset.cx);
-      gradEl.setAttribute('cy', gradientPreset.cy);
-      gradEl.setAttribute('r', gradientPreset.r);
-    }
-
-    // 색상 Stops 생성
-    const uniqueColors = [...new Set(colors)];
-    const stops = uniqueColors.length === 2
-      ? [
-          { offset: '0%', color: uniqueColors[0] },
-          { offset: '100%', color: uniqueColors[1] },
-        ]
-      : [
-          { offset: '0%', color: colors[0] },
-          { offset: '50%', color: colors[1] },
-          { offset: '100%', color: colors[2] },
-        ];
-
-    stops.forEach(({ offset, color }) => {
-      const stop = document.createElementNS(SVG_NS, 'stop');
-      stop.setAttribute('offset', offset);
-      stop.setAttribute('stop-color', color);
-      gradEl.appendChild(stop);
-    });
-
-    defs.appendChild(gradEl);
-
-    // 모든 슬롯의 채우기 도형에 그래디언트 연결
-    COLOR_TARGET_SLOT_IDS.forEach((slotId) => {
-      const slot = svgRoot.querySelector(`#${slotId}`);
-      if (!slot) return;
-
-      slot.querySelectorAll('path, circle, ellipse, polygon, rect').forEach((shape) => {
-        if (shape.getAttribute('fill') === 'none' && !shape.style.fill) return;
-        shape.setAttribute('fill', `url(#${gradElId})`);
-        shape.style.setProperty('fill', `url(#${gradElId})`, 'important');
-      });
-    });
-  } else {
-    // ------------------------------------
-    // 2) 기존 패턴 SVG 마블링 처리
-    // ------------------------------------
-    const patternDef = PATTERNS.find((pattern) => pattern.id === patternId);
-    if (!patternDef) return;
-
-    const patternRoot = await fetchSvgFragmentRoot(patternDef.assetPath);
-    let patternGroup = patternRoot.querySelector('#pattern')?.cloneNode(true);
-    if (!patternGroup && patternRoot.id === 'pattern') {
-      patternGroup = patternRoot.cloneNode(true);
-    }
-    if (!patternGroup) return;
-
-    // 3가지 색상 주입
-    PATTERN_GROUP_IDS.forEach((groupId, index) => {
-      const shape = patternGroup.querySelector(`#${groupId}`);
-      if (shape) {
-        const chosenColor = colors[index] ?? colors[colors.length - 1];
-        shape.setAttribute('fill', chosenColor);
-        shape.style.setProperty('fill', chosenColor, 'important');
-      }
-    });
-
-    const patternElId = `character-color-pattern-${instanceId}`;
-    const patternEl = document.createElementNS(SVG_NS, 'pattern');
-    patternEl.setAttribute('id', patternElId);
-    patternEl.setAttribute('patternUnits', 'userSpaceOnUse');
-    patternEl.setAttribute('width', '160');
-    patternEl.setAttribute('height', '300');
-    patternEl.setAttribute('viewBox', '0 0 160 300');
-    patternEl.appendChild(patternGroup);
-    defs.appendChild(patternEl);
-
-    COLOR_TARGET_SLOT_IDS.forEach((slotId) => {
-      const slot = svgRoot.querySelector(`#${slotId}`);
-      if (!slot) return;
-
-      slot.querySelectorAll('path, circle, ellipse, polygon, rect').forEach((shape) => {
-        if (shape.getAttribute('fill') === 'none' && !shape.style.fill) return;
-        shape.setAttribute('fill', `url(#${patternElId})`);
-        shape.style.setProperty('fill', `url(#${patternElId})`, 'important');
-      });
-    });
-  }
-}
-
 let renderChain = Promise.resolve();
 
 function renderCharacterPreview() {
@@ -304,72 +27,14 @@ function renderCharacterPreview() {
 }
 
 async function renderCharacterPreviewOnce() {
-  const equippedHeadId = getEquippedPart('head');
-
-  if (!equippedHeadId) {
-    headOutlinePath.style.display = 'none';
-    headPartSlot.replaceChildren();
-    faceEyesSlot.replaceChildren();
-    faceMouthSlot.replaceChildren();
-    bodyPartSlot.replaceChildren();
-    leftArmSlot.replaceChildren();
-    rightArmSlot.replaceChildren();
-    legPartSlot.replaceChildren();
-    leftLegSlot.replaceChildren();
-    rightLegSlot.replaceChildren();
-    placeholderText.style.display = '';
-    return;
-  }
-
-  const part = getPart(equippedHeadId);
-  headOutlinePath.style.display = 'none';
-  placeholderText.style.display = 'none';
-
-  const pendingEmbeds = [
-    embedSvgFragment(headPartSlot, part.assetPath),
-    embedSvgFragment(faceEyesSlot, FACE_ASSETS.eyes.idle),
-    embedSvgFragment(faceMouthSlot, FACE_ASSETS.mouth.idle),
-  ];
-
-  const equippedBodyId = getEquippedPart('body');
-  if (equippedBodyId) {
-    pendingEmbeds.push(embedSvgFragment(bodyPartSlot, getPart(equippedBodyId).assetPath));
-    pendingEmbeds.push(embedSvgFragment(leftArmSlot, BODY_ASSETS.leftArm));
-    pendingEmbeds.push(embedSvgFragment(rightArmSlot, BODY_ASSETS.rightArm));
-  } else {
-    bodyPartSlot.replaceChildren();
-    leftArmSlot.replaceChildren();
-    rightArmSlot.replaceChildren();
-  }
-
-  const equippedLegsId = getEquippedPart('legs');
-  if (equippedLegsId) {
-    pendingEmbeds.push(embedSvgFragment(legPartSlot, getPart(equippedLegsId).assetPath));
-    pendingEmbeds.push(embedSvgFragment(leftLegSlot, BODY_ASSETS.leftLeg));
-    pendingEmbeds.push(embedSvgFragment(rightLegSlot, BODY_ASSETS.rightLeg));
-  } else {
-    legPartSlot.replaceChildren();
-    leftLegSlot.replaceChildren();
-    rightLegSlot.replaceChildren();
-  }
-
-  applyCharacterRootTransform(characterRoot, Boolean(equippedBodyId), Boolean(equippedLegsId), getViewBoxHeight(characterPlaceholder));
-
-  await Promise.all(pendingEmbeds);
-
-  const instanceId = nextColorInstanceId();
-  stampFillPartId(characterPlaceholder, 'head-part-slot', instanceId);
-  if (equippedBodyId) stampFillPartId(characterPlaceholder, 'body-part-slot', instanceId);
-  if (equippedLegsId) stampFillPartId(characterPlaceholder, 'leg-part-slot', instanceId);
-
-  const equippedColorMix = getEquippedColorMix();
-  const equippedColor = getEquippedColor();
-  if (equippedColorMix) {
-    await applyColorMixToRoot(characterPlaceholder, equippedColorMix.patternId, equippedColorMix.colors, instanceId);
-  } else {
-    clearColorMixOverlay(characterPlaceholder);
-    if (equippedColor) applyColorTint(characterPlaceholder, equippedColor);
-  }
+  const config = {
+    head: getEquippedPart('head'),
+    body: getEquippedPart('body'),
+    legs: getEquippedPart('legs'),
+    color: getEquippedColor(),
+    colorMix: getEquippedColorMix(),
+  };
+  await renderCharacterSvg(characterPlaceholder, config);
 }
 
 renderCharacterPreview();
@@ -434,16 +99,11 @@ if (savedCharacterName) {
 }
 
 // ===========================
-// 파츠 슬롯 아이콘 인라인 로딩
+// 파츠 슬롯 아이콘 로딩 & 상태 갱신
 // ===========================
 const PART_ID_BY_SLOT = {
-  1: 'circle',
-  2: 'triangle-up',
-  3: 'square',
-  4: 'diamond',
-  5: 'star',
-  6: 'lens',
-  7: 'triangle-down',
+  1: 'circle', 2: 'triangle-up', 3: 'square', 4: 'diamond',
+  5: 'star', 6: 'lens', 7: 'triangle-down',
 };
 
 document.querySelectorAll('.part-slot[data-part]').forEach((slot) => {
@@ -458,9 +118,6 @@ document.querySelectorAll('.part-slot[data-part]').forEach((slot) => {
   replaceSvgContent(svgElement, part.assetPath);
 });
 
-// ===========================
-// 파츠 슬롯 보유 수량 배지 갱신
-// ===========================
 function renderBadgeContent(badge, quantity) {
   const displayNumber = quantity > 99 ? '99' : String(quantity);
   const numberSpan = document.createElement('span');
@@ -509,70 +166,42 @@ refreshAllPartSlots();
 // 조합 / 해체 / 저장 / 색 섞기 버튼
 // ===========================
 const combineButton = document.getElementById('btn-combine');
-
-function refreshCombineButton() {
-  combineButton.disabled = !canCombine();
-}
-
+function refreshCombineButton() { combineButton.disabled = !canCombine(); }
 combineButton.addEventListener('click', () => {
   const preview = previewCombine();
   if (!preview.success) return;
 
   updateHeaderGold(preview.remainingGold);
-  refreshCombineButton();
-  refreshDismantleButton();
-  refreshRenameButton();
-  refreshColorMixButton();
+  refreshCombineButton(); refreshDismantleButton(); refreshRenameButton(); refreshColorMixButton();
   openCombinePreviewModal(preview.category, preview.id);
 });
-
 refreshCombineButton();
 
 const dismantleButton = document.getElementById('btn-dismantle');
-
-function refreshDismantleButton() {
-  dismantleButton.disabled = !canDismantle();
-}
-
+function refreshDismantleButton() { dismantleButton.disabled = !canDismantle(); }
 dismantleButton.addEventListener('click', async () => {
   const result = dismantleCharacter();
   if (!result.success) return;
 
   updateHeaderGold(result.remainingGold);
-  refreshAllPartSlots();
-  refreshCombineButton();
-  refreshDismantleButton();
-  refreshRenameButton();
-  refreshColorMixButton();
+  refreshAllPartSlots(); refreshCombineButton(); refreshDismantleButton();
+  refreshRenameButton(); refreshColorMixButton();
   await renderCharacterPreview();
   showDismantleResult();
 });
-
 refreshDismantleButton();
 
 const renameButton = document.getElementById('btn-rename');
-
-function refreshRenameButton() {
-  renameButton.disabled = !canRename();
-}
-
+function refreshRenameButton() { renameButton.disabled = !canRename(); }
 renameButton.addEventListener('click', () => openNameModal('rename'));
 refreshRenameButton();
 
 const saveButton = document.getElementById('btn-save');
-
-function refreshSaveButton() {
-  saveButton.disabled = !canSaveCharacter();
-}
-
+function refreshSaveButton() { saveButton.disabled = !canSaveCharacter(); }
 refreshSaveButton();
 
 const colorMixButton = document.querySelector('.color-mix-btn');
-
-function refreshColorMixButton() {
-  colorMixButton.disabled = !canMixColor();
-}
-
+function refreshColorMixButton() { colorMixButton.disabled = !canMixColor(); }
 colorMixButton.addEventListener('click', () => {
   const preview = previewColorMix();
   if (!preview.success) return;
@@ -607,15 +236,12 @@ function createPricedButton(variantClass, label, price, disabled = false) {
   button.type = 'button';
   button.className = `modal-card__btn modal-card__btn--priced ${variantClass}`;
   button.disabled = disabled;
-
   const labelSpan = document.createElement('span');
   labelSpan.className = 'modal-card__btn-label';
   labelSpan.textContent = label;
-
   const priceSpan = document.createElement('span');
   priceSpan.className = 'modal-card__btn-price';
   priceSpan.textContent = price;
-
   button.append(labelSpan, priceSpan);
   return button;
 }
@@ -631,7 +257,6 @@ function clearResultTimers() {
   if (reopenTimerId) { clearTimeout(reopenTimerId); reopenTimerId = null; }
   if (autoCloseTimerId) { clearTimeout(autoCloseTimerId); autoCloseTimerId = null; }
 }
-
 function closePartModal() {
   clearResultTimers();
   partModal.classList.add('modal-overlay--hidden');
@@ -640,7 +265,6 @@ function closePartModal() {
 function spawnResultParticles(container) {
   const layer = document.createElement('div');
   layer.className = 'part-modal__particles';
-
   const count = 6 + Math.floor(Math.random() * 5);
   for (let i = 0; i < count; i += 1) {
     const particle = document.createElement('span');
@@ -655,14 +279,12 @@ function spawnResultParticles(container) {
     particle.style.background = PARTICLE_COLORS[i % PARTICLE_COLORS.length];
     layer.appendChild(particle);
   }
-
   container.appendChild(layer);
   setTimeout(() => layer.remove(), 900);
 }
 
 function showPurchaseResult(id, slot) {
   const part = getPart(id);
-
   const iconSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   iconSvg.setAttribute('viewBox', '0 0 56 56');
   iconSvg.classList.add('part-modal__result-icon');
@@ -702,11 +324,13 @@ function showRandomDrawing(id, slot) {
   }, RANDOM_DRAW_DELAY_MS);
 }
 
-function showDismantleResult() {
+async function showDismantleResult() {
   clearResultTimers();
 
-  const preview = characterPlaceholder.cloneNode(true);
-  rescopeColorInstanceIds(preview);
+  const preview = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  preview.setAttribute('viewBox', '0 0 160 300');
+  await renderCharacterSvg(preview, { head: null });
+
   partModalSvg.replaceChildren(preview);
   partModalName.textContent = '';
   partModalActions.replaceChildren();
@@ -742,18 +366,12 @@ function openPartModal(slot) {
   const canAffordBuy = getGold() >= buyPrice;
   const buyButton = createPricedButton('modal-card__btn--cancel', '구입', `💎 ${buyPrice}`, !canAffordBuy);
   buyButton.addEventListener('click', () => {
-    const result = isRandom
-      ? purchaseRandomPart()
-      : purchasePart(headPartId);
-
+    const result = isRandom ? purchaseRandomPart() : purchasePart(headPartId);
     if (!result.success) return;
 
     updateHeaderGold(result.remainingGold);
     refreshAllPartSlots();
-    refreshCombineButton();
-    refreshDismantleButton();
-    refreshRenameButton();
-    refreshColorMixButton();
+    refreshCombineButton(); refreshDismantleButton(); refreshRenameButton(); refreshColorMixButton();
 
     if (isRandom) {
       showRandomDrawing(result.id, slot);
@@ -781,11 +399,7 @@ function openPartModal(slot) {
 
         updateHeaderGold(result.remainingGold);
         refreshAllPartSlots();
-        refreshCombineButton();
-        refreshDismantleButton();
-        refreshRenameButton();
-        refreshColorMixButton();
-        refreshSaveButton();
+        refreshCombineButton(); refreshDismantleButton(); refreshRenameButton(); refreshColorMixButton(); refreshSaveButton();
         await renderCharacterPreview();
 
         if (isFirstSave) {
@@ -812,41 +426,19 @@ partModal.addEventListener('click', (event) => {
 // 조합 미리보기 모달
 // ===========================
 async function buildCombinePreviewClone(category, id) {
-  const clone = characterPlaceholder.cloneNode(true);
-  const part = getPart(id);
-
-  if (category === 'body') {
-    await Promise.all([
-      embedSvgFragment(clone.querySelector('#body-part-slot'), part.assetPath),
-      embedSvgFragment(clone.querySelector('#left-arm-slot'), BODY_ASSETS.leftArm),
-      embedSvgFragment(clone.querySelector('#right-arm-slot'), BODY_ASSETS.rightArm),
-    ]);
-  } else if (category === 'legs') {
-    await Promise.all([
-      embedSvgFragment(clone.querySelector('#leg-part-slot'), part.assetPath),
-      embedSvgFragment(clone.querySelector('#left-leg-slot'), BODY_ASSETS.leftLeg),
-      embedSvgFragment(clone.querySelector('#right-leg-slot'), BODY_ASSETS.rightLeg),
-    ]);
-  }
-
-  const hasBody = category === 'body' || Boolean(getEquippedPart('body'));
-  const hasLegs = category === 'legs' || Boolean(getEquippedPart('legs'));
-  applyCharacterRootTransform(clone.querySelector('#character-root'), hasBody, hasLegs, getViewBoxHeight(clone));
-
-  const instanceId = nextColorInstanceId();
-  stampFillPartId(clone, 'head-part-slot', instanceId);
-  if (hasBody) stampFillPartId(clone, 'body-part-slot', instanceId);
-  if (hasLegs) stampFillPartId(clone, 'leg-part-slot', instanceId);
-
-  const equippedColorMix = getEquippedColorMix();
-  const equippedColor = getEquippedColor();
-  if (equippedColorMix) {
-    await applyColorMixToRoot(clone, equippedColorMix.patternId, equippedColorMix.colors, instanceId);
-  } else {
-    clearColorMixOverlay(clone);
-    if (equippedColor) applyColorTint(clone, equippedColor);
-  }
-
+  const clone = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  clone.setAttribute('viewBox', '0 0 160 300');
+  
+  const config = {
+    head: getEquippedPart('head'),
+    body: getEquippedPart('body'),
+    legs: getEquippedPart('legs'),
+    color: getEquippedColor(),
+    colorMix: getEquippedColorMix(),
+  };
+  config[category] = id;
+  
+  await renderCharacterSvg(clone, config);
   return clone;
 }
 
@@ -867,29 +459,21 @@ async function openCombinePreviewModal(category, id) {
     if (!result.success) return;
 
     refreshAllPartSlots();
-    refreshCombineButton();
-    refreshDismantleButton();
-    refreshColorMixButton();
+    refreshCombineButton(); refreshDismantleButton(); refreshColorMixButton();
     await renderCharacterPreview();
     closePartModal();
   });
 
   const canRecombineNow = canRecombine(id);
   const recombineButton = createPricedButton(
-    'modal-card__btn--cancel',
-    '재조합',
-    `💎 ${SHOP_COST.partRecombine}`,
-    !canRecombineNow,
+    'modal-card__btn--cancel', '재조합', `💎 ${SHOP_COST.partRecombine}`, !canRecombineNow,
   );
   recombineButton.addEventListener('click', () => {
     const reroll = previewRecombine(id);
     if (!reroll.success) return;
 
     updateHeaderGold(reroll.remainingGold);
-    refreshCombineButton();
-    refreshDismantleButton();
-    refreshRenameButton();
-    refreshColorMixButton();
+    refreshCombineButton(); refreshDismantleButton(); refreshRenameButton(); refreshColorMixButton();
     openCombinePreviewModal(category, reroll.id);
   });
 
@@ -905,7 +489,6 @@ function refreshColorSlot(slot) {
   if (color === 'random') return;
 
   const quantity = getColorQuantity(color);
-
   let badge = slot.querySelector('.part-slot__badge');
   if (quantity > 0) {
     if (!badge) {
@@ -922,17 +505,24 @@ function refreshColorSlot(slot) {
 function refreshAllColorSlots() {
   document.querySelectorAll('.color-slot[data-color]').forEach(refreshColorSlot);
 }
-
 refreshAllColorSlots();
 
 const colorModal = document.getElementById('color-modal');
 const colorModalPreview = document.getElementById('color-modal-preview');
 const colorModalActions = document.getElementById('color-modal-actions');
 
-function openColorModal(color) {
-  const previewSvg = characterPlaceholder.cloneNode(true);
-  prepareSimpleColorPreview(previewSvg);
-  applyColorTint(previewSvg, color);
+async function openColorModal(color) {
+  const previewSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  previewSvg.setAttribute('viewBox', '0 0 160 300');
+  
+  await renderCharacterSvg(previewSvg, {
+    head: getEquippedPart('head'),
+    body: getEquippedPart('body'),
+    legs: getEquippedPart('legs'),
+    color: color,
+    colorMix: null
+  });
+
   colorModalPreview.replaceChildren(previewSvg);
   colorModalActions.replaceChildren();
 
@@ -951,11 +541,7 @@ function openColorModal(color) {
     if (!result.success) return;
 
     updateHeaderGold(result.remainingGold);
-    refreshAllColorSlots();
-    refreshCombineButton();
-    refreshDismantleButton();
-    refreshRenameButton();
-    refreshColorMixButton();
+    refreshAllColorSlots(); refreshCombineButton(); refreshDismantleButton(); refreshRenameButton(); refreshColorMixButton();
     openColorModal(color);
     spawnResultParticles(colorModalPreview);
   });
@@ -967,11 +553,7 @@ function openColorModal(color) {
     if (!result.success) return;
 
     updateHeaderGold(result.remainingGold);
-    refreshAllColorSlots();
-    refreshCombineButton();
-    refreshDismantleButton();
-    refreshRenameButton();
-    refreshColorMixButton();
+    refreshAllColorSlots(); refreshCombineButton(); refreshDismantleButton(); refreshRenameButton(); refreshColorMixButton();
     await renderCharacterPreview();
     colorModal.classList.add('modal-overlay--hidden');
   });
@@ -1040,11 +622,7 @@ function openColorRandomModal() {
     if (!result.success) return;
 
     updateHeaderGold(result.remainingGold);
-    refreshAllColorSlots();
-    refreshCombineButton();
-    refreshDismantleButton();
-    refreshRenameButton();
-    refreshColorMixButton();
+    refreshAllColorSlots(); refreshCombineButton(); refreshDismantleButton(); refreshRenameButton(); refreshColorMixButton();
     lastDrawnColor = result.color;
     showColorRandomDrawing();
   });
@@ -1070,14 +648,16 @@ colorModal.addEventListener('click', (event) => {
 // 색 섞기 모달
 // ===========================
 async function buildColorMixPreviewClone(patternId, colors) {
-  const clone = characterPlaceholder.cloneNode(true);
-
-  const instanceId = nextColorInstanceId();
-  stampFillPartId(clone, 'head-part-slot', instanceId);
-  if (getEquippedPart('body')) stampFillPartId(clone, 'body-part-slot', instanceId);
-  if (getEquippedPart('legs')) stampFillPartId(clone, 'leg-part-slot', instanceId);
-
-  await applyColorMixToRoot(clone, patternId, colors, instanceId);
+  const clone = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  clone.setAttribute('viewBox', '0 0 160 300');
+  
+  await renderCharacterSvg(clone, {
+    head: getEquippedPart('head'),
+    body: getEquippedPart('body'),
+    legs: getEquippedPart('legs'),
+    color: null,
+    colorMix: { patternId, colors }
+  });
   return clone;
 }
 
@@ -1104,10 +684,7 @@ async function openColorMixModal(patternId, colors) {
   const previewNewColor = colors[colors.length - 1];
   const canRemixNow = canRemixColor(previewNewColor, patternId);
   const remixButton = createPricedButton(
-    'modal-card__btn--cancel',
-    '다시 섞기',
-    `💎 ${SHOP_COST.colorRemix}`,
-    !canRemixNow,
+    'modal-card__btn--cancel', '다시 섞기', `💎 ${SHOP_COST.colorRemix}`, !canRemixNow,
   );
   remixButton.addEventListener('click', () => {
     const reroll = previewColorRemix(previewNewColor, patternId);

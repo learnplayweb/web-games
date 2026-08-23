@@ -1,19 +1,10 @@
-// v0.3.5 : Implement_Stage selection screen
-// v0.4.0 : Refactor_Split into script.js / save.js / data/levels.js
-// v0.4.1 : Refactor_Remove stage select logic, use URL param for level, redirect to select.html
-// v0.4.2 : Implement_Level rules Lv.1~Lv.5, input UI show/hide, fields-based answer check
-// v0.4.3 : Fix_Initialization still calling showStageSelect instead of URL param startup
-// v0.4.4 : Fix_initInputUI called before declaration / Update_Lv.2 to 15min intervals
-// v0.4.5 : Implement_Time calculation levels Lv.6~8, calc-area show/hide
-// v0.4.6 : Implement_Dynamic quiz reward based on previous best stars
-// v0.4.7 : Fix_Gold double payment - quiz gold saved immediately, bonus gold at finishStage only
-// v0.4.8 : Refactor_Centralize save system into SaveManager (LocalStorage 직접/간접 접근 제거)
-// v0.4.9 : Fix_별점 보너스를 (새 최고 별 가치 - 이전 최고 별 가치) 델타 방식으로 계산 (일반 레벨), Lv.8은 매 플레이 고정 지급 유지
-// v0.4.10 : Implement_오답 시 정답 확인 모달 표시, 바깥(오버레이) 클릭 시 닫고 다음 문제로 진행
-// v0.4.11 : Fix_콤보 보너스(COMBO_MULTIPLIER)가 이전 최고 별점 기준 상수 테이블로 적용되지 않던 문제 수정
+// v0.4.12 : 
+// Implement_공통 캐릭터 렌더러(characterRenderer.js)를 이용한 저장된 캐릭터 게임 화면 렌더링 추가
 // 의존: data/levels.js (LEVELS, shuffleArray), core/saveManager.js (SaveManager)
 
-import { getClockBestStars, getGold, addGold, saveClockResult } from '../../core/saveManager.js';
+
+import { getClockBestStars, getGold, addGold, saveClockResult, getEquippedParts } from '../../core/saveManager.js';
+import { renderCharacterSvg } from '../../characters/characterRenderer.js';
 import { LEVELS, shuffleArray } from './data/levels.js';
 
 /* ===========================
@@ -40,22 +31,8 @@ let gold         = 0;
 let currentCombo = 0;
 let maxCombo     = 0;
 
-// 플레이 시작 시점의 이전 최고 별점 (플레이 중 변경되지 않음)
-// - Lv.1~7 : 결과 화면에서 별점 보너스(goldStar)를 델타 계산할 때도 이 값을 기준으로 사용
-// - Lv.8   : 항상 0으로 고정 (문제 정답 보상용, 별점 보너스는 별도로 매 플레이 고정 지급)
 let prevBestStars = 0;
 
-/**
- * 이전 최고 별점을 기준으로 문제당 지급 Gold를 반환한다.
- * - 없음(0) : +10
- * - ★(1)   : +7
- * - ★★(2)  : +4
- * - ★★★(3) : +1
- * Lv.8은 예외 없이 항상 bestStars=0 기준(+10)으로 계산하므로
- * 초기화 시 prevBestStars=0으로 고정된다.
- *
- * @returns {number} 지급 Gold
- */
 function getQuizRewardGold() {
   const table = { 0: 10, 1: 7, 2: 4, 3: 1 };
   return table[prevBestStars] ?? 10;
@@ -72,7 +49,7 @@ function updateComboDisplay() {
 function handleCorrectAnswer() {
   const reward = getQuizRewardGold();
   gold += reward;
-  addGold(reward); // 게임 중 지급분 즉시 저장 (SaveManager 경유)
+  addGold(reward); 
   currentCombo += 1;
   if (currentCombo > maxCombo) maxCombo = currentCombo;
   updateGoldDisplay();
@@ -88,11 +65,6 @@ function handleWrongAnswer() {
    오답 정답 확인 모달
 =========================== */
 
-/**
- * 현재 레벨의 fields에 해당하는 정답만 "N시/N분/N초" 형태로 조합한다.
- * (해당 레벨에서 입력하지 않는 필드는 표시하지 않음)
- * @returns {string}
- */
 function formatAnswerText() {
   const levelFields = LEVELS[stageState.currentLevel - 1].fields;
   const parts = [];
@@ -111,8 +83,6 @@ function hideAnswerModal() {
   document.getElementById('answer-modal').classList.add('answer-modal--hidden');
 }
 
-// 모달 바깥(오버레이) 클릭 시에만 닫히도록 처리 (카드 내부 클릭은 무시)
-// 닫히는 시점에 다음 문제로 진행하며, 그 전까지는 isJudging=true 상태를 유지해 키패드 입력을 막는다.
 document.getElementById('answer-modal').addEventListener('click', (e) => {
   if (e.target.id !== 'answer-modal') return;
   hideAnswerModal();
@@ -132,10 +102,6 @@ const inputState = {
   current:     0,
 };
 
-/**
- * 현재 레벨의 fields에 맞게 입력 그룹을 표시/숨김 처리한다.
- * @param {string[]} fields - 예: ['hour'], ['hour','minute']
- */
 function initInputUI(fields) {
   const fieldMap = { hour: 0, minute: 1, second: 2 };
   const groups   = document.querySelectorAll('.input-group');
@@ -224,28 +190,19 @@ function initStage(level) {
   const pool = shuffleArray(levelDef.buildPool());
   stageState.questionPool = pool.slice(0, levelDef.totalQuestions);
 
-  // 입력 UI를 현재 레벨 fields에 맞게 설정
   initInputUI(levelDef.fields);
 }
 
-/** 계산식 영역 표시 (Lv.6~8) */
 function showCalcArea(expression) {
   const area = document.getElementById('calc-area');
   area.classList.remove('calc-area--hidden');
   document.getElementById('calc-expression').textContent = expression;
 }
 
-/** 계산식 영역 숨김 (Lv.1~5) */
 function hideCalcArea() {
   document.getElementById('calc-area').classList.add('calc-area--hidden');
 }
 
-/**
- * 현재 문제를 pool에서 꺼내 시계에 표시한다.
- * - Lv.1~5: 정답 시각을 시계에 표시
- * - Lv.6~8: 기준 시각(base*)을 시계에, 계산식(expression)을 별도 영역에 표시
- *           정답은 계산 결과(hour/minute/second)
- */
 function generateRandomTime() {
   const q = stageState.questionPool[stageState.questionIndex];
 
@@ -276,25 +233,12 @@ function nextQuestion() {
    보상 계산
 =========================== */
 
-// 콤보 보너스 배율: 이전 최고 별점이 높을수록(=이미 잘 하는 단계일수록) 낮은 배율 적용
-// - 없음(0) : ×4
-// - ★(1)   : ×3
-// - ★★(2)  : ×2
-// - ★★★(3) : ×1
-// Lv.8은 prevBestStars가 항상 0으로 고정되므로 자동으로 ×4(감소 없음) 적용됨
-// 밸런스 테스트 결과에 따라 이 테이블 값만 조정하면 된다.
 const COMBO_MULTIPLIER_TABLE = { 0: 4, 1: 3, 2: 2, 3: 1 };
-
 function getComboMultiplier() {
   return COMBO_MULTIPLIER_TABLE[prevBestStars] ?? 4;
 }
 
-// 별 1개당 가치 (별점 보너스 계산의 기준값)
-// - Lv.1~7 : 신규 달성 시 (새 별 가치 - 이전 최고 별 가치)만큼만 지급
-// - Lv.8   : 매 플레이 해당 stars의 값을 그대로 고정 지급 (감소/누적 없음)
 const STAR_BONUS       = { 0: 0, 1: 10, 2: 30, 3: 50 };
-const GOLD_PER_CORRECT = 10;
-
 function calcStars(correct, total) {
   const ratio = correct / total;
   if (ratio >= 1)      return 3;
@@ -315,29 +259,17 @@ function finishStage() {
   const { currentLevel, correctCount, totalQuestions } = stageState;
   const rate  = Math.round((correctCount / totalQuestions) * 100);
   const stars = calcStars(correctCount, totalQuestions);
-
-  // 게임 중 이미 지급된 문제 정답 골드 (getQuizRewardGold() 기준)
   const goldQuiz  = correctCount * getQuizRewardGold();
-
-  // 결과 화면에서 추가 지급할 콤보 보너스 + 별점 보너스
-  // 콤보 보너스 배율은 이전 최고 별점(prevBestStars) 기준 COMBO_MULTIPLIER_TABLE을 따른다.
   const goldCombo = maxCombo * getComboMultiplier();
-
-  // 별점 보너스
-  // - Lv.8(최종 레벨) : 매 플레이 stars 기준 고정 지급 (최고 별점 저장/누적 없음, 감소 없음)
-  // - Lv.1~7          : 최초 도전 또는 최고 별점 갱신 시에만 (새 최고 별 가치 - 이전 최고 별 가치)만큼 지급
-  //                      별점 유지/하락 시 0 (음수 방지)
   const goldStar = currentLevel === 8
     ? STAR_BONUS[stars]
     : Math.max(0, STAR_BONUS[stars] - STAR_BONUS[prevBestStars]);
 
-  const goldBonus = goldCombo + goldStar; // 결과 화면에서 추가 지급분
-
+  const goldBonus = goldCombo + goldStar;
   const goldTotal = goldQuiz + goldBonus;
 
-  // 저장 (최고 별점/Lv.8 최근 별점 갱신, 누적 골드, 단계 해금) - SaveManager 경유
-  saveClockResult(currentLevel, stars, goldBonus, LEVELS.length); // 추가 지급분만 저장에 반영
-  gold += goldBonus;                          // 게임 중 지급분(goldQuiz)은 이미 반영됨
+  saveClockResult(currentLevel, stars, goldBonus, LEVELS.length);
+  gold += goldBonus;                          
   updateGoldDisplay();
 
   document.getElementById('result-level').textContent = `Lv.${currentLevel} 완료!`;
@@ -352,9 +284,6 @@ function finishStage() {
   document.querySelector('#result-gold-total .result-gold-value').textContent = `💎 ${goldTotal}`;
 
   document.getElementById('result-screen').classList.remove('result-screen--hidden');
-
-  // 결과 화면 탭/클릭 시 단계 선택 화면으로 복귀
-  // history.back()으로 select.html이 자연스럽게 복원됨
   document.getElementById('result-screen').addEventListener('click', () => {
     history.back();
   }, { once: true });
@@ -368,10 +297,7 @@ let isJudging = false;
 
 function checkAnswer() {
   const activeValues = inputState.values.slice(0, inputState.activeCount);
-  if (activeValues.some(v => v === '')) {
-    console.log('입력값이 비어 있습니다.');
-    return;
-  }
+  if (activeValues.some(v => v === '')) return;
 
   const userHour   = parseInt(inputState.values[0], 10) || 0;
   const userMinute = inputState.activeCount >= 2 ? parseInt(inputState.values[1], 10) : 0;
@@ -387,7 +313,6 @@ function checkAnswer() {
   isJudging = true;
 
   if (isCorrect) {
-    console.log('Correct!');
     handleCorrectAnswer();
     stageState.correctCount += 1;
     inputArea.classList.add('input-area--correct');
@@ -398,13 +323,10 @@ function checkAnswer() {
       isJudging = false;
     }, 600);
   } else {
-    console.log('Wrong!');
     handleWrongAnswer();
     inputArea.classList.add('input-area--wrong');
     setTimeout(() => {
       inputArea.classList.remove('input-area--wrong');
-      // 정답 확인 모달 표시. 바깥(오버레이) 클릭 시 모달의 click 리스너에서
-      // resetInput() / nextQuestion() / isJudging 해제를 처리하므로 여기서는 호출하지 않는다.
       showAnswerModal();
     }, 600);
   }
@@ -426,6 +348,36 @@ document.querySelector('.keypad-area').addEventListener('click', (e) => {
 });
 
 /* ===========================
+   캐릭터 렌더링 초기화
+=========================== */
+
+function initCharacter() {
+  const container = document.getElementById('character-container');
+  if (!container) return;
+
+  const equipState = getEquippedParts();
+  
+  // 머리가 없으면 저장된 캐릭터가 없는 것으로 간주하고 컨테이너를 숨김
+  if (!equipState.head) {
+    container.style.display = 'none';
+    return;
+  }
+
+  const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svgEl.setAttribute('viewBox', '0 0 160 300');
+  container.appendChild(svgEl);
+
+  renderCharacterSvg(svgEl, {
+    head: equipState.head,
+    body: equipState.body,
+    legs: equipState.legs,
+    color: equipState.color,
+    colorMix: equipState.colorMix,
+    expression: 'idle'
+  });
+}
+
+/* ===========================
    초기화
 =========================== */
 
@@ -435,10 +387,7 @@ const _level  = parseInt(_params.get('level'), 10) || 1;
 gold = getGold();
 updateGoldDisplay();
 
-// 플레이 시작 시점의 이전 최고 별점 저장
-// Lv.8은 예외: 항상 0(별 없음 기준, +10 지급)
 prevBestStars = _level === 8 ? 0 : getClockBestStars(_level);
-
 currentCombo = 0;
 maxCombo     = 0;
 updateComboDisplay();
@@ -446,3 +395,4 @@ updateComboDisplay();
 initStage(_level);
 generateRandomTime();
 updateFocus();
+initCharacter();

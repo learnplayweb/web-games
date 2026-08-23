@@ -1,16 +1,7 @@
-<!-- v0.1.0 : 최초 생성 - 캐릭터 상점 화면 (UI만, 기능 미구현)
-     v0.1.1 : 파츠 슬롯 클릭 모달 추가
-     v0.1.2 : Refactor_공통 Sticky Header 적용, 가격 수정, 모달 이름 제거
-     v0.1.3 : Refactor_눈/입 및 파츠 아이콘을 fetch 기반 inline SVG로 변경
-     v0.1.4 : Refactor_슬롯 위치·크기를 HTML(<svg>)에서 직접 관리하도록 변경
-     v0.1.5 : Refactor_SVG 제작 규격(viewBox 160×160, 중심 (80,80)) 통일
-     v0.1.6 : Implement_2·3단계 조합 슬롯(body, lowerBody) 추가
-     v0.1.7 : Update_상체/하체 슬롯 위치 조정 및 팔·다리 슬롯 추가
-     v0.1.8 : Update_애니메이션 대응을 위해 팔·다리 슬롯을 좌우 분리
-     v0.1.9 : Implement_조합 단계별 세로 중앙 정렬용 <g id="character-root"> 추가
-     v0.1.10 : Update_상체·하체 크기를 62.5%(100×100)로, 위치를 재조정
-     v0.1.11 : Implement_이름 설정 모달(#name-modal) 마크업 추가
-     v0.1.12 : Update_임시 흰색 색상 슬롯을 랜덤 구입 슬롯("?" 아이콘)으로 교체 -->
+<!-- v0.1.13 : 
+ 렌더러가 쉽게 조작할 수 있도록 placeholder-outline/text 클래스 추가 -->
+
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -26,50 +17,10 @@
 
     <!-- ① 캐릭터 영역 -->
     <section class="character-area">
-      <!-- 더미 플레이스홀더 SVG (추후 실제 캐릭터로 교체) -->
+      <!-- 더미 플레이스홀더 SVG (실제 렌더링은 characterRenderer.js가 관리) -->
       <svg class="character-placeholder" viewBox="0 0 160 300" xmlns="http://www.w3.org/2000/svg">
-        <!-- 머리 (찌글찌글한 원형) -->
-        <path d="M80,20 C105,18 125,35 126,58 C127,82 110,100 85,102 C60,104 42,88 40,64 C38,40 55,22 80,20 Z"
-              fill="none" stroke="#b0bac6" stroke-width="3" stroke-linecap="round"/>
-        <!-- 파츠 조합 슬롯: 위치(x, y)·표시 크기(width, height)·viewBox는 여기서만 관리한다.
-             character-shop.js는 embedSvgFragment(slot, path)로 내용만 채워 넣는다
-             (core/svgLoader.js 참고).
-             SVG 제작 규격: 모든 캐릭터 SVG(파츠/눈/입/팔/다리)는 viewBox="0 0 160 160",
-             중심좌표 (80,80) 기준으로 제작되므로 같은 레벨의 슬롯은 동일한
-             x/y/width/height/viewBox를 그대로 공유한다 — 파츠를 교체해도 위치를
-             다시 맞출 필요가 없다.
-             단계별 크기 규격: 머리 100%(160×160) 기준, 상체·하체는 56%(90×90).
-             가로 중앙 정렬은 x=(160-90)/2=35.
-             머리에 눈/입이 딸려오듯, 상체에는 팔이, 하체에는 다리가 같은 박스로
-             함께 표시된다. 애니메이션 적용을 대비해 좌/우를 각각 별도 SVG
-             파일(assets/left-arm.svg, right-arm.svg, left-leg.svg, right-leg.svg)로
-             분리했으므로 슬롯도 좌우 각각 둔다(body-part-slot과 동일 박스를
-             left-arm-slot/right-arm-slot이, leg-part-slot과 동일 박스를
-             left-leg-slot/right-leg-slot이 공유).
-             그리는 순서 = 쌓이는 순서: head-part-slot(머리) → face-eyes-slot(눈)
-             → face-mouth-slot(입) → body-part-slot(상체) → left-arm-slot(왼팔)
-             → right-arm-slot(오른팔) → leg-part-slot(하체) → left-leg-slot(왼다리)
-             → right-leg-slot(오른다리).
-             character-root: 조합 단계(머리만/머리+상체/전체)에 따라 실제로 그려지는
-             내용의 높이가 달라지므로, character-shop.js가 이 그룹의 transform(세로
-             translate)만 매번 다시 계산해 항상 placeholder 가운데에 오도록 만든다.
-             (슬롯 개별 x/y/width/height는 그대로 이 파일이 고정 관리 — character-root의
-             translate만 "몇 단계까지 찼는가"에 따라 달라지는 유일한 예외) -->
-        <g id="character-root" transform="translate(0, 0)">
-          <svg id="head-part-slot" x="0" y="20" width="160" height="160" viewBox="0 0 160 160"></svg>
-          <svg id="face-eyes-slot" x="0" y="20" width="160" height="160" viewBox="0 0 160 160"></svg>
-          <svg id="face-mouth-slot" x="0" y="20" width="160" height="160" viewBox="0 0 160 160"></svg>
-          <svg id="body-part-slot" x="35" y="124" width="90" height="90" viewBox="0 0 160 160"></svg>
-          <svg id="left-arm-slot" x="30" y="118" width="100" height="100" viewBox="0 0 160 160"></svg>
-          <svg id="right-arm-slot" x="30" y="118" width="100" height="100" viewBox="0 0 160 160"></svg>
-          <svg id="leg-part-slot" x="35" y="174" width="90" height="90" viewBox="0 0 160 160"></svg>
-          <svg id="left-leg-slot" x="30" y="173" width="100" height="100" viewBox="0 0 160 160"></svg>
-          <svg id="right-leg-slot" x="30" y="173" width="100" height="100" viewBox="0 0 160 160"></svg>
-        </g>
-        <!-- 플레이스홀더 안내 -->
-        <text x="80" y="100" font-size="17" fill="#b0bac6" text-anchor="middle">아직 꼬무리가 없어요</text>
       </svg>
-      <p class="character-name">ㅠㅁㅠ</p>
+      <p class="character-name">아직 꼬무리가 없어요</p>
     </section>
 
     <!-- ② 기능 버튼 섹션 -->
@@ -103,74 +54,32 @@
     <section class="shop-section">
       <div class="shop-section__header">꼬무리</div>
       <div class="shop-section__body" id="parts-body">
-
         <div class="parts-grid">
-
-          <!-- 슬롯 1: 원 -->
-          <div class="part-slot part-slot--locked" data-part="1" data-name="원" data-owned="0">
-            <!-- character-shop.js에서 assets/parts/p-circle.svg를 fetch하여 채운다 -->
-            <svg class="part-slot__svg" viewBox="0 0 56 56"></svg>
-          </div>
-
-          <!-- 슬롯 2: 세모 -->
-          <div class="part-slot part-slot--locked" data-part="2" data-name="세모" data-owned="0">
-            <!-- character-shop.js에서 assets/parts/p-triangle-u.svg를 fetch하여 채운다 -->
-            <svg class="part-slot__svg" viewBox="0 0 56 56"></svg>
-          </div>
-
-          <!-- 슬롯 3: 네모 -->
-          <div class="part-slot part-slot--locked" data-part="3" data-name="네모" data-owned="0">
-            <!-- character-shop.js에서 assets/parts/p-square.svg를 fetch하여 채운다 -->
-            <svg class="part-slot__svg" viewBox="0 0 56 56"></svg>
-          </div>
-
-          <!-- 슬롯 4: 마름모 -->
-          <div class="part-slot part-slot--locked" data-part="4" data-name="마름모" data-owned="0">
-            <!-- character-shop.js에서 assets/parts/p-diamond.svg를 fetch하여 채운다 -->
-            <svg class="part-slot__svg" viewBox="0 0 56 56"></svg>
-          </div>
-
-          <!-- 슬롯 5: 별 -->
-          <div class="part-slot part-slot--locked" data-part="5" data-name="별" data-owned="0">
-            <!-- character-shop.js에서 assets/parts/p-star.svg를 fetch하여 채운다 -->
-            <svg class="part-slot__svg" viewBox="0 0 56 56"></svg>
-          </div>
-
-          <!-- 슬롯 6: 럭비공형 -->
-          <div class="part-slot part-slot--locked" data-part="6" data-name="럭비공" data-owned="0">
-            <!-- character-shop.js에서 assets/parts/p-lens.svg를 fetch하여 채운다 -->
-            <svg class="part-slot__svg" viewBox="0 0 56 56"></svg>
-          </div>
-
-          <!-- 슬롯 7: 역세모 -->
-          <div class="part-slot part-slot--locked" data-part="7" data-name="역세모" data-owned="0">
-            <!-- character-shop.js에서 assets/parts/p-triangle-d.svg를 fetch하여 채운다 -->
-            <svg class="part-slot__svg" viewBox="0 0 56 56"></svg>
-          </div>
-
-          <!-- 슬롯 8: 랜덤 박스 -->
+          <!-- 슬롯 1~8 유지 -->
+          <div class="part-slot part-slot--locked" data-part="1" data-name="원" data-owned="0"><svg class="part-slot__svg" viewBox="0 0 56 56"></svg></div>
+          <div class="part-slot part-slot--locked" data-part="2" data-name="세모" data-owned="0"><svg class="part-slot__svg" viewBox="0 0 56 56"></svg></div>
+          <div class="part-slot part-slot--locked" data-part="3" data-name="네모" data-owned="0"><svg class="part-slot__svg" viewBox="0 0 56 56"></svg></div>
+          <div class="part-slot part-slot--locked" data-part="4" data-name="마름모" data-owned="0"><svg class="part-slot__svg" viewBox="0 0 56 56"></svg></div>
+          <div class="part-slot part-slot--locked" data-part="5" data-name="별" data-owned="0"><svg class="part-slot__svg" viewBox="0 0 56 56"></svg></div>
+          <div class="part-slot part-slot--locked" data-part="6" data-name="럭비공" data-owned="0"><svg class="part-slot__svg" viewBox="0 0 56 56"></svg></div>
+          <div class="part-slot part-slot--locked" data-part="7" data-name="역세모" data-owned="0"><svg class="part-slot__svg" viewBox="0 0 56 56"></svg></div>
           <div class="part-slot" data-part="random" data-name="랜덤 박스">
             <svg class="part-slot__svg" viewBox="0 0 56 56">
-              <rect x="7" y="7" width="42" height="42" rx="8"
-                    fill="none" stroke="#b0bac6" stroke-width="2.5"/>
+              <rect x="7" y="7" width="42" height="42" rx="8" fill="none" stroke="#b0bac6" stroke-width="2.5"/>
               <text x="28" y="34" font-size="18" text-anchor="middle" fill="#b0bac6">?</text>
             </svg>
           </div>
-
-        </div><!-- /.parts-grid -->
-
-      </div><!-- /#parts-body -->
+        </div>
+      </div>
     </section>
 
     <!-- ④ 색상 섹션 (기본 접힘) -->
     <section class="shop-section">
       <div class="shop-section__header">
         색상
-        <button type="button" class="shop-section__toggle" id="toggle-color"
-                aria-expanded="false" aria-controls="color-body">▼</button>
+        <button type="button" class="shop-section__toggle" id="toggle-color" aria-expanded="false" aria-controls="color-body">▼</button>
       </div>
       <div class="shop-section__body shop-section__body--hidden" id="color-body">
-        <!-- 파스텔 12색 -->
         <div class="color-grid">
           <button type="button" class="color-slot" data-color="#FFCCBC" style="background:#ffccbc;" aria-label="빨강"></button>
           <button type="button" class="color-slot" data-color="#FCE8B2" style="background:#FCE8B2;" aria-label="주황"></button>
@@ -184,7 +93,6 @@
           <button type="button" class="color-slot" data-color="#96d3ce" style="background:#96d3ce;" aria-label="틸"></button>
           <button type="button" class="color-slot" data-color="#c0e2f1" style="background:#c0e2f1;" aria-label="연파랑"></button>
           <button type="button" class="color-slot color-slot--random" data-color="random" aria-label="랜덤 색상">?</button>
-          
         </div>
         <button type="button" class="color-mix-btn">색 섞기 <span>💎 50</span></button>
       </div>
@@ -194,29 +102,23 @@
     <section class="shop-section">
       <div class="shop-section__header">
         효과
-        <button type="button" class="shop-section__toggle" id="toggle-decoration"
-                aria-expanded="false" aria-controls="decoration-body">▼</button>
+        <button type="button" class="shop-section__toggle" id="toggle-decoration" aria-expanded="false" aria-controls="decoration-body">▼</button>
       </div>
       <div class="shop-section__body shop-section__body--hidden" id="decoration-body">
-        <p style="color:var(--color-text-muted); font-size:0.9rem; padding: 0.5rem 0;">
-          효과 구입은 추후 업데이트 예정입니다.
-        </p>
+        <p style="color:var(--color-text-muted); font-size:0.9rem; padding: 0.5rem 0;">효과 구입은 추후 업데이트 예정입니다.</p>
       </div>
     </section>
+  </div>
 
-  </div><!-- /.shop-wrapper -->
-
-  <!-- 파츠 모달 -->
+  <!-- 각종 모달 -->
   <div id="part-modal" class="modal-overlay modal-overlay--hidden" role="dialog" aria-modal="true">
     <div class="modal-card">
-      <!-- 선택한 파츠 SVG를 크게 표시 -->
       <div id="part-modal-svg" class="part-modal__preview"></div>
       <p id="part-modal-name" class="part-modal__name"></p>
       <div id="part-modal-actions" class="modal-card__actions"></div>
     </div>
   </div>
 
-  <!-- 색상 모달 -->
   <div id="color-modal" class="modal-overlay modal-overlay--hidden" role="dialog" aria-modal="true">
     <div class="modal-card">
       <div id="color-modal-preview" class="part-modal__preview"></div>
@@ -224,7 +126,6 @@
     </div>
   </div>
 
-  <!-- 저장 확인 모달 -->
   <div id="save-modal" class="modal-overlay modal-overlay--hidden" role="dialog" aria-modal="true">
     <div class="modal-card">
       <p class="modal-card__msg">캐릭터의 정보를<br>기기에 저장합니다.</p>
@@ -235,14 +136,10 @@
     </div>
   </div>
 
-  <!-- 이름 설정 모달: 머리 파츠 최초 적용(캐릭터 최초 생성) 시 자동으로 뜬다.
-       [저장]을 눌러야만 닫힌다 — 바깥 클릭/자동 닫힘 없음(character-shop.js에서
-       이 모달에는 그런 리스너를 아예 붙이지 않는 방식으로 구현). -->
   <div id="name-modal" class="modal-overlay modal-overlay--hidden" role="dialog" aria-modal="true">
     <div class="modal-card">
       <p class="name-modal__title">이름을 정해 주세요</p>
-      <input type="text" id="name-modal-input" class="name-modal__input"
-             placeholder="10글자까지 가능합니다." maxlength="10" autocomplete="off">
+      <input type="text" id="name-modal-input" class="name-modal__input" placeholder="10글자까지 가능합니다." maxlength="10" autocomplete="off">
       <div class="modal-card__actions">
         <button type="button" class="modal-card__btn modal-card__btn--confirm" id="name-modal-save" disabled>저장</button>
       </div>

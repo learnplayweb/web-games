@@ -1,16 +1,5 @@
-/* v0.1.0 : 최초 생성 - Clock Game UI 스타일 (로직 없음)
-   v0.1.1 : .clock-placeholder -> .clock-svg 로 교체 (SVG 시계 적용)
-   v0.1.2 : 더블탭 확대 방지 추가
-   v0.1.3 : .input-box--active 선택 상태 스타일 추가
-   v0.1.4 : .input-area--correct / --wrong 정답/오답 피드백 스타일 추가
-   v0.1.5 : info-bar 항목 min-width 고정, 아이콘 대응 정렬
-   v0.1.6 : clock-svg 크기를 정수 고정 + max-width로 변경 (모바일 소수점 픽셀 방지)
-   v0.1.7 : 결과 화면 스타일 추가
-   v0.1.8 : 결과 화면 별점·구분선·gold 행 스타일 추가
-   v0.1.9 : Gold 아이콘(💎)·색상 통일, result 레이아웃 개선, info-bar 아이콘 위치 고정
-   v0.2.0 : 단계 선택 화면 스타일 select.css로 분리
-   v0.2.1 : 계산식 표시 영역 스타일 추가
-   v0.2.2 : 오답 시 정답 확인 모달(.answer-modal) 스타일 추가 */
+/* v0.2.3 : 
+Update - .game-wrapper에 position relative 추가, .character-container 스타일 정의 추가 */
 
 /* ===========================
    1. 전역 초기화 & 변수
@@ -21,13 +10,11 @@
   padding: 0;
 }
 
-/* 더블탭 확대만 방지, 핀치 줌은 유지 */
 body {
   touch-action: manipulation;
 }
 
 :root {
-  /* 컬러 팔레트: 메인 화면과 톤 통일 */
   --color-bg: #f0f4ff;
   --color-surface: #ffffff;
   --color-primary: #5b8dee;
@@ -38,7 +25,7 @@ body {
   --color-keypad-active: #dce8fb;
 
   --font-base: 'Segoe UI', system-ui, sans-serif;
-  --max-width: 480px; /* 모바일 기준, PC에서 고정폭으로 가운데 정렬 */
+  --max-width: 480px; 
 }
 
 html, body {
@@ -53,8 +40,6 @@ body {
 
 /* ===========================
    2. 전체 레이아웃
-   - 뷰포트 높이를 기준으로 비율 분배
-   - 1/12 : 1/2 : 1/6 : 1/4 (남은 영역 buffer 없이 합 = 1)
 =========================== */
 .game-wrapper {
   max-width: var(--max-width);
@@ -62,13 +47,14 @@ body {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative; /* 캐릭터 컨테이너 기준점 */
 }
 
 /* ===========================
    3. 상단 정보 영역 (1/12)
 =========================== */
 .info-bar {
-  flex: 1 1 8.33%; /* 약 1/12 */
+  flex: 1 1 8.33%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -77,15 +63,7 @@ body {
   font-size: 0.95rem;
 }
 
-/* 각 항목: 아이콘은 고정, 숫자만 자연스럽게 늘어나도록 flex 구조 사용 */
-.info-bar__gold {
-  color: var(--color-primary-dark);
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  /* 우측 배치: 아이콘 뒤에 보유 수 표시 */
-}
-
+.info-bar__gold,
 .info-bar__combo {
   color: var(--color-primary-dark);
   display: flex;
@@ -94,7 +72,7 @@ body {
 }
 
 /* ===========================
-   4. 시계 영역 (1/2 → 계산식 영역 추가로 약 5/12로 축소)
+   4. 시계 영역
 =========================== */
 .clock-area {
   flex: 1 1 42%;
@@ -103,8 +81,6 @@ body {
   justify-content: center;
 }
 
-/* clock-face.svg(배경) + 바늘 인라인 svg(전경)를 겹쳐 표시하는 컨테이너 */
-/* vw 단위 사용 시 소수점 픽셀 발생 → 모바일에서 바늘 위치 틀어짐 방지를 위해 정수 고정 */
 .clock-svg {
   position: relative;
   width: 280px;
@@ -113,7 +89,6 @@ body {
   max-height: 70vw;
 }
  
-/* 시계 페이스(외곽선/눈금/숫자) 이미지와 바늘 svg를 동일 영역에 겹쳐 정렬 */
 .clock-face-img,
 .clock-hands-svg {
   position: absolute;
@@ -137,7 +112,6 @@ body {
   display: none;
 }
 
-/* 계산식 텍스트: 크고 굵게, 중앙 정렬 */
 .calc-expression {
   font-size: 1.8rem;
   font-weight: 700;
@@ -147,7 +121,7 @@ body {
 }
 
 /* ===========================
-   5. 입력 영역 (1/6)
+   5. 입력 영역
 =========================== */
 .input-area {
   flex: 1 1 16.66%;
@@ -158,7 +132,6 @@ body {
   padding: 0 1rem;
 }
 
-/* 시/분/초 각 그룹 (입력칸 + 라벨) */
 .input-group {
   display: flex;
   flex-direction: column;
@@ -168,7 +141,6 @@ body {
   max-width: 110px;
 }
 
-/* 입력칸: 동일한 크기, 숫자 가운데 정렬 */
 .input-box {
   width: 100%;
   aspect-ratio: 1 / 0.8;
@@ -183,26 +155,22 @@ body {
   color: var(--color-text);
 }
 
-/* 현재 선택된 입력칸: 테두리 강조 + 배경 하이라이트 */
 .input-box--active {
   border-color: var(--color-primary-dark);
   background: var(--color-keypad-bg);
   box-shadow: 0 0 0 3px rgba(91, 141, 238, 0.25);
 }
 
-/* 정답 피드백: 입력 영역 전체를 초록으로 */
 .input-area--correct .input-box {
   border-color: #4caf82;
   background: #eafaf3;
 }
 
-/* 오답 피드백: 입력 영역 전체를 빨강으로 */
 .input-area--wrong .input-box {
   border-color: #e05c5c;
   background: #fdeaea;
 }
 
-/* 시/분/초 라벨: 크게 표시 */
 .input-label {
   font-size: 1.1rem;
   font-weight: 700;
@@ -210,17 +178,16 @@ body {
 }
 
 /* ===========================
-   6. 키패드 영역 (1/4)
+   6. 키패드 영역
 =========================== */
 .keypad-area {
   flex: 1 1 25%;
   display: flex;
-  align-items: stretch; /* ←/→ 버튼 높이를 숫자 2행 전체 높이와 맞춤 */
+  align-items: stretch;
   gap: 0.5rem;
   padding: 0.5rem 1rem 1rem;
 }
 
-/* 숫자 버튼 2행을 담는 영역 */
 .keypad-numbers {
   flex: 1;
   display: flex;
@@ -234,10 +201,9 @@ body {
   gap: 0.5rem;
 }
 
-/* 키패드 버튼 공통 스타일 (모바일 터치 충분한 크기) */
 .keypad-btn {
   flex: 1;
-  min-height: 44px; /* 터치 접근성 권장 최소 크기 */
+  min-height: 44px;
   background: var(--color-keypad-bg);
   border: none;
   border-radius: 0.75rem;
@@ -252,7 +218,6 @@ body {
   background: var(--color-keypad-active);
 }
 
-/* 좌우 이동 버튼: 숫자 2행 전체 높이와 동일 (flex stretch로 자동 적용) */
 .keypad-btn--nav {
   flex: 0 0 15%;
   background: var(--color-primary);
@@ -265,9 +230,27 @@ body {
 }
 
 /* ===========================
-   7. PC 대응 (480px 이상)
-   - wrapper는 고정 최대폭으로 가운데 정렬되며
-     비율 레이아웃은 그대로 유지
+   7. 캐릭터 표시 영역 (New)
+=========================== */
+.character-container {
+  position: absolute;
+  bottom: 2rem;
+  left: 1.5rem;
+  width: 80px;
+  height: 150px; /* viewBox 160x300 비율 */
+  pointer-events: none; /* 클릭 등 터치 이벤트 무시 */
+  z-index: 50; /* 입력 UI보다 위에 올 수 있도록 허용 */
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+}
+
+.character-container svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ===========================
+   8. PC 대응 (480px 이상)
 =========================== */
 @media (min-width: 480px) {
   .game-wrapper {
@@ -276,10 +259,8 @@ body {
 }
 
 /* ===========================
-   8. 결과 화면
+   9. 모달 & 오버레이 (결과 / 오답 확인)
 =========================== */
-
-/* 결과 화면: 게임 화면 위에 전체를 덮는 오버레이 */
 .result-screen {
   position: fixed;
   inset: 0;
@@ -290,12 +271,10 @@ body {
   z-index: 100;
 }
 
-/* 숨김 상태 */
 .result-screen--hidden {
   display: none;
 }
 
-/* 결과 카드 */
 .result-card {
   background: var(--color-surface);
   border-radius: 1.25rem;
@@ -305,88 +284,29 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  width: min(320px, 88vw); /* 내용에 맞는 적절한 폭 */
+  width: min(320px, 88vw);
 }
 
-.result-level {
-  font-size: 1.4rem;
-  font-weight: 800;
-  color: var(--color-primary);
-}
+.result-level { font-size: 1.4rem; font-weight: 800; color: var(--color-primary); }
+.result-score { font-size: 2rem; font-weight: 800; color: var(--color-text); }
+.result-rate { font-size: 1rem; color: var(--color-text-muted); }
+.result-combo { font-size: 1rem; font-weight: 700; color: var(--color-primary-dark); }
+.result-stars { font-size: 1.75rem; letter-spacing: 0.1em; color: #d4a017; }
+.result-divider { border: none; border-top: 1px solid #e8edf5; margin: 0.25rem 0; }
 
-.result-score {
-  font-size: 2rem;
-  font-weight: 800;
-  color: var(--color-text);
-}
+.result-gold-row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.9rem; color: var(--color-text-muted); text-align: left; }
+.result-gold-value { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.result-gold-total { display: flex; justify-content: space-between; gap: 1rem; font-size: 1rem; font-weight: 700; color: var(--color-primary-dark); margin-top: 0.25rem; text-align: left; }
 
-.result-rate {
-  font-size: 1rem;
-  color: var(--color-text-muted);
-}
-
-.result-combo {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-primary-dark);
-}
-
-.result-stars {
-  font-size: 1.75rem;
-  letter-spacing: 0.1em;
-  color: #d4a017;
-}
-
-.result-divider {
-  border: none;
-  border-top: 1px solid #e8edf5;
-  margin: 0.25rem 0;
-}
-
-/* gold 세부 행: 항목명 왼쪽, 금액 오른쪽, 과도한 간격 없이 */
-.result-gold-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem; /* 항목·숫자 간 최소 간격만 */
-  font-size: 0.9rem;
-  color: var(--color-text-muted);
-  text-align: left;
-}
-
-/* 숫자 부분: 우측 정렬, 일의 자리 세로선 통일 */
-.result-gold-value {
-  text-align: right;
-  white-space: nowrap; /* 줄바꿈 방지 */
-  font-variant-numeric: tabular-nums; /* 숫자 폭 고정으로 세로 정렬 */
-}
-
-.result-gold-total {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-primary-dark); /* Combo와 동일한 강조 색상 */
-  margin-top: 0.25rem;
-  text-align: left;
-}
-
-/* ===========================
-   9. 오답 정답 확인 모달
-   - result-screen과 동일한 오버레이+카드 패턴을 재사용하되
-     오답 1회에 대한 짧은 확인용이므로 카드 크기는 더 작게 구성
-=========================== */
-
-/* 모달 오버레이: 카드 바깥(배경) 클릭 시 script.js에서 닫힘 처리 */
 .answer-modal {
   position: fixed;
   inset: 0;
   display: flex;
-  justify-content: center; /*좌우 가운데 */
-  align-items: flex-end; /* 아래쪽 위치 */
-  padding-bottom: 80px;       /* 아래 여백 공간 */
+  justify-content: center;
+  align-items: flex-end;
+  padding-bottom: 80px;
   background: rgba(45, 58, 74, 0.45);
-  z-index: 150; /* result-screen(100)보다 위, 게임 중 오답 확인이므로 더 높은 우선순위 */
+  z-index: 150;
 }
 
 .answer-modal--hidden {
@@ -405,14 +325,5 @@ body {
   width: min(260px, 80vw);
 }
 
-.answer-modal__label {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--color-text-muted);
-}
-
-.answer-modal__value {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--color-primary-dark);
-}
+.answer-modal__label { font-size: 0.95rem; font-weight: 700; color: var(--color-text-muted); }
+.answer-modal__value { font-size: 1.6rem; font-weight: 800; color: var(--color-primary-dark); }
