@@ -234,8 +234,8 @@ body {
 =========================== */
 .character-container {
   position: absolute;
-  bottom: 2rem;
-  left: 1.5rem;
+  top: 5rem;
+  left: 3rem;
   width: 80px;
   height: 150px; /* viewBox 160x300 비율 */
   pointer-events: none; /* 클릭 등 터치 이벤트 무시 */
@@ -243,7 +243,7 @@ body {
   filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
 }
 
-.character-container svg {
+.character-container > svg.ingame-character {
   width: 100%;
   height: 100%;
   display: block;

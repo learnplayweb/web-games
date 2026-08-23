@@ -364,6 +364,7 @@ function initCharacter() {
   }
 
   const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svgEl.classList.add('ingame-character');
   svgEl.setAttribute('viewBox', '0 0 160 300');
   container.appendChild(svgEl);
 
