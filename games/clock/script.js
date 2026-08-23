@@ -1,7 +1,12 @@
-// v0.4.12 : 
-// Implement_공통 캐릭터 렌더러(characterRenderer.js)를 이용한 저장된 캐릭터 게임 화면 렌더링 추가
-// 의존: data/levels.js (LEVELS, shuffleArray), core/saveManager.js (SaveManager)
-
+// v0.4.13 : Implement_캐릭터 랜덤 위치 및 360도 무작위 회전 이동 기능 추가 (문제 변경 시 이동)
+// - 의존: data/levels.js (LEVELS, shuffleArray), core/saveManager.js (SaveManager), characters/characterRenderer.js (renderCharacterSvg)
+//
+// Public API (Internal Game Logic)
+// - setClock(hour, minute, second): SVG 시계 바늘 각도 계산 및 적용
+// - getQuizRewardGold(): 이전 최고 별점 기반 문제당 골드 보상 산정
+// - checkAnswer(): 사용자의 입력 시각과 정답 시각 비교 판정
+// - moveCharacterToRandomPosition(): 캐릭터 컨테이너를 지정된 좌표 목록 중 하나로 이동하고 0~360도 무작위 회전 적용
+// - initCharacter(): 저장된 파츠 정보로 SVG 캐릭터를 생성하여 화면에 렌더링하고 최초 위치 설정
 
 import { getClockBestStars, getGold, addGold, saveClockResult, getEquippedParts } from '../../core/saveManager.js';
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
@@ -217,6 +222,9 @@ function generateRandomTime() {
     setClock(q.hour, q.minute, q.second);
     hideCalcArea();
   }
+
+  // 문제가 생성(변경)될 때마다 캐릭터 위치와 기울기 무작위 갱신
+  moveCharacterToRandomPosition();
 }
 
 function nextQuestion() {
@@ -348,8 +356,33 @@ document.querySelector('.keypad-area').addEventListener('click', (e) => {
 });
 
 /* ===========================
-   캐릭터 렌더링 초기화
+   캐릭터 렌더링 및 이동
 =========================== */
+
+// 시계 게임용 캐릭터 출현 좌표 목록
+const CHARACTER_POSITIONS = [
+  { bottom: '27rem', left: '2rem', right: 'auto', top: 'auto' },
+  { bottom: '27rem', right: '2rem', left: 'auto', top: 'auto' },
+  { top: '7rem', right: '2rem', bottom: 'auto', left: 'auto' },
+  { top: '5rem', left: '3rem', bottom: 'auto', right: 'auto' }
+];
+
+function moveCharacterToRandomPosition() {
+  const container = document.getElementById('character-container');
+  if (!container || container.style.display === 'none') return;
+
+  // 무작위 위치 선택
+  const randomPos = CHARACTER_POSITIONS[Math.floor(Math.random() * CHARACTER_POSITIONS.length)];
+  
+  // 0~360도 무작위 각도 생성
+  const randomAngle = Math.floor(Math.random() * 361);
+
+  container.style.top = randomPos.top;
+  container.style.bottom = randomPos.bottom;
+  container.style.left = randomPos.left;
+  container.style.right = randomPos.right;
+  container.style.transform = `rotate(${randomAngle}deg)`;
+}
 
 function initCharacter() {
   const container = document.getElementById('character-container');
@@ -357,7 +390,6 @@ function initCharacter() {
 
   const equipState = getEquippedParts();
   
-  // 머리가 없으면 저장된 캐릭터가 없는 것으로 간주하고 컨테이너를 숨김
   if (!equipState.head) {
     container.style.display = 'none';
     return;
@@ -393,7 +425,7 @@ currentCombo = 0;
 maxCombo     = 0;
 updateComboDisplay();
 
-initStage(_level);
-generateRandomTime();
-updateFocus();
 initCharacter();
+initStage(_level);
+generateRandomTime(); // 여기서 최초의 위치(moveCharacterToRandomPosition)가 함께 호출됨
+updateFocus();

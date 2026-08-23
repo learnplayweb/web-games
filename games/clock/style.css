@@ -234,8 +234,6 @@ body {
 =========================== */
 .character-container {
   position: absolute;
-  top: 5rem;
-  left: 3rem;
   width: 80px;
   height: 150px; /* viewBox 160x300 비율 */
   pointer-events: none; /* 클릭 등 터치 이벤트 무시 */
