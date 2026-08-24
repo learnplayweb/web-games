@@ -1,10 +1,10 @@
-// v0.1.46
+// v0.1.47
 // Character Shop
-// - Refactor: 렌더링 세부 로직을 characterRenderer.js 모듈로 완전히 분리하고 API를 통해 위임
+// - Implement_상점 캐릭터 터치 시 랜덤 표정/동작 출력 기능 추가
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent } from '../core/svgloader.js';
-import { getPart, SHOP_COST } from './characterData.js';
+import { getPart, SHOP_COST, EXPRESSION_KEYS, ANIMATION_KEYS } from './characterData.js';
 import { renderCharacterSvg } from './characterRenderer.js';
 import {
   getPartQuantity, purchasePart, purchaseRandomPart, getEquippedPart, applyPart,
@@ -18,24 +18,56 @@ import { getGold, getCharacterName, setCharacterName } from '../core/saveManager
 
 createHeader();
 
+/* ===========================
+   캐릭터 렌더링 및 터치 반응
+=========================== */
 const characterPlaceholder = document.querySelector('.character-placeholder');
 let renderChain = Promise.resolve();
+let isCharacterReacting = false; // 연타 방지 플래그
 
 function renderCharacterPreview() {
   renderChain = renderChain.then(() => renderCharacterPreviewOnce());
   return renderChain;
 }
 
-async function renderCharacterPreviewOnce() {
-  const config = {
+// customConfig를 받아 기본 상태 위에 덮어씌움
+async function renderCharacterPreviewOnce(customConfig = null) {
+  const baseConfig = {
     head: getEquippedPart('head'),
     body: getEquippedPart('body'),
     legs: getEquippedPart('legs'),
     color: getEquippedColor(),
     colorMix: getEquippedColorMix(),
+    eyes: 'idle',
+    mouth: 'idle',
+    animation: 'idle'
   };
+  
+  const config = { ...baseConfig, ...customConfig };
   await renderCharacterSvg(characterPlaceholder, config);
 }
+
+// 터치(클릭) 시 랜덤 리액션 발동
+characterPlaceholder.addEventListener('click', () => {
+  // 이미 반응 중이거나, 머리가 없으면(빈 플레이스홀더면) 무시
+  if (isCharacterReacting || !getEquippedPart('head')) return;
+  
+  isCharacterReacting = true;
+
+  // 랜덤 요소 뽑기
+  const randomEye = EXPRESSION_KEYS[Math.floor(Math.random() * EXPRESSION_KEYS.length)];
+  const randomMouth = EXPRESSION_KEYS[Math.floor(Math.random() * EXPRESSION_KEYS.length)];
+  const randomAnim = ANIMATION_KEYS[Math.floor(Math.random() * ANIMATION_KEYS.length)];
+
+  // 랜덤 상태 적용
+  renderCharacterPreviewOnce({ eyes: randomEye, mouth: randomMouth, animation: randomAnim });
+
+  // 1.5초 뒤 원래 상태로 복구
+  setTimeout(() => {
+    renderCharacterPreviewOnce(); // 파라미터 없이 부르면 기본(idle) 상태로 돌아감
+    isCharacterReacting = false;
+  }, 1500);
+});
 
 renderCharacterPreview();
 

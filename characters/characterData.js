@@ -1,6 +1,6 @@
-// v0.1.6
+// v0.1.7
 // Character Data (캐릭터용 데이터 카탈로그)
-// - 에셋 경로(assetPath)를 외부 모듈(게임 화면 등)에서도 정상적으로 참조할 수 있도록 import.meta.url 기반 절대 경로로 변경
+// - Add_랜덤 추출을 위한 표정 및 애니메이션 키 배열 추가
 // - 에셋 경로(assetPath)를 외부 모듈(게임 화면 등)에서도 정상적으로 참조할 수 있도록 import.meta.url 기반 절대 경로로 변경
 // - Feat: 색 섞기용 선형(4방향) 및 방사형(5좌표) SVG 그래디언트 프리셋(GRADIENT_PRESETS) 및 통합 추첨(pickRandomMixStyle) 목록
 // - BODY_ASSETS/FACE_ASSETS: 좌우 분리된 팔·다리, 표정별 눈·입 에셋 경로
@@ -8,6 +8,9 @@
 // - CHARACTER_COLORS/PATTERNS: 구매 가능한 색상 팔레트, 색 섞기용 패턴 목록
 // - SHOP_COST: 구매/적용/조합/해체/색상 관련 비용 상수
 
+
+export const EXPRESSION_KEYS = Object.freeze(['idle', 'correct', 'wrong']);
+export const ANIMATION_KEYS = Object.freeze(['idle', 'correct', 'wrong']);
 
 function resolvePath(relativePath) {
   return new URL(relativePath, import.meta.url).href;
@@ -103,3 +106,4 @@ export function pickRandomMixStyle(excludedId = null) {
 
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
+

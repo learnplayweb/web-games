@@ -1,6 +1,6 @@
-// v0.2.1
+// v0.2.2
 // Character Renderer
-// - Fix: 애니메이션 타겟을 슬롯(<svg>)에서 삽입 내용물을 감싸는 그룹(<g>)으로 변경하여 회전축 밀림 현상 해결
+// Update_눈(eyes)과 입(mouth)을 개별 설정하여 랜덤 조합이 가능하도록 개선
 
 import { embedSvgFragment, fetchSvgFragmentRoot } from '../core/svgloader.js';
 import { BODY_ASSETS, FACE_ASSETS, GRADIENT_PRESETS, PATTERNS, getPart } from './characterData.js';
@@ -231,11 +231,13 @@ async function applyColorMixToRoot(svgRoot, patternId, colors, instanceId) {
   }
 }
 
+
 export async function renderCharacterSvg(svgElement, config) {
   const {
     head, body, legs,
     color, colorMix,
     expression = 'idle',
+    eyes, mouth,
     animation = 'idle',
     placeholderText = '아직 꼬무리가 없어요'
   } = config;
@@ -288,8 +290,12 @@ export async function renderCharacterSvg(svgElement, config) {
   const headPart = getPart(head);
   if (headPart) pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#head-part-slot'), headPart.assetPath, 'anim-head'));
   
-  pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#face-eyes-slot'), FACE_ASSETS.eyes[expression] || FACE_ASSETS.eyes.idle, 'anim-head'));
-  pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#face-mouth-slot'), FACE_ASSETS.mouth[expression] || FACE_ASSETS.mouth.idle, 'anim-head'));
+  // eyes나 mouth가 따로 안 들어오면 expression 값을 따라감
+  const eyeState = eyes || expression;
+  const mouthState = mouth || expression;
+
+  pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#face-eyes-slot'), FACE_ASSETS.eyes[eyeState] || FACE_ASSETS.eyes.idle, 'anim-head'));
+  pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#face-mouth-slot'), FACE_ASSETS.mouth[mouthState] || FACE_ASSETS.mouth.idle, 'anim-head'));
 
   if (body) {
     const bodyPart = getPart(body);

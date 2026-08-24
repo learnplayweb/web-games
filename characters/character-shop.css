@@ -71,6 +71,12 @@ body {
   height: 200px;
 }
 
+/* 클릭 가능함을 알리는 마우스 커서 추가 */
+.character-placeholder {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent; /* 모바일 터치 시 푸른 깜빡임 제거 */
+}
+
 /* 학교안심 그림일기 폰트 - 로컬 파일 사용 */
 @font-face {
   font-family: 'HakgyoansimGeurimilgi';
