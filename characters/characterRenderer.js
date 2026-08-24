@@ -1,6 +1,4 @@
-// v0.2.2
-// Character Renderer
-// Update_눈(eyes)과 입(mouth)을 개별 설정하여 랜덤 조합이 가능하도록 개선
+// v0.2.5 : Fix_다중 애니메이션 클래스 지원 및 눈 깜빡임 전용 클래스(anim-eyes) 적용 완료
 
 import { embedSvgFragment, fetchSvgFragmentRoot } from '../core/svgloader.js';
 import { BODY_ASSETS, FACE_ASSETS, GRADIENT_PRESETS, PATTERNS, getPart } from './characterData.js';
@@ -8,15 +6,15 @@ import { BODY_ASSETS, FACE_ASSETS, GRADIENT_PRESETS, PATTERNS, getPart } from '.
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 const SLOT_DEFINITIONS = [
-  { id: 'head-part-slot', x: 0, y: 20, width: 160, height: 160, animClass: 'anim-head' },
-  { id: 'face-eyes-slot', x: 0, y: 20, width: 160, height: 160, animClass: 'anim-head' },
-  { id: 'face-mouth-slot', x: 0, y: 20, width: 160, height: 160, animClass: 'anim-head' },
-  { id: 'body-part-slot', x: 35, y: 124, width: 90, height: 90, animClass: 'anim-body' },
-  { id: 'left-arm-slot', x: 30, y: 118, width: 100, height: 100, animClass: 'anim-left-arm' },
-  { id: 'right-arm-slot', x: 30, y: 118, width: 100, height: 100, animClass: 'anim-right-arm' },
-  { id: 'leg-part-slot', x: 35, y: 174, width: 90, height: 90, animClass: 'anim-body-lower' },
-  { id: 'left-leg-slot', x: 30, y: 173, width: 100, height: 100, animClass: 'anim-left-leg' },
-  { id: 'right-leg-slot', x: 30, y: 173, width: 100, height: 100, animClass: 'anim-right-leg' },
+  { id: 'head-part-slot', x: 0, y: 20, width: 160, height: 160 },
+  { id: 'face-eyes-slot', x: 0, y: 20, width: 160, height: 160 },
+  { id: 'face-mouth-slot', x: 0, y: 20, width: 160, height: 160 },
+  { id: 'body-part-slot', x: 35, y: 124, width: 90, height: 90 },
+  { id: 'left-arm-slot', x: 30, y: 118, width: 100, height: 100 },
+  { id: 'right-arm-slot', x: 30, y: 118, width: 100, height: 100 },
+  { id: 'leg-part-slot', x: 35, y: 174, width: 90, height: 90 },
+  { id: 'left-leg-slot', x: 30, y: 173, width: 100, height: 100 },
+  { id: 'right-leg-slot', x: 30, y: 173, width: 100, height: 100 },
 ];
 
 const COLOR_TARGET_SLOT_IDS = ['head-part-slot', 'body-part-slot', 'leg-part-slot'];
@@ -56,7 +54,6 @@ function initializeCharacterSvg(svgElement) {
       slot.setAttribute('width', def.width);
       slot.setAttribute('height', def.height);
       slot.setAttribute('viewBox', '0 0 160 160');
-      // 기존에 슬롯(<svg>) 자체에 주던 animClass 삭제
       root.appendChild(slot);
     }
   });
@@ -65,42 +62,47 @@ function initializeCharacterSvg(svgElement) {
 }
 
 /**
- * 에셋을 불러와 슬롯에 삽입하되, 내용물 전체를 <g class="animClass">로 감싸서 넣는 헬퍼 함수
+ * 에셋을 불러와 슬롯에 삽입하되, 여러 클래스가 전달되면 <g>를 겹겹이 감싸 개별 애니메이션이 가능하도록 처리
  */
 async function embedAndWrapAnim(slotElement, assetPath, animClass) {
   await embedSvgFragment(slotElement, assetPath);
   
-  // 삽입된 모든 자식 요소를 모음
   const children = Array.from(slotElement.childNodes);
   if (children.length === 0) return;
 
-  // 래퍼 <g> 생성 및 클래스 부여
-  const wrapper = document.createElementNS(SVG_NS, 'g');
-  if (animClass) wrapper.classList.add(animClass);
+  let targetParent = slotElement;
 
-  // 자식 요소들을 래퍼 안으로 이동
-  children.forEach(child => wrapper.appendChild(child));
-  
-  // 래퍼를 슬롯에 삽입
-  slotElement.appendChild(wrapper);
+  if (animClass) {
+    // 띄어쓰기로 분리하여 각각 새로운 <g>로 래핑
+    const classes = animClass.split(' ');
+    classes.forEach(cls => {
+      if (!cls) return;
+      const g = document.createElementNS(SVG_NS, 'g');
+      g.classList.add(cls);
+      targetParent.appendChild(g);
+      targetParent = g;
+    });
+  } else {
+    const g = document.createElementNS(SVG_NS, 'g');
+    targetParent.appendChild(g);
+    targetParent = g;
+  }
+
+  children.forEach(child => targetParent.appendChild(child));
 }
 
 function computeCharacterRootTransform(hasBody, hasLegs, viewBoxHeight, headSlot, bodySlot, legSlot) {
   const centerX = Number(headSlot.getAttribute('x')) + Number(headSlot.getAttribute('width')) / 2;
-
   const top = Number(headSlot.getAttribute('y'));
   let bottomSlot = headSlot;
   if (hasBody) bottomSlot = bodySlot;
   if (hasLegs) bottomSlot = legSlot;
   const bottom = Number(bottomSlot.getAttribute('y')) + Number(bottomSlot.getAttribute('height'));
-
   const referenceBottom = Number(legSlot.getAttribute('y')) + Number(legSlot.getAttribute('height'));
   const referenceHeight = referenceBottom - top;
   const scale = referenceHeight / (bottom - top);
-
   const offsetX = centerX * (1 - scale);
   const offsetY = (viewBoxHeight / 2) - ((top + bottom) / 2) * scale;
-
   return `translate(${offsetX}, ${offsetY}) scale(${scale})`;
 }
 
@@ -147,21 +149,17 @@ function clearColorMixOverlay(svgRoot) {
 
 async function applyColorMixToRoot(svgRoot, patternId, colors, instanceId) {
   clearColorMixOverlay(svgRoot);
-
   let defs = Array.from(svgRoot.children).find((el) => el.tagName.toLowerCase() === 'defs');
   if (!defs) {
     defs = document.createElementNS(SVG_NS, 'defs');
     svgRoot.insertBefore(defs, svgRoot.firstChild);
   }
-
   const gradientPreset = GRADIENT_PRESETS.find((g) => g.id === patternId);
-
   if (gradientPreset) {
     const gradElId = `character-color-pattern-${instanceId}`;
     const tagName = gradientPreset.type === 'linear' ? 'linearGradient' : 'radialGradient';
     const gradEl = document.createElementNS(SVG_NS, tagName);
     gradEl.setAttribute('id', gradElId);
-
     if (gradientPreset.type === 'linear') {
       gradEl.setAttribute('x1', gradientPreset.x1); gradEl.setAttribute('y1', gradientPreset.y1);
       gradEl.setAttribute('x2', gradientPreset.x2); gradEl.setAttribute('y2', gradientPreset.y2);
@@ -169,18 +167,15 @@ async function applyColorMixToRoot(svgRoot, patternId, colors, instanceId) {
       gradEl.setAttribute('cx', gradientPreset.cx); gradEl.setAttribute('cy', gradientPreset.cy);
       gradEl.setAttribute('r', gradientPreset.r);
     }
-
     const uniqueColors = [...new Set(colors)];
     const stops = uniqueColors.length === 2
       ? [{ offset: '0%', color: uniqueColors[0] }, { offset: '100%', color: uniqueColors[1] }]
       : [{ offset: '0%', color: colors[0] }, { offset: '50%', color: colors[1] }, { offset: '100%', color: colors[2] }];
-
     stops.forEach(({ offset, color }) => {
       const stop = document.createElementNS(SVG_NS, 'stop');
       stop.setAttribute('offset', offset); stop.setAttribute('stop-color', color);
       gradEl.appendChild(stop);
     });
-
     defs.appendChild(gradEl);
     COLOR_TARGET_SLOT_IDS.forEach((slotId) => {
       const slot = svgRoot.querySelector(`#${slotId}`);
@@ -194,12 +189,10 @@ async function applyColorMixToRoot(svgRoot, patternId, colors, instanceId) {
   } else {
     const patternDef = PATTERNS.find((pattern) => pattern.id === patternId);
     if (!patternDef) return;
-
     const patternRoot = await fetchSvgFragmentRoot(patternDef.assetPath);
     let patternGroup = patternRoot.querySelector('#pattern')?.cloneNode(true);
     if (!patternGroup && patternRoot.id === 'pattern') patternGroup = patternRoot.cloneNode(true);
     if (!patternGroup) return;
-
     PATTERN_GROUP_IDS.forEach((groupId, index) => {
       const shape = patternGroup.querySelector(`#${groupId}`);
       if (shape) {
@@ -208,7 +201,6 @@ async function applyColorMixToRoot(svgRoot, patternId, colors, instanceId) {
         shape.style.setProperty('fill', chosenColor, 'important');
       }
     });
-
     const patternElId = `character-color-pattern-${instanceId}`;
     const patternEl = document.createElementNS(SVG_NS, 'pattern');
     patternEl.setAttribute('id', patternElId);
@@ -218,7 +210,6 @@ async function applyColorMixToRoot(svgRoot, patternId, colors, instanceId) {
     patternEl.setAttribute('viewBox', '0 0 160 300');
     patternEl.appendChild(patternGroup);
     defs.appendChild(patternEl);
-
     COLOR_TARGET_SLOT_IDS.forEach((slotId) => {
       const slot = svgRoot.querySelector(`#${slotId}`);
       if (!slot) return;
@@ -231,7 +222,6 @@ async function applyColorMixToRoot(svgRoot, patternId, colors, instanceId) {
   }
 }
 
-
 export async function renderCharacterSvg(svgElement, config) {
   const {
     head, body, legs,
@@ -239,7 +229,7 @@ export async function renderCharacterSvg(svgElement, config) {
     expression = 'idle',
     eyes, mouth,
     animation = 'idle',
-    placeholderText = '아직 꼬무리가 없어요'
+    placeholderText = 'ㅠ _ ㅠ'
   } = config;
 
   Array.from(svgElement.classList).forEach(cls => {
@@ -254,7 +244,6 @@ export async function renderCharacterSvg(svgElement, config) {
 
   if (!head) {
     root.querySelectorAll('svg').forEach((slot) => slot.replaceChildren());
-
     if (!outline) {
       outline = document.createElementNS(SVG_NS, 'path');
       outline.classList.add('placeholder-outline');
@@ -268,14 +257,13 @@ export async function renderCharacterSvg(svgElement, config) {
     if (!textEl) {
       textEl = document.createElementNS(SVG_NS, 'text');
       textEl.classList.add('placeholder-text');
-      textEl.setAttribute('x', '80');
-      textEl.setAttribute('y', '100');
+      textEl.setAttribute('x', '83'); // 플레이스홀더 내 텍스트 위치
+      textEl.setAttribute('y', '80');
       textEl.setAttribute('font-size', '17');
       textEl.setAttribute('fill', '#b0bac6');
       textEl.setAttribute('text-anchor', 'middle');
       svgElement.insertBefore(textEl, root);
     }
-
     outline.style.display = '';
     textEl.textContent = placeholderText;
     textEl.style.display = '';
@@ -290,11 +278,11 @@ export async function renderCharacterSvg(svgElement, config) {
   const headPart = getPart(head);
   if (headPart) pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#head-part-slot'), headPart.assetPath, 'anim-head'));
   
-  // eyes나 mouth가 따로 안 들어오면 expression 값을 따라감
   const eyeState = eyes || expression;
   const mouthState = mouth || expression;
 
-  pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#face-eyes-slot'), FACE_ASSETS.eyes[eyeState] || FACE_ASSETS.eyes.idle, 'anim-head'));
+  // 눈 슬롯에 'anim-head' (둥실둥실) 와 'anim-eyes' (깜빡임) 동시 적용 (띄어쓰기)
+  pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#face-eyes-slot'), FACE_ASSETS.eyes[eyeState] || FACE_ASSETS.eyes.idle, 'anim-head anim-eyes'));
   pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#face-mouth-slot'), FACE_ASSETS.mouth[mouthState] || FACE_ASSETS.mouth.idle, 'anim-head'));
 
   if (body) {
