@@ -51,8 +51,8 @@
 
 
 # 애니메이션 적용 / 정오답 연출
-? character-display.js 
-? character-display.css
+이제 애니메이션을 추가하고자 함. 
+games\clock\index.html 에서 정오답에 따른 이벤트 애니메이션임.
 
 
 * 클릭 기능

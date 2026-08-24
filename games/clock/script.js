@@ -355,34 +355,44 @@ document.querySelector('.keypad-area').addEventListener('click', (e) => {
   else                     handleDigit(key);
 });
 
+
 /* ===========================
    캐릭터 렌더링 및 이동
 =========================== */
 
-// 시계 게임용 캐릭터 출현 좌표 목록
-const CHARACTER_POSITIONS = [
-  { bottom: '27rem', left: '2rem', right: 'auto', top: 'auto' },
-  { bottom: '27rem', right: '2rem', left: 'auto', top: 'auto' },
-  { top: '7rem', right: '2rem', bottom: 'auto', left: 'auto' },
-  { top: '5rem', left: '3rem', bottom: 'auto', right: 'auto' }
+// 시계 UI를 가리지 않는 반응형 안전 구역 중심 좌표 (vh, vw 기준)
+// 1. 좌상단 (시계 좌측 위) / 2. 우상단 (시계 우측 위)
+// 3. 좌하단 (입력칸 좌측) / 4. 우하단 (입력칸 우측)
+const SAFE_ZONES = [
+  { top: 15, left: 5,  bottom: null, right: null },
+  { top: 15, left: null, bottom: null, right: 5  },
+  { top: null, left: 5,  bottom: 35, right: null },
+  { top: null, left: null, bottom: 35, right: 5  }
 ];
 
 function moveCharacterToRandomPosition() {
   const container = document.getElementById('character-container');
   if (!container || container.style.display === 'none') return;
 
-  // 무작위 위치 선택
-  const randomPos = CHARACTER_POSITIONS[Math.floor(Math.random() * CHARACTER_POSITIONS.length)];
+  // 1. 안전 구역 중 하나를 무작위 선택
+  const zone = SAFE_ZONES[Math.floor(Math.random() * SAFE_ZONES.length)];
   
-  // 0~360도 무작위 각도 생성
+  // 2. 중심점에서 -3 ~ +3 단위(vh/vw) 만큼 미세 무작위 오프셋 생성
+  const randomOffsetX = (Math.random() * 6) - 3;
+  const randomOffsetY = (Math.random() * 6) - 3;
+
+  // 3. 0~360도 무작위 각도 생성
   const randomAngle = Math.floor(Math.random() * 361);
 
-  container.style.top = randomPos.top;
-  container.style.bottom = randomPos.bottom;
-  container.style.left = randomPos.left;
-  container.style.right = randomPos.right;
+  // 4. 위치 적용 (값이 있는 속성에만 오프셋을 더해서 할당)
+  container.style.top    = zone.top !== null    ? `${zone.top + randomOffsetY}vh` : 'auto';
+  container.style.bottom = zone.bottom !== null ? `${zone.bottom + randomOffsetY}vh` : 'auto';
+  container.style.left   = zone.left !== null   ? `${zone.left + randomOffsetX}vw` : 'auto';
+  container.style.right  = zone.right !== null  ? `${zone.right + randomOffsetX}vw` : 'auto';
+  
   container.style.transform = `rotate(${randomAngle}deg)`;
 }
+
 
 function initCharacter() {
   const container = document.getElementById('character-container');
