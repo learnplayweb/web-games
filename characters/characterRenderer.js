@@ -1,6 +1,6 @@
-// v0.2.0
+// v0.2.1
 // Character Renderer
-// - 캐릭터 렌더링 및 애니메이션 클래스 기반 구조 주입
+// - Fix: 애니메이션 타겟을 슬롯(<svg>)에서 삽입 내용물을 감싸는 그룹(<g>)으로 변경하여 회전축 밀림 현상 해결
 
 import { embedSvgFragment, fetchSvgFragmentRoot } from '../core/svgloader.js';
 import { BODY_ASSETS, FACE_ASSETS, GRADIENT_PRESETS, PATTERNS, getPart } from './characterData.js';
@@ -56,12 +56,33 @@ function initializeCharacterSvg(svgElement) {
       slot.setAttribute('width', def.width);
       slot.setAttribute('height', def.height);
       slot.setAttribute('viewBox', '0 0 160 160');
-      slot.classList.add(def.animClass); // 애니메이션용 클래스 주입
+      // 기존에 슬롯(<svg>) 자체에 주던 animClass 삭제
       root.appendChild(slot);
     }
   });
 
   return root;
+}
+
+/**
+ * 에셋을 불러와 슬롯에 삽입하되, 내용물 전체를 <g class="animClass">로 감싸서 넣는 헬퍼 함수
+ */
+async function embedAndWrapAnim(slotElement, assetPath, animClass) {
+  await embedSvgFragment(slotElement, assetPath);
+  
+  // 삽입된 모든 자식 요소를 모음
+  const children = Array.from(slotElement.childNodes);
+  if (children.length === 0) return;
+
+  // 래퍼 <g> 생성 및 클래스 부여
+  const wrapper = document.createElementNS(SVG_NS, 'g');
+  if (animClass) wrapper.classList.add(animClass);
+
+  // 자식 요소들을 래퍼 안으로 이동
+  children.forEach(child => wrapper.appendChild(child));
+  
+  // 래퍼를 슬롯에 삽입
+  slotElement.appendChild(wrapper);
 }
 
 function computeCharacterRootTransform(hasBody, hasLegs, viewBoxHeight, headSlot, bodySlot, legSlot) {
@@ -215,11 +236,10 @@ export async function renderCharacterSvg(svgElement, config) {
     head, body, legs,
     color, colorMix,
     expression = 'idle',
-    animation = 'idle', // 애니메이션 상태 (기본 idle)
+    animation = 'idle',
     placeholderText = '아직 꼬무리가 없어요'
   } = config;
 
-  // 기존 상태 클래스 정리 후 새 상태 적용
   Array.from(svgElement.classList).forEach(cls => {
     if (cls.startsWith('state-')) svgElement.classList.remove(cls);
   });
@@ -266,16 +286,16 @@ export async function renderCharacterSvg(svgElement, config) {
   const pendingEmbeds = [];
 
   const headPart = getPart(head);
-  if (headPart) pendingEmbeds.push(embedSvgFragment(root.querySelector('#head-part-slot'), headPart.assetPath));
+  if (headPart) pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#head-part-slot'), headPart.assetPath, 'anim-head'));
   
-  pendingEmbeds.push(embedSvgFragment(root.querySelector('#face-eyes-slot'), FACE_ASSETS.eyes[expression] || FACE_ASSETS.eyes.idle));
-  pendingEmbeds.push(embedSvgFragment(root.querySelector('#face-mouth-slot'), FACE_ASSETS.mouth[expression] || FACE_ASSETS.mouth.idle));
+  pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#face-eyes-slot'), FACE_ASSETS.eyes[expression] || FACE_ASSETS.eyes.idle, 'anim-head'));
+  pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#face-mouth-slot'), FACE_ASSETS.mouth[expression] || FACE_ASSETS.mouth.idle, 'anim-head'));
 
   if (body) {
     const bodyPart = getPart(body);
-    if (bodyPart) pendingEmbeds.push(embedSvgFragment(root.querySelector('#body-part-slot'), bodyPart.assetPath));
-    pendingEmbeds.push(embedSvgFragment(root.querySelector('#left-arm-slot'), BODY_ASSETS.leftArm));
-    pendingEmbeds.push(embedSvgFragment(root.querySelector('#right-arm-slot'), BODY_ASSETS.rightArm));
+    if (bodyPart) pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#body-part-slot'), bodyPart.assetPath, 'anim-body'));
+    pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#left-arm-slot'), BODY_ASSETS.leftArm, 'anim-left-arm'));
+    pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#right-arm-slot'), BODY_ASSETS.rightArm, 'anim-right-arm'));
   } else {
     root.querySelector('#body-part-slot').replaceChildren();
     root.querySelector('#left-arm-slot').replaceChildren();
@@ -284,9 +304,9 @@ export async function renderCharacterSvg(svgElement, config) {
 
   if (legs) {
     const legPart = getPart(legs);
-    if (legPart) pendingEmbeds.push(embedSvgFragment(root.querySelector('#leg-part-slot'), legPart.assetPath));
-    pendingEmbeds.push(embedSvgFragment(root.querySelector('#left-leg-slot'), BODY_ASSETS.leftLeg));
-    pendingEmbeds.push(embedSvgFragment(root.querySelector('#right-leg-slot'), BODY_ASSETS.rightLeg));
+    if (legPart) pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#leg-part-slot'), legPart.assetPath, 'anim-body-lower'));
+    pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#left-leg-slot'), BODY_ASSETS.leftLeg, 'anim-left-leg'));
+    pendingEmbeds.push(embedAndWrapAnim(root.querySelector('#right-leg-slot'), BODY_ASSETS.rightLeg, 'anim-right-leg'));
   } else {
     root.querySelector('#leg-part-slot').replaceChildren();
     root.querySelector('#left-leg-slot').replaceChildren();
