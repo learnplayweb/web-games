@@ -1,6 +1,6 @@
-// v0.1.0
+// v0.2.0
 // Character Renderer
-// - 캐릭터 렌더링(구조 생성, 위치 설정, 색상/패턴 적용) 공통 모듈
+// - 캐릭터 렌더링 및 애니메이션 클래스 기반 구조 주입
 
 import { embedSvgFragment, fetchSvgFragmentRoot } from '../core/svgloader.js';
 import { BODY_ASSETS, FACE_ASSETS, GRADIENT_PRESETS, PATTERNS, getPart } from './characterData.js';
@@ -8,15 +8,15 @@ import { BODY_ASSETS, FACE_ASSETS, GRADIENT_PRESETS, PATTERNS, getPart } from '.
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 const SLOT_DEFINITIONS = [
-  { id: 'head-part-slot', x: 0, y: 20, width: 160, height: 160 },
-  { id: 'face-eyes-slot', x: 0, y: 20, width: 160, height: 160 },
-  { id: 'face-mouth-slot', x: 0, y: 20, width: 160, height: 160 },
-  { id: 'body-part-slot', x: 35, y: 124, width: 90, height: 90 },
-  { id: 'left-arm-slot', x: 30, y: 118, width: 100, height: 100 },
-  { id: 'right-arm-slot', x: 30, y: 118, width: 100, height: 100 },
-  { id: 'leg-part-slot', x: 35, y: 174, width: 90, height: 90 },
-  { id: 'left-leg-slot', x: 30, y: 173, width: 100, height: 100 },
-  { id: 'right-leg-slot', x: 30, y: 173, width: 100, height: 100 },
+  { id: 'head-part-slot', x: 0, y: 20, width: 160, height: 160, animClass: 'anim-head' },
+  { id: 'face-eyes-slot', x: 0, y: 20, width: 160, height: 160, animClass: 'anim-head' },
+  { id: 'face-mouth-slot', x: 0, y: 20, width: 160, height: 160, animClass: 'anim-head' },
+  { id: 'body-part-slot', x: 35, y: 124, width: 90, height: 90, animClass: 'anim-body' },
+  { id: 'left-arm-slot', x: 30, y: 118, width: 100, height: 100, animClass: 'anim-left-arm' },
+  { id: 'right-arm-slot', x: 30, y: 118, width: 100, height: 100, animClass: 'anim-right-arm' },
+  { id: 'leg-part-slot', x: 35, y: 174, width: 90, height: 90, animClass: 'anim-body-lower' },
+  { id: 'left-leg-slot', x: 30, y: 173, width: 100, height: 100, animClass: 'anim-left-leg' },
+  { id: 'right-leg-slot', x: 30, y: 173, width: 100, height: 100, animClass: 'anim-right-leg' },
 ];
 
 const COLOR_TARGET_SLOT_IDS = ['head-part-slot', 'body-part-slot', 'leg-part-slot'];
@@ -34,7 +34,6 @@ function nextColorInstanceId() {
   return `ci${colorInstanceCounter}`;
 }
 
-/** 캐릭터 SVG 컨테이너 초기 구조 생성 */
 function initializeCharacterSvg(svgElement) {
   if (!svgElement.getAttribute('viewBox')) {
     svgElement.setAttribute('viewBox', '0 0 160 300');
@@ -57,6 +56,7 @@ function initializeCharacterSvg(svgElement) {
       slot.setAttribute('width', def.width);
       slot.setAttribute('height', def.height);
       slot.setAttribute('viewBox', '0 0 160 160');
+      slot.classList.add(def.animClass); // 애니메이션용 클래스 주입
       root.appendChild(slot);
     }
   });
@@ -136,7 +136,6 @@ async function applyColorMixToRoot(svgRoot, patternId, colors, instanceId) {
   const gradientPreset = GRADIENT_PRESETS.find((g) => g.id === patternId);
 
   if (gradientPreset) {
-    // 템플릿 리터럴 오동작 원인이었던 부분 수정
     const gradElId = `character-color-pattern-${instanceId}`;
     const tagName = gradientPreset.type === 'linear' ? 'linearGradient' : 'radialGradient';
     const gradEl = document.createElementNS(SVG_NS, tagName);
@@ -211,19 +210,20 @@ async function applyColorMixToRoot(svgRoot, patternId, colors, instanceId) {
   }
 }
 
-/**
- * 상태(config) 기반 캐릭터 전체 렌더링 수행.
- * 전달받은 SVG 요소를 완전히 제어합니다.
- * @param {SVGElement} svgElement 렌더링 대상 컨테이너
- * @param {object} config { head, body, legs, color, colorMix, expression } 형태의 설정 객체
- */
 export async function renderCharacterSvg(svgElement, config) {
   const {
     head, body, legs,
     color, colorMix,
     expression = 'idle',
-    placeholderText = 'ㅠ _ ㅠ'
+    animation = 'idle', // 애니메이션 상태 (기본 idle)
+    placeholderText = '아직 꼬무리가 없어요'
   } = config;
+
+  // 기존 상태 클래스 정리 후 새 상태 적용
+  Array.from(svgElement.classList).forEach(cls => {
+    if (cls.startsWith('state-')) svgElement.classList.remove(cls);
+  });
+  if (animation) svgElement.classList.add(`state-${animation}`);
 
   const root = initializeCharacterSvg(svgElement);
 
@@ -246,8 +246,8 @@ export async function renderCharacterSvg(svgElement, config) {
     if (!textEl) {
       textEl = document.createElementNS(SVG_NS, 'text');
       textEl.classList.add('placeholder-text');
-      textEl.setAttribute('x', '83');
-      textEl.setAttribute('y', '80');
+      textEl.setAttribute('x', '80');
+      textEl.setAttribute('y', '100');
       textEl.setAttribute('font-size', '17');
       textEl.setAttribute('fill', '#b0bac6');
       textEl.setAttribute('text-anchor', 'middle');

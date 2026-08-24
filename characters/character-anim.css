@@ -1,0 +1,64 @@
+/* ===========================
+   Character Animations
+   - 공통 애니메이션 스타일
+=========================== */
+
+/* 1. 각 관절의 회전축 설정 (viewBox 160x160 기준)
+   transform-box: view-box 속성을 통해 x,y 오프셋과 무관하게 
+   각 파츠 내부의 고유 좌표를 축으로 사용합니다. */
+.anim-left-arm { transform-origin: 48px 70px; transform-box: view-box; }
+.anim-right-arm { transform-origin: 112px 70px; transform-box: view-box; }
+.anim-left-leg { transform-origin: 56px 108px; transform-box: view-box; }
+.anim-right-leg { transform-origin: 104px 108px; transform-box: view-box; }
+
+/* 2. 성능 최적화 (버벅임 방지) */
+.anim-head, .anim-body, .anim-body-lower,
+.anim-left-arm, .anim-right-arm,
+.anim-left-leg, .anim-right-leg {
+  will-change: transform;
+}
+
+/* ===========================
+   State: Idle (기본 대기 상태)
+=========================== */
+.state-idle .anim-head { animation: idle-float-head 3s ease-in-out infinite; }
+.state-idle .anim-body { animation: idle-float-body 3s ease-in-out infinite; }
+.state-idle .anim-body-lower { animation: idle-float-lower 3s ease-in-out infinite; }
+
+.state-idle .anim-left-arm { animation: idle-swing-l-arm 3s ease-in-out infinite; }
+.state-idle .anim-right-arm { animation: idle-swing-r-arm 3s ease-in-out infinite; }
+
+.state-idle .anim-left-leg { animation: idle-swing-l-leg 3s ease-in-out infinite; }
+.state-idle .anim-right-leg { animation: idle-swing-r-leg 3s ease-in-out infinite; }
+
+/* --- Keyframes (둥실둥실 & 살랑살랑) --- */
+@keyframes idle-float-head {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes idle-float-body {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes idle-float-lower {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes idle-swing-l-arm {
+  0%, 100% { transform: rotate(3deg); }
+  50% { transform: rotate(-5deg); }
+}
+@keyframes idle-swing-r-arm {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(5deg); }
+}
+
+@keyframes idle-swing-l-leg {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-3deg); }
+}
+@keyframes idle-swing-r-leg {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(3deg); }
+}
