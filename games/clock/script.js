@@ -318,23 +318,48 @@ function checkAnswer() {
     (!levelFields.includes('second') || userSecond === currentAnswer.second);
 
   const inputArea = document.querySelector('.input-area');
+  const characterContainer = document.getElementById('character-container');
+  const characterSvg = characterContainer ? characterContainer.querySelector('svg') : null;
+  const equipState = getEquippedParts();
+
   isJudging = true;
 
   if (isCorrect) {
     handleCorrectAnswer();
     stageState.correctCount += 1;
     inputArea.classList.add('input-area--correct');
+
+    // 캐릭터 정답 리액션 (표정 correct, 움직임 빠른 파닥임)
+    if (characterSvg && equipState.head) {
+      renderCharacterSvg(characterSvg, { ...equipState, expression: 'correct', animation: 'correct' });
+    }
+
     setTimeout(() => {
       inputArea.classList.remove('input-area--correct');
+      // 원래 상태로 복구
+      if (characterSvg && equipState.head) {
+        renderCharacterSvg(characterSvg, { ...equipState, expression: 'idle', animation: 'idle' });
+      }
       resetInput();
       nextQuestion();
       isJudging = false;
     }, 600);
+
   } else {
     handleWrongAnswer();
     inputArea.classList.add('input-area--wrong');
+
+    // 캐릭터 오답 리액션 (표정 wrong, 움직임은 wrong)
+    if (characterSvg && equipState.head) {
+      renderCharacterSvg(characterSvg, { ...equipState, expression: 'wrong', animation: 'wrong' });
+    }
+
     setTimeout(() => {
       inputArea.classList.remove('input-area--wrong');
+      // 오답 모달 닫힐 때 복구해야 하므로 여기서는 표정만 원복(생략 가능하지만 안전하게 처리)
+      if (characterSvg && equipState.head) {
+        renderCharacterSvg(characterSvg, { ...equipState, expression: 'idle', animation: 'idle' });
+      }
       showAnswerModal();
     }, 600);
   }
@@ -364,10 +389,10 @@ document.querySelector('.keypad-area').addEventListener('click', (e) => {
 // 1. 좌상단 (시계 좌측 위) / 2. 우상단 (시계 우측 위)
 // 3. 좌하단 (입력칸 좌측) / 4. 우하단 (입력칸 우측)
 const SAFE_ZONES = [
-  { top: 15, left: 5,  bottom: null, right: null },
-  { top: 15, left: null, bottom: null, right: 5  },
-  { top: null, left: 5,  bottom: 35, right: null },
-  { top: null, left: null, bottom: 35, right: 5  }
+  { top: 7, left: 5,  bottom: null, right: null },
+  { top: 7, left: null, bottom: null, right: 5  },
+  { top: null, left: 5,  bottom: 40, right: null },
+  { top: null, left: null, bottom: 40, right: 5  }
 ];
 
 function moveCharacterToRandomPosition() {

@@ -63,3 +63,75 @@
   0%, 100% { transform: rotate(0deg); }
   50% { transform: rotate(3deg); }
 }
+
+/* ===========================
+   State: Correct (정답 - 빠른 파닥임)
+   - 0.3초 주기로 0.6초간 약 2회 반복
+=========================== */
+.state-correct .anim-head { animation: idle-float-head 3s ease-in-out infinite; }
+.state-correct .anim-body { animation: idle-float-body 3s ease-in-out infinite; }
+.state-correct .anim-body-lower { animation: idle-float-lower 3s ease-in-out infinite; }
+
+.state-correct .anim-left-arm { animation: correct-flap-l-arm 0.3s ease-in-out infinite; }
+.state-correct .anim-right-arm { animation: correct-flap-r-arm 0.3s ease-in-out infinite; }
+
+.state-correct .anim-left-leg { animation: correct-flap-l-leg 0.3s ease-in-out infinite; }
+.state-correct .anim-right-leg { animation: correct-flap-r-leg 0.3s ease-in-out infinite; }
+
+/* --- Correct Keyframes --- */
+/* 왼쪽: 팔 65~85deg / 다리 -5~15deg */
+@keyframes correct-flap-l-arm {
+  0%, 100% { transform: rotate(65deg); }
+  50% { transform: rotate(85deg); }
+}
+@keyframes correct-flap-l-leg {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(15deg); }
+}
+
+/* 오른쪽: 대칭 (-65~-85deg / 5~-15deg) */
+@keyframes correct-flap-r-arm {
+  0%, 100% { transform: rotate(-65deg); }
+  50% { transform: rotate(-85deg); }
+}
+@keyframes correct-flap-r-leg {
+  0%, 100% { transform: rotate(5deg); }
+  50% { transform: rotate(-15deg); }
+}
+
+
+/* ===========================
+   State: Wrong (오답)
+   - 팔: Y축(어깨) 기준 상하 반전 (scaleY(-1)) 후 idle과 동일한 속도/각도
+   - 다리: idle과 동일한 속도/각도 (추후 개별 조작을 위해 키프레임 세트 분리)
+=========================== */
+.state-wrong .anim-head { animation: idle-float-head 3s ease-in-out infinite; }
+.state-wrong .anim-body { animation: idle-float-body 3s ease-in-out infinite; }
+.state-wrong .anim-body-lower { animation: idle-float-lower 3s ease-in-out infinite; }
+
+.state-wrong .anim-left-arm { animation: wrong-flap-l-arm 3s ease-in-out infinite; }
+.state-wrong .anim-right-arm { animation: wrong-flap-r-arm 3s ease-in-out infinite; }
+
+.state-wrong .anim-left-leg { animation: wrong-swing-l-leg 3s ease-in-out infinite; }
+.state-wrong .anim-right-leg { animation: wrong-swing-r-leg 3s ease-in-out infinite; }
+
+/* --- Wrong Keyframes --- */
+/* 팔: scaleY(-1)을 통해 어깨를 기준으로 거꾸로 뒤집습니다. */
+@keyframes wrong-flap-l-arm {
+  0%, 100% { transform: scaleY(-1) rotate(15deg); }
+  50% { transform: scaleY(-1) rotate(-5deg); }
+}
+@keyframes wrong-flap-r-arm {
+  0%, 100% { transform: scaleY(-1) rotate(-15deg); }
+  50% { transform: scaleY(-1) rotate(5deg); }
+}
+
+/* 다리: 현재는 idle과 완전히 동일 (숫자만 바꾸면 바로 다르게 움직입니다) */
+@keyframes wrong-swing-l-leg {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-3deg); }
+}
+@keyframes wrong-swing-r-leg {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(3deg); }
+}
