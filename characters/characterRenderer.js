@@ -1,4 +1,9 @@
-// v0.2.5 : Fix_다중 애니메이션 클래스 지원 및 눈 깜빡임 전용 클래스(anim-eyes) 적용 완료
+// v0.2.6
+// characterRenderer.js
+// - SVG 캐릭터 슬롯 조립 및 렌더링 (head/body/legs/eyes/mouth)
+// - 애니메이션 클래스 다중 래핑, 눈 깜빡임 origin 동적 계산
+// - 색상 틴트 및 컬러믹스(그라디언트/패턴) 적용
+
 
 import { embedSvgFragment, fetchSvgFragmentRoot } from '../core/svgloader.js';
 import { BODY_ASSETS, FACE_ASSETS, GRADIENT_PRESETS, PATTERNS, getPart } from './characterData.js';
@@ -25,6 +30,10 @@ const FILL_PART_ID_BY_SLOT = {
   'body-part-slot': 'body-fill-part',
   'leg-part-slot': 'leg-fill-part',
 };
+
+// 눈 에셋(FACE_ASSETS.eyes)의 SVG 내부 로컬 좌표 (slot viewBox 0 0 160 160 기준)
+// ⚠️ 눈 SVG 에셋 파일 자체를 수정(위치/크기 변경)하면 이 값도 반드시 갱신할 것
+const EYE_LOCAL_CENTER = { x: 80, y: 83 };
 
 let colorInstanceCounter = 0;
 function nextColorInstanceId() {
@@ -131,6 +140,17 @@ function stampFillPartId(svgRoot, slotId, instanceId) {
     || shapes.find(isFillLayer)
     || shapes.find((shape) => shape.getAttribute('fill') !== 'none');
   if (fillPart) fillPart.id = `${FILL_PART_ID_BY_SLOT[slotId]}-${instanceId}`;
+}
+
+function setEyesBlinkOrigin(root) {
+  const eyeSlot = root.querySelector('#face-eyes-slot');
+  const slotX = Number(eyeSlot.getAttribute('x'));
+  const slotY = Number(eyeSlot.getAttribute('y'));
+
+  const centerX = slotX + EYE_LOCAL_CENTER.x;
+  const centerY = slotY + EYE_LOCAL_CENTER.y;
+
+  eyeSlot.style.transformOrigin = `${centerX}px ${centerY}px`;
 }
 
 function clearColorMixOverlay(svgRoot) {
@@ -316,6 +336,7 @@ export async function renderCharacterSvg(svgElement, config) {
   ));
 
   await Promise.all(pendingEmbeds);
+  setEyesBlinkOrigin(root);
 
   const instanceId = nextColorInstanceId();
   stampFillPartId(svgElement, 'head-part-slot', instanceId);

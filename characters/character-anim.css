@@ -136,3 +136,19 @@
   50% { transform: rotate(3deg); }
 }
 
+/* ===========================
+   Eye Blinking (눈 깜빡임)
+   - 불규칙한 자연스러운 깜빡임 (약 1.7초 ~ 2.2초 간격 랜덤 시뮬레이션)
+   - 내부 <g> 충돌을 피하기 위해 눈 슬롯 <svg> 전체를 납작하게 압축합니다.
+=========================== */
+.state-idle #face-eyes-slot {
+  animation: blink-eyes 10s infinite;
+  transform-origin: 50% 50%; /* 슬롯의 정중앙 기준 */
+  will-change: transform;
+}
+
+/* 6초 동안 3번 불규칙하게 깜빡입니다. */
+@keyframes blink-eyes {
+  0%, 28%, 32%, 63%, 67%, 94%, 98%, 100% { transform: scaleY(1); }
+  30%, 65%, 96% { transform: scaleY(0.1); }
+}

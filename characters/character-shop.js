@@ -62,11 +62,11 @@ characterPlaceholder.addEventListener('click', () => {
   // 랜덤 상태 적용
   renderCharacterPreviewOnce({ eyes: randomEye, mouth: randomMouth, animation: randomAnim });
 
-  // 1.5초 뒤 원래 상태로 복구
+  // 3초 뒤 원래 상태로 복구 (애니메이션 길이와 같아야 자연스러움)
   setTimeout(() => {
     renderCharacterPreviewOnce(); // 파라미터 없이 부르면 기본(idle) 상태로 돌아감
     isCharacterReacting = false;
-  }, 1500);
+  }, 3000);
 });
 
 renderCharacterPreview();
