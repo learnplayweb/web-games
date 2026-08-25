@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="../shared/header.css" />
   <link rel="stylesheet" href="character-shop.css" />
   <link rel="stylesheet" href="character-anim.css" />
+  <link rel="stylesheet" href="assets/effects/effects.css" />
 </head>
 <body>
 
@@ -99,17 +100,19 @@
       </div>
     </section>
 
-    <!-- ⑤ 효과 섹션 (기본 접힘, 기능 예약) -->
+    <!-- ⑤ 효과 섹션 -->
     <section class="shop-section">
       <div class="shop-section__header">
         효과
-        <button type="button" class="shop-section__toggle" id="toggle-decoration" aria-expanded="false" aria-controls="decoration-body">▼</button>
+        <button type="button" class="shop-section__toggle" id="toggle-decoration"
+                aria-expanded="false" aria-controls="decoration-body">▼</button>
       </div>
       <div class="shop-section__body shop-section__body--hidden" id="decoration-body">
-        <p style="color:var(--color-text-muted); font-size:0.9rem; padding: 0.5rem 0;">효과 구입은 추후 업데이트 예정입니다.</p>
+        <!-- JS가 이 안에 동적으로 12개의 슬롯을 채워 넣습니다 -->
+        <div class="parts-grid" id="effect-grid"></div>
       </div>
     </section>
-  </div>
+
 
   <!-- 각종 모달 -->
   <div id="part-modal" class="modal-overlay modal-overlay--hidden" role="dialog" aria-modal="true">
@@ -147,6 +150,21 @@
     </div>
   </div>
 
+  <!-- 효과 전용 모달 -->
+  <div id="effect-modal" class="modal-overlay modal-overlay--hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <h3 id="effect-modal-title" class="name-modal__title" style="margin-bottom:1rem; font-size: 1.1rem; color: var(--color-text-muted);">효과 이름</h3>
+      
+      <!-- 파티클 애니메이션이 터지는 무대 -->
+      <div id="effect-modal-preview" class="part-modal__preview" style="position:relative; overflow:hidden;">
+        <svg class="character-placeholder" viewBox="0 0 160 300"></svg>
+      </div>
+      
+      <p id="effect-modal-name" class="part-modal__name"></p>
+      <div id="effect-modal-actions" class="modal-card__actions"></div>
+    </div>
+  </div>
+  
   <script type="module" src="character-shop.js"></script>
 </body>
 </html>

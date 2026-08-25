@@ -557,3 +557,12 @@ body {
   opacity: 0.4;
   cursor: default;
 }
+
+/* 효과 슬롯의 빈 화면 크기 잡아주기 (파티클용 도화지) */
+.effect-slot {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.75rem; /* 슬롯 곡률과 맞춤 */
+}
