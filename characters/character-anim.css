@@ -1,4 +1,8 @@
-/* v0.1.1 : Update_팔 회전 각도 조정 및 파닥거리는 움직임(위아래)으로 개선 */
+/* v0.2.0
+// character-anim.css
+// - 캐릭터 파츠별 애니메이션 정의 (idle/correct/wrong + wiggle/bounce/squish/sway/breathe)
+// - 관절 회전축(transform-origin) 및 8개 상태별 keyframe 세트 관리
+// - 눈 깜빡임(blink-eyes)은 idle 상태 전용으로 별도 처리 */
 /* ===========================
    Character Animations
    - 공통 애니메이션 스타일
@@ -6,6 +10,9 @@
 
 /* 1. 각 관절의 회전축 설정 (원본 SVG viewBox 0 0 160 160 기준 좌표)
    - 이제 타겟이 <svg>가 아닌 내부 <g>이므로 transform-box를 강제하지 않아도 SVG 좌표계를 정상적으로 따릅니다. */
+.anim-head { transform-origin: 80px 90px; }
+.anim-body { transform-origin: 80px 80px; }
+.anim-body-lower { transform-origin: 80px 80px; }
 .anim-left-arm { transform-origin: 48px 70px; }
 .anim-right-arm { transform-origin: 112px 70px; }
 .anim-left-leg { transform-origin: 56px 108px; }
@@ -137,18 +144,243 @@
 }
 
 /* ===========================
-   Eye Blinking (눈 깜빡임)
-   - 불규칙한 자연스러운 깜빡임 (약 1.7초 ~ 2.2초 간격 랜덤 시뮬레이션)
-   - 내부 <g> 충돌을 피하기 위해 눈 슬롯 <svg> 전체를 납작하게 압축합니다.
+   State: Wiggle (꿈틀꿈틀 - 애벌레/뱀처럼 S자 웨이브)
+   - 머리와 하체가 반대 방향으로 흔들려 S자 곡선을 만듦
 =========================== */
-.state-idle #face-eyes-slot {
-  animation: blink-eyes 10s infinite;
-  transform-origin: 50% 50%; /* 슬롯의 정중앙 기준 */
-  will-change: transform;
+.state-wiggle .anim-head { animation: wiggle-head 3s ease-in-out infinite; }
+.state-wiggle .anim-body { animation: wiggle-body 3s ease-in-out infinite; }
+.state-wiggle .anim-body-lower { animation: wiggle-lower 3s ease-in-out infinite; }
+
+.state-wiggle .anim-left-arm { animation: wiggle-l-arm 3s ease-in-out infinite; }
+.state-wiggle .anim-right-arm { animation: wiggle-r-arm 3s ease-in-out infinite; }
+
+.state-wiggle .anim-left-leg { animation: wiggle-l-leg 3s ease-in-out infinite; }
+.state-wiggle .anim-right-leg { animation: wiggle-r-leg 3s ease-in-out infinite; }
+
+/* --- Wiggle Keyframes --- */
+@keyframes wiggle-head {
+  0%, 100% { transform: translateX(-3px) rotate(-4deg); }
+  50% { transform: translateX(3px) rotate(4deg); }
+}
+@keyframes wiggle-body {
+  0%, 100% { transform: translateX(3px) rotate(5deg); }
+  50% { transform: translateX(-3px) rotate(-5deg); }
+}
+@keyframes wiggle-lower {
+  0%, 100% { transform: translateX(-4px) rotate(-6deg); }
+  50% { transform: translateX(4px) rotate(6deg); }
+}
+@keyframes wiggle-l-arm {
+  0%, 100% { transform: rotate(25deg); }
+  50% { transform: rotate(-5deg); }
+}
+@keyframes wiggle-r-arm {
+  0%, 100% { transform: rotate(-25deg); }
+  50% { transform: rotate(5deg); }
+}
+@keyframes wiggle-l-leg {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
+}
+@keyframes wiggle-r-leg {
+  0%, 100% { transform: rotate(8deg); }
+  50% { transform: rotate(-8deg); }
 }
 
-/* 6초 동안 3번 불규칙하게 깜빡입니다. */
-@keyframes blink-eyes {
-  0%, 28%, 32%, 63%, 67%, 94%, 98%, 100% { transform: scaleY(1); }
-  30%, 65%, 96% { transform: scaleY(0.1); }
+/* ===========================
+   State: Bounce (통통 튀기)
+   - 위로 튀어올랐다가 착지하며 스쿼시(눌림) 후 잠시 정지
+=========================== */
+.state-bounce .anim-head { animation: bounce-head 3s ease-in-out infinite; }
+.state-bounce .anim-body { animation: bounce-body 3s ease-in-out infinite; }
+.state-bounce .anim-body-lower { animation: bounce-lower 3s ease-in-out infinite; }
+
+.state-bounce .anim-left-arm { animation: bounce-l-arm 3s ease-in-out infinite; }
+.state-bounce .anim-right-arm { animation: bounce-r-arm 3s ease-in-out infinite; }
+
+.state-bounce .anim-left-leg { animation: bounce-l-leg 3s ease-in-out infinite; }
+.state-bounce .anim-right-leg { animation: bounce-r-leg 3s ease-in-out infinite; }
+
+/* --- Bounce Keyframes --- */
+@keyframes bounce-head {
+  0%, 100% { transform: translateY(0); }
+  15% { transform: translateY(-16px); }
+  30% { transform: translateY(0); }
+  38% { transform: translateY(2px) scaleY(0.92); }
+  46% { transform: translateY(0); }
+}
+@keyframes bounce-body {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  15% { transform: translateY(-14px) scaleY(1.05); }
+  30% { transform: translateY(0) scaleY(0.9); }
+  38% { transform: translateY(2px) scaleY(1.08); }
+  46% { transform: translateY(0) scaleY(1); }
+}
+@keyframes bounce-lower {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  15% { transform: translateY(-12px); }
+  30% { transform: translateY(0) scaleY(0.85); }
+  38% { transform: translateY(1px) scaleY(1.1); }
+  46% { transform: translateY(0) scaleY(1); }
+}
+@keyframes bounce-l-arm {
+  0%, 100% { transform: rotate(10deg); }
+  15% { transform: rotate(-20deg); }
+  30% { transform: rotate(35deg); }
+  46% { transform: rotate(10deg); }
+}
+@keyframes bounce-r-arm {
+  0%, 100% { transform: rotate(-10deg); }
+  15% { transform: rotate(20deg); }
+  30% { transform: rotate(-35deg); }
+  46% { transform: rotate(-10deg); }
+}
+@keyframes bounce-l-leg {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(-12deg); }
+  46% { transform: rotate(0deg); }
+}
+@keyframes bounce-r-leg {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(12deg); }
+  46% { transform: rotate(0deg); }
+}
+
+/* ===========================
+   State: Squish (찌그러져서 부들부들하다 원래대로)
+   - 사이클의 약 75%는 눌린 채 떨림, 이후 잠깐 원래 형태로 회복
+=========================== */
+.state-squish .anim-head { animation: squish-head 3s ease-in-out infinite; }
+.state-squish .anim-body { animation: squish-body 3s ease-in-out infinite; }
+.state-squish .anim-body-lower { animation: squish-lower 3s ease-in-out infinite; }
+
+.state-squish .anim-left-arm { animation: squish-l-arm 3s ease-in-out infinite; }
+.state-squish .anim-right-arm { animation: squish-r-arm 3s ease-in-out infinite; }
+
+.state-squish .anim-left-leg { animation: squish-l-leg 3s ease-in-out infinite; }
+.state-squish .anim-right-leg { animation: squish-r-leg 3s ease-in-out infinite; }
+
+/* --- Squish Keyframes --- */
+@keyframes squish-head {
+  0%, 10%, 20%, 30%, 40%, 50%, 60%, 70% { transform: scale(1.05, 0.93) translateX(-1px); }
+  5%, 15%, 25%, 35%, 45%, 55%, 65%, 75% { transform: scale(1.03, 0.95) translateX(1px); }
+  85%, 100% { transform: scale(1, 1) translateX(0); }
+}
+@keyframes squish-body {
+  0%, 10%, 20%, 30%, 40%, 50%, 60%, 70% { transform: scale(1.1, 0.88) translateX(1px); }
+  5%, 15%, 25%, 35%, 45%, 55%, 65%, 75% { transform: scale(1.06, 0.92) translateX(-1px); }
+  85%, 100% { transform: scale(1, 1) translateX(0); }
+}
+@keyframes squish-lower {
+  0%, 10%, 20%, 30%, 40%, 50%, 60%, 70% { transform: scale(1.08, 0.9) translateX(-1px); }
+  5%, 15%, 25%, 35%, 45%, 55%, 65%, 75% { transform: scale(1.04, 0.94) translateX(1px); }
+  85%, 100% { transform: scale(1, 1) translateX(0); }
+}
+@keyframes squish-l-arm {
+  0%, 10%, 20%, 30%, 40%, 50%, 60%, 70% { transform: rotate(20deg); }
+  5%, 15%, 25%, 35%, 45%, 55%, 65%, 75% { transform: rotate(10deg); }
+  85%, 100% { transform: rotate(15deg); }
+}
+@keyframes squish-r-arm {
+  0%, 10%, 20%, 30%, 40%, 50%, 60%, 70% { transform: rotate(-20deg); }
+  5%, 15%, 25%, 35%, 45%, 55%, 65%, 75% { transform: rotate(-10deg); }
+  85%, 100% { transform: rotate(-15deg); }
+}
+@keyframes squish-l-leg {
+  0%, 10%, 20%, 30%, 40%, 50%, 60%, 70% { transform: rotate(-6deg); }
+  5%, 15%, 25%, 35%, 45%, 55%, 65%, 75% { transform: rotate(6deg); }
+  85%, 100% { transform: rotate(0deg); }
+}
+@keyframes squish-r-leg {
+  0%, 10%, 20%, 30%, 40%, 50%, 60%, 70% { transform: rotate(6deg); }
+  5%, 15%, 25%, 35%, 45%, 55%, 65%, 75% { transform: rotate(-6deg); }
+  85%, 100% { transform: rotate(0deg); }
+}
+
+/* ===========================
+   State: Sway (하늘거리기 - 나풀나풀 부드러운 좌우 흔들림)
+   - 팔이 해초처럼 크게, 다리는 균형 잡듯 작게 반대로 흔들림
+=========================== */
+.state-sway .anim-head { animation: sway-head 3s ease-in-out infinite; }
+.state-sway .anim-body { animation: sway-body 3s ease-in-out infinite; }
+.state-sway .anim-body-lower { animation: sway-lower 3s ease-in-out infinite; }
+
+.state-sway .anim-left-arm { animation: sway-l-arm 3s ease-in-out infinite; }
+.state-sway .anim-right-arm { animation: sway-r-arm 3s ease-in-out infinite; }
+
+.state-sway .anim-left-leg { animation: sway-l-leg 3s ease-in-out infinite; }
+.state-sway .anim-right-leg { animation: sway-r-leg 3s ease-in-out infinite; }
+
+/* --- Sway Keyframes --- */
+@keyframes sway-head {
+  0%, 100% { transform: rotate(-6deg) translateX(-2px); }
+  50% { transform: rotate(6deg) translateX(2px); }
+}
+@keyframes sway-body {
+  0%, 100% { transform: rotate(-4deg) translateX(-3px); }
+  50% { transform: rotate(4deg) translateX(3px); }
+}
+@keyframes sway-lower {
+  0%, 100% { transform: rotate(-3deg) translateX(-2px); }
+  50% { transform: rotate(3deg) translateX(2px); }
+}
+@keyframes sway-l-arm {
+  0%, 100% { transform: rotate(30deg); }
+  50% { transform: rotate(5deg); }
+}
+@keyframes sway-r-arm {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(-30deg); }
+}
+@keyframes sway-l-leg {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+@keyframes sway-r-leg {
+  0%, 100% { transform: rotate(4deg); }
+  50% { transform: rotate(-4deg); }
+}
+
+/* ===========================
+   State: Breathe (숨쉬기 - 부풀었다 줄어들기)
+   - 몸통을 중심으로 완만하게 확대/축소, 팔은 숨과 함께 살짝 벌어짐
+=========================== */
+.state-breathe .anim-head { animation: breathe-head 3s ease-in-out infinite; }
+.state-breathe .anim-body { animation: breathe-body 3s ease-in-out infinite; }
+.state-breathe .anim-body-lower { animation: breathe-lower 3s ease-in-out infinite; }
+
+.state-breathe .anim-left-arm { animation: breathe-l-arm 3s ease-in-out infinite; }
+.state-breathe .anim-right-arm { animation: breathe-r-arm 3s ease-in-out infinite; }
+
+.state-breathe .anim-left-leg { animation: breathe-l-leg 3s ease-in-out infinite; }
+.state-breathe .anim-right-leg { animation: breathe-r-leg 3s ease-in-out infinite; }
+
+/* --- Breathe Keyframes --- */
+@keyframes breathe-head {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.03); }
+}
+@keyframes breathe-body {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-5px) scale(1.06); }
+}
+@keyframes breathe-lower {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2px) scale(1.04); }
+}
+@keyframes breathe-l-arm {
+  0%, 100% { transform: rotate(12deg); }
+  50% { transform: rotate(20deg); }
+}
+@keyframes breathe-r-arm {
+  0%, 100% { transform: rotate(-12deg); }
+  50% { transform: rotate(-20deg); }
+}
+@keyframes breathe-l-leg {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-2deg); }
+}
+@keyframes breathe-r-leg {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(2deg); }
 }

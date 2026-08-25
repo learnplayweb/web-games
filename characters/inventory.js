@@ -1,4 +1,5 @@
-// v0.1.19
+// v0.1.20 : Add_효과(Effect) 조회, 구매, 장착 기능 추가
+// 
 // Inventory
 // - Feat: 색 섞기/다시 섞기 시 패턴 및 그래디언트를 아우르는 통합 추첨(pickRandomMixStyle) 연동
 // - Fix: 3색 혼합 상태에서도 선입선출(FIFO) 방식으로 색 섞기 지속 지원 (최대 색상 도달 제한 제거)
@@ -65,15 +66,18 @@
 // Data Source
 // characterData.js(BASE_PARTS, PART_CATEGORIES, CHARACTER_COLORS, PATTERNS, SHOP_COST)
 
+
+
 import {
-  BASE_PARTS, PART_CATEGORIES, CHARACTER_COLORS, PATTERNS, SHOP_COST, getPart,
+  BASE_PARTS, PART_CATEGORIES, CHARACTER_COLORS, PATTERNS, SHOP_COST, getPart, pickRandomMixStyle, getEffect,
 } from './characterData.js';
 import {
   getCharacterSave, setCharacterSave, getGold, spendGold,
   getEquippedParts, setEquippedParts, getCharacterName, setCharacterName,
   getCharacterColorSave, setCharacterColorSave,
+  getCharacterEffectSave, setCharacterEffectSave,
 } from '../core/saveManager.js';
-import { pickRandomMixStyle } from './characterData.js';
+
 
 /** 기본 보유 수량만 채운 인벤토리를 만든다. (현재는 기본 보유 파츠 없음) */
 function buildDefaultInventory() {
@@ -684,4 +688,55 @@ export function confirmColorMix(patternId, colors) {
     colors,
     remainingQuantity: newColor ? getColorQuantity(newColor) : 0,
   };
+}
+
+
+/* ===========================
+   효과 인벤토리 (Effects)
+=========================== */
+
+/** 특정 효과를 보유하고 있는지 확인합니다. */
+export function hasEffect(id) {
+  const save = getCharacterEffectSave();
+  return Boolean(save.effects[id]);
+}
+
+/** 특정 효과가 현재 장착되어 있는지 확인합니다. */
+export function getEquippedEffect() {
+  const equip = getEquippedParts();
+  return equip.effect || null;
+}
+
+/** 효과를 구매합니다. (중복 구매 불가) */
+export function purchaseEffect(id) {
+  const effect = getEffect(id);
+  if (!effect) return { success: false, reason: 'invalid_effect' };
+  if (hasEffect(id)) return { success: false, reason: 'already_owned' };
+  
+  if (!spendGold(effect.price)) return { success: false, reason: 'insufficient_gold' };
+
+  const save = getCharacterEffectSave();
+  save.effects[id] = true;
+  setCharacterEffectSave(save);
+
+  return { success: true, id, remainingGold: getGold() };
+}
+
+/** 효과를 장착할 수 있는지 검사합니다. */
+export function canApplyEffect(id) {
+  if (!hasEffect(id)) return false;
+  if (!getEquippedParts().head) return false; // 캐릭터 머리조차 없으면 장착 불가
+  return getGold() >= SHOP_COST.effectApply;
+}
+
+/** 효과를 장착합니다. */
+export function applyEffect(id) {
+  if (!canApplyEffect(id)) return { success: false, reason: 'cannot_apply' };
+  if (!spendGold(SHOP_COST.effectApply)) return { success: false, reason: 'insufficient_gold' };
+
+  const equip = getEquippedParts();
+  equip.effect = id;
+  setEquippedParts(equip);
+
+  return { success: true, id, remainingGold: getGold() };
 }

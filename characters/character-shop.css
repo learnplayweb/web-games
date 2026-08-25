@@ -436,7 +436,7 @@ body {
   position: absolute;
   top: 50%;
   left: 50%;
-  border-radius: 50%;
+  border-radius: 50%; /* css로 만든 원형 */
   transform-origin: center;
   animation: part-modal-particle-burst 0.7s ease-out forwards;
 }

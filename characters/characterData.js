@@ -1,6 +1,6 @@
-// v0.1.7
-// Character Data (캐릭터용 데이터 카탈로그)
-// - Add_랜덤 추출을 위한 표정 및 애니메이션 키 배열 추가
+// v0.1.10 : 
+// - 효과(Effect) 데이터 및 가격 정보 추가// Character Data (캐릭터용 데이터 카탈로그)
+// - 랜덤 추출을 위한 표정 및 애니메이션 키 배열 추가
 // - 에셋 경로(assetPath)를 외부 모듈(게임 화면 등)에서도 정상적으로 참조할 수 있도록 import.meta.url 기반 절대 경로로 변경
 // - Feat: 색 섞기용 선형(4방향) 및 방사형(5좌표) SVG 그래디언트 프리셋(GRADIENT_PRESETS) 및 통합 추첨(pickRandomMixStyle) 목록
 // - BODY_ASSETS/FACE_ASSETS: 좌우 분리된 팔·다리, 표정별 눈·입 에셋 경로
@@ -9,14 +9,41 @@
 // - SHOP_COST: 구매/적용/조합/해체/색상 관련 비용 상수
 
 
-export const EXPRESSION_KEYS = Object.freeze(['idle', 'correct', 'wrong']);
-export const ANIMATION_KEYS = Object.freeze(['idle', 'correct', 'wrong']);
+
+// 1. 가장 먼저 경로 관련 변수와 함수를 정의해야 아래에서 쓸 수 있습니다.
+const ASSET_ROOT = './assets';
 
 function resolvePath(relativePath) {
   return new URL(relativePath, import.meta.url).href;
 }
 
-const ASSET_ROOT = './assets';
+// 2. 표정/애니메이션 키
+export const EXPRESSION_KEYS = Object.freeze(['idle', 'correct', 'wrong']);
+export const ANIMATION_KEYS = Object.freeze(['idle', 'correct', 'wrong']);
+
+// 3. 파티클 방식의 효과 배열 (assetPath 대신 uiClass 사용)
+export const EFFECTS = Object.freeze([
+  // 단순 효과 (500골드)
+  { id: 'stardust', name: '별가루', price: 500, type: 'particle', uiClass: 'ui-eff-stardust' },
+  { id: 'sparkle', name: '반짝임', price: 500, type: 'particle', uiClass: 'ui-eff-sparkle' },
+  { id: 'ring-burst', name: '링 버스트', price: 500, type: 'particle', uiClass: 'ui-eff-ring-burst' },
+  { id: 'heart-pop', name: '하트 팝', price: 500, type: 'particle', uiClass: 'ui-eff-heart-pop' },
+  { id: 'spark', name: '불꽃', price: 500, type: 'particle', uiClass: 'ui-eff-spark' },
+  { id: 'bubble-pop', name: '비누방울', price: 500, type: 'particle', uiClass: 'ui-eff-bubble-pop' },
+  { id: 'ribbon-scatter', name: '리본 흩날림', price: 500, type: 'particle', uiClass: 'ui-eff-ribbon' },
+  { id: 'cross-flash', name: '크로스 플래시', price: 500, type: 'particle', uiClass: 'ui-eff-cross-flash' },
+  { id: 'falling-leaf', name: '낙엽', price: 500, type: 'particle', uiClass: 'ui-eff-falling-leaf' },
+  { id: 'water-drop', name: '물방울', price: 500, type: 'particle', uiClass: 'ui-eff-water-drop' },
+  
+  // 화려한 효과 (1000골드)
+  { id: 'effect-a', name: '화려한 효과 A', price: 1000, type: 'particle', uiClass: 'ui-eff-a' },
+  { id: 'effect-b', name: '화려한 효과 B', price: 1000, type: 'particle', uiClass: 'ui-eff-b' },
+]);
+
+export function getEffect(id) {
+  return EFFECTS.find((eff) => eff.id === id) ?? null;
+}
+
 
 export const BODY_ASSETS = Object.freeze({
   leftArm: resolvePath(`${ASSET_ROOT}/left-arm.svg`),
@@ -82,7 +109,9 @@ export const SHOP_COST = Object.freeze({
   colorApply: 10,
   colorMix: 50,
   colorRemix: 30,
+  effectApply: 50, // 효과 장착 비용
 });
+
 
 export const GRADIENT_PRESETS = [
   { id: 'grad-linear-0', type: 'linear', x1: '0%', y1: '0%', x2: '0%', y2: '100%' },

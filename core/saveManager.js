@@ -1,7 +1,8 @@
-// v0.1.10
+// v0.1.11 : Add_효과(Effect) 인벤토리 및 장착 상태 슬롯 추가
+// 
 // Save Manager
 // - localStorage 접근을 이 파일로 단일화 (Clock 진행/골드, 캐릭터 인벤토리/적용/이름/색상)
-// - 저장 키: clockGame_save, character_save, character_equip_save, character_name_save, character_color_save
+// - 저장 키: clockGame_save, character_save, character_equip_save, character_name_save, character_color_save, character_effect_save
 // - 디버그용 초기화/설정 함수 포함 (resetSave, resetCharacterSave 등)
 // Public API (character_save 관련)
 // - getCharacterSave(): 캐릭터 저장 데이터 반환 (없으면 기본값)
@@ -18,6 +19,10 @@
 // Public API (character_color_save 관련)
 // - getCharacterColorSave(): 색상 보유 수량 데이터 반환 (없으면 기본값)
 // - setCharacterColorSave(saveData): 색상 보유 수량 데이터 통째로 덮어쓰기
+//
+// Public API (character_effect_save 관련)
+// - getCharacterEffectSave(): 효과 보유 상태 반환 (없으면 기본값)
+// - setCharacterEffectSave(saveData): 효과 보유 상태 통째로 덮어쓰기
 //
 // Public API (디버그 전용)
 // - resetSave(): clockGame_save 전체 초기화 (골드 포함)
@@ -139,6 +144,7 @@ export function getClockSave() {
   function getDefaultEquip() {
     return {
       head: null, body: null, legs: null, color: null, colorMix: null,
+      effect: null // 새로 추가된 효과 슬롯
     };
   }
 
@@ -168,12 +174,13 @@ export function getClockSave() {
     return equipData;
   }
 
-  // 캐릭터 관련 저장(인벤토리 + 적용 상태 + 이름 + 색상)을 모두 기본값으로 되돌린다. (디버그 전용)
+  // 캐릭터 관련 저장(인벤토리 + 적용 상태 + 이름 + 색상 + 효과)을 모두 기본값으로 되돌린다. (디버그 전용)
   export function resetCharacterSave() {
     writeCharacter(getDefaultCharacterSave());
     writeEquip(getDefaultEquip());
     writeCharacterName(getDefaultCharacterName());
     writeCharacterColor(getDefaultCharacterColorSave());
+    writeCharacterEffect(getDefaultCharacterEffectSave());
   }
 
   /* ===== 캐릭터 이름 (공통) =====
@@ -247,6 +254,40 @@ export function getClockSave() {
     writeCharacterColor(saveData);
     return saveData;
   }
+
+  /* ===== 캐릭터 효과 인벤토리 (공통)  ===== */
+  const CHARACTER_EFFECT_KEY = 'character_effect_save';
+
+  function getDefaultCharacterEffectSave() {
+    return { effects: {} }; // id: boolean (보유 여부)
+  }
+
+  function loadCharacterEffect() {
+    try {
+      const raw = localStorage.getItem(CHARACTER_EFFECT_KEY);
+      return raw ? JSON.parse(raw) : getDefaultCharacterEffectSave();
+    } catch {
+      return getDefaultCharacterEffectSave();
+    }
+  }
+
+  function writeCharacterEffect(saveData) {
+    try {
+      localStorage.setItem(CHARACTER_EFFECT_KEY, JSON.stringify(saveData));
+    } catch {
+      console.warn('저장 실패: localStorage를 사용할 수 없습니다.');
+    }
+  }
+
+  export function getCharacterEffectSave() {
+    return loadCharacterEffect();
+  }
+
+  export function setCharacterEffectSave(saveData) {
+    writeCharacterEffect(saveData);
+    return saveData;
+  }
+
 
   /* ===== Clock Game 전용 ===== */
 
@@ -334,4 +375,5 @@ export {
   setGold,
   unlockAllClockLevels,
   setAllClockStars,
+  getCharacterEffectSave, setCharacterEffectSave
 };

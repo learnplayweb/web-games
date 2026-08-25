@@ -1,0 +1,226 @@
+/* v0.1.0
+// effects.css
+// - 콤보 연출 파티클/버스트 애니메이션 (10종, 각 0.6s)
+// - .combo-fx 오버레이 컨테이너 + shape별 modifier 클래스 구조
+// - effects.js와 세트로 사용 (트리거/좌표 계산은 js에서 담당) */
+
+/* ===========================
+   Container (JS가 대상 좌표에 위치시킴)
+=========================== */
+.combo-fx {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ===========================
+   Particle Base
+=========================== */
+.combo-fx__particle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  will-change: transform, opacity;
+  animation-duration: 0.6s;
+  animation-fill-mode: forwards;
+  animation-timing-function: ease-out;
+}
+
+/* ===========================
+   1. 별가루 (Stardust)
+   - 작은 별 5~8개가 짧게 방사형으로 퍼지며 사라짐
+=========================== */
+.combo-fx__particle--star {
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  animation-name: combo-fx-burst;
+}
+
+/* ===========================
+   2. 반짝이 (Sparkle)
+   - 작은 다이아몬드가 빠르게 튀며 반짝임(트위클)
+=========================== */
+.combo-fx__particle--sparkle {
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  animation-name: combo-fx-twinkle;
+  animation-timing-function: ease-in-out;
+}
+
+/* ===========================
+   3. 링 버스트 (Ring Burst)
+   - 얇은 원 하나가 순간적으로 커지며 사라짐 (단일 엘리먼트)
+=========================== */
+.combo-fx__ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border-style: solid;
+  transform: translate(-50%, -50%) scale(0.3);
+  opacity: 0;
+  animation: combo-fx-ring-burst 0.6s ease-out forwards;
+}
+@keyframes combo-fx-ring-burst {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0.9; border-width: 4px; }
+  60% { opacity: 0.7; }
+  100% { transform: translate(-50%, -50%) scale(6); opacity: 0; border-width: 1px; }
+}
+
+/* ===========================
+   4. 하트 팝 (Heart Pop)
+   - 작은 하트들이 위쪽으로 살짝 튀어 오르며 사라짐
+=========================== */
+.combo-fx__particle--heart {
+  clip-path: polygon(50% 15%, 61% 5%, 75% 5%, 88% 18%, 88% 34%, 50% 70%, 12% 34%, 12% 18%, 25% 5%, 39% 5%);
+  animation-name: combo-fx-burst;
+}
+
+/* ===========================
+   5. 스파크 (Spark)
+   - 짧은 선 6~10개가 중심에서 방사형으로 뻗어나감
+   - transform-origin을 왼쪽 중앙으로 두어 중심점에서 뻗어나가는 느낌
+=========================== */
+.combo-fx__particle--spark {
+  border-radius: 999px;
+  transform-origin: 0% 50%;
+  animation-name: combo-fx-spark-shoot;
+}
+
+/* ===========================
+   6. 버블 팝 (Bubble Pop)
+   - 크기가 다른 원들이 팝! 튀어나왔다가 사라짐
+=========================== */
+.combo-fx__particle--bubble {
+  border-radius: 50%;
+  box-shadow:
+    inset -2px -2px 3px rgba(255, 255, 255, 0.6),
+    inset 2px 2px 3px rgba(0, 0, 0, 0.08);
+  animation-name: combo-fx-pop;
+  animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ===========================
+   7. 리본 조각 (Ribbon Scatter)
+   - 짧은 조각들이 좌우로 흩어지며 회전
+=========================== */
+.combo-fx__particle--ribbon {
+  border-radius: 40%;
+  animation-name: combo-fx-spin-scatter;
+}
+
+/* ===========================
+   8. 크로스 플래시 (Cross Flash)
+   - '+' 모양 빛이 커졌다가 사라짐 (단일 엘리먼트, 가상요소로 십자 구성)
+=========================== */
+.combo-fx__cross {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 26px;
+  transform: translate(-50%, -50%) scale(0) rotate(-20deg);
+  opacity: 0;
+  animation: combo-fx-cross-flash 0.6s ease-out forwards;
+}
+.combo-fx__cross::before,
+.combo-fx__cross::after {
+  content: '';
+  position: absolute;
+  background: currentColor;
+  border-radius: 2px;
+}
+.combo-fx__cross::before { /* 세로 바 */
+  top: 0;
+  left: 50%;
+  width: 6px;
+  height: 100%;
+  transform: translateX(-50%);
+}
+.combo-fx__cross::after { /* 가로 바 */
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  transform: translateY(-50%);
+}
+@keyframes combo-fx-cross-flash {
+  0% { transform: translate(-50%, -50%) scale(0) rotate(-20deg); opacity: 0; }
+  35% { transform: translate(-50%, -50%) scale(1.15) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.6) rotate(6deg); opacity: 0; }
+}
+
+/* ===========================
+   9. 낙엽 (Falling Leaf)
+   - 잎 모양이 아래쪽으로 살랑살랑 흔들리며 흩어짐
+=========================== */
+.combo-fx__particle--leaf {
+  border-radius: 0 70% 0 70%;
+  animation-name: combo-fx-sway-fall;
+}
+
+/* ===========================
+   10. 물방울 (Water Drop)
+   - 작은 물방울이 튀었다가 중력 느낌으로 떨어지며 사라짐
+=========================== */
+.combo-fx__particle--drop {
+  border-radius: 60% 60% 60% 0;
+  animation-name: combo-fx-gravity-fall;
+  animation-timing-function: cubic-bezier(0.55, 0, 0.85, 0.35);
+}
+
+/* ===========================
+   Shared Keyframes
+   - rotate(angle) 이후 translateX(distance): 각도 방향으로 방사형 이동시키는 공통 트릭
+=========================== */
+
+/* 1 / 4번 공용: 방사형으로 퍼지며 축소·페이드 */
+@keyframes combo-fx-burst {
+  0% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--distance)) scale(0.3); opacity: 0; }
+}
+
+/* 2번 전용: 확대되며 반짝였다가 사라짐 */
+@keyframes combo-fx-twinkle {
+  0% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scale(0.4) rotate(0deg); opacity: 0.6; }
+  40% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(calc(var(--distance) * 0.6)) scale(1.3) rotate(90deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--distance)) scale(0) rotate(180deg); opacity: 0; }
+}
+
+/* 5번 전용: 중심에서 선이 뻗어나가는 느낌 (scaleX로 길이 확장) */
+@keyframes combo-fx-spark-shoot {
+  0% { transform: translate(-50%, -50%) rotate(var(--angle)) scaleX(0.2); opacity: 1; }
+  30% { transform: translate(-50%, -50%) rotate(var(--angle)) scaleX(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(var(--angle)) scaleX(1.4); opacity: 0; }
+}
+
+/* 6번 전용: 팝! 튀어나오는 바운스 후 사라짐 */
+@keyframes combo-fx-pop {
+  0% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scale(0.2); opacity: 0.9; }
+  55% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(calc(var(--distance) * 0.8)) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--distance)) scale(0); opacity: 0; }
+}
+
+/* 7번 전용: 이동하며 스스로 회전(스핀) */
+@keyframes combo-fx-spin-scatter {
+  0% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--distance)) rotate(220deg); opacity: 0; }
+}
+
+/* 9번 전용: 좌우로 흔들리며(sway) 떨어짐 */
+@keyframes combo-fx-sway-fall {
+  0% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) rotate(0deg); opacity: 1; }
+  50% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(calc(var(--distance) * 0.55)) rotate(-25deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--distance)) rotate(35deg); opacity: 0; }
+}
+
+/* 10번 전용: 중력 가속 느낌(cubic-bezier ease-in)으로 떨어지며 사라짐 */
+@keyframes combo-fx-gravity-fall {
+  0% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--distance)) scale(0.7); opacity: 0; }
+}
