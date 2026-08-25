@@ -211,15 +211,8 @@ refreshCombineButton();
 
 const dismantleButton = document.getElementById('btn-dismantle');
 function refreshDismantleButton() { dismantleButton.disabled = !canDismantle(); }
-dismantleButton.addEventListener('click', async () => {
-  const result = dismantleCharacter();
-  if (!result.success) return;
-
-  updateHeaderGold(result.remainingGold);
-  refreshAllPartSlots(); refreshCombineButton(); refreshDismantleButton();
-  refreshRenameButton(); refreshColorMixButton();
-  await renderCharacterPreview();
-  showDismantleResult();
+dismantleButton.addEventListener('click', () => {
+  openDismantlePreviewModal();
 });
 refreshDismantleButton();
 
@@ -356,24 +349,63 @@ function showRandomDrawing(id, slot) {
   }, RANDOM_DRAW_DELAY_MS);
 }
 
-async function showDismantleResult() {
+// 해체 후의 캐릭터 설정(config)을 계산하는 헬퍼 함수
+async function buildDismantlePreviewClone() {
+  const clone = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  clone.setAttribute('viewBox', '0 0 160 300');
+  
+  const currentHead = getEquippedPart('head');
+  const currentBody = getEquippedPart('body');
+  const currentLegs = getEquippedPart('legs');
+
+  // 해체 로직: 다리가 있으면 다리 제거, 다리가 없고 몸이 있으면 몸 제거
+  const config = {
+    head: currentHead,
+    body: currentLegs ? currentBody : null,
+    legs: null,
+    color: getEquippedColor(),
+    colorMix: getEquippedColorMix(),
+    expression: 'idle',
+    animation: 'idle'
+  };
+  
+  await renderCharacterSvg(clone, config);
+  return clone;
+}
+
+// 해체 미리보기 모달 열기 (기존 showDismantleResult 대체)
+async function openDismantlePreviewModal() {
   clearResultTimers();
 
-  const preview = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  preview.setAttribute('viewBox', '0 0 160 300');
-  await renderCharacterSvg(preview, { head: null });
-
+  const preview = await buildDismantlePreviewClone();
   partModalSvg.replaceChildren(preview);
   partModalName.textContent = '';
   partModalActions.replaceChildren();
 
-  const resultText = document.createElement('p');
-  resultText.className = 'part-modal__result-text';
-  resultText.textContent = '🎉 해체 성공';
-  partModalActions.appendChild(resultText);
+  // [확인] 버튼 생성
+  const confirmButton = document.createElement('button');
+  confirmButton.type = 'button';
+  confirmButton.className = 'modal-card__btn modal-card__btn--confirm';
+  confirmButton.textContent = '확인';
+  
+  confirmButton.addEventListener('click', async () => {
+    // 확인 클릭 시 실제 인벤토리에서 해체 및 골드 차감 처리
+    const result = dismantleCharacter(); 
+    if (!result.success) return;
 
+    updateHeaderGold(result.remainingGold);
+    refreshAllPartSlots(); 
+    refreshCombineButton(); 
+    refreshDismantleButton();
+    refreshRenameButton(); 
+    refreshColorMixButton();
+    await renderCharacterPreview(); // 메인 플레이스홀더 화면 갱신
+    
+    closePartModal();
+  });
+
+  partModalActions.appendChild(confirmButton);
   partModal.classList.remove('modal-overlay--hidden');
-  autoCloseTimerId = setTimeout(closePartModal, RESULT_AUTO_CLOSE_MS);
 }
 
 function openPartModal(slot) {
