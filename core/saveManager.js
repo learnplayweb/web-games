@@ -279,11 +279,11 @@ export function getClockSave() {
     }
   }
 
-  export function getCharacterEffectSave() {
+  function getCharacterEffectSave() {
     return loadCharacterEffect();
   }
 
-  export function setCharacterEffectSave(saveData) {
+  function setCharacterEffectSave(saveData) {
     writeCharacterEffect(saveData);
     return saveData;
   }
@@ -375,5 +375,6 @@ export {
   setGold,
   unlockAllClockLevels,
   setAllClockStars,
-  getCharacterEffectSave, setCharacterEffectSave
+  getCharacterEffectSave, 
+  setCharacterEffectSave,
 };
