@@ -1,10 +1,10 @@
-// v0.1.47
+// v0.1.48
 // Character Shop
-// - Implement_상점 캐릭터 터치 시 랜덤 표정/동작 출력 기능 추가
+// Add_효과 슬롯 렌더링 및 모달 기능 연결
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent } from '../core/svgloader.js';
-import { getPart, SHOP_COST, EXPRESSION_KEYS, ANIMATION_KEYS } from './characterData.js';
+import { getPart, SHOP_COST, EXPRESSION_KEYS, ANIMATION_KEYS, EFFECTS } from './characterData.js';
 import { renderCharacterSvg } from './characterRenderer.js';
 import {
   getPartQuantity, purchasePart, purchaseRandomPart, getEquippedPart, applyPart,
@@ -13,8 +13,10 @@ import {
   getColorQuantity, purchaseColor, purchaseRandomColor, canApplyColor, applyColor,
   getEquippedColor, getEquippedColorMix,
   canMixColor, canRemixColor, previewColorMix, previewColorRemix, confirmColorMix,
+  hasEffect, getEquippedEffect, purchaseEffect, canApplyEffect, applyEffect
 } from './inventory.js';
 import { getGold, getCharacterName, setCharacterName } from '../core/saveManager.js';
+
 
 createHeader();
 
@@ -571,6 +573,7 @@ function refreshAllColorSlots() {
 }
 refreshAllColorSlots();
 
+
 const colorModal = document.getElementById('color-modal');
 const colorModalPreview = document.getElementById('color-modal-preview');
 const colorModalActions = document.getElementById('color-modal-actions');
@@ -770,3 +773,170 @@ document.getElementById('modal-confirm').addEventListener('click', () => saveMod
 saveModal.addEventListener('click', (event) => {
   if (event.target === saveModal) saveModal.classList.add('modal-overlay--hidden');
 });
+
+/* ===========================
+   효과(Effect) 슬롯 및 모달
+=========================== */
+
+const effectGrid = document.getElementById('effect-grid');
+const effectModal = document.getElementById('effect-modal');
+const effectModalTitle = document.getElementById('effect-modal-title');
+const effectModalPreview = document.getElementById('effect-modal-preview');
+const effectModalName = document.getElementById('effect-modal-name');
+const effectModalActions = document.getElementById('effect-modal-actions');
+
+let effectAnimationIntervalId = null; // 모달 내 반복 재생 타이머
+
+/** 상점 화면에 12개의 효과 슬롯을 동적으로 생성하고 상태를 갱신합니다. */
+function renderEffectSlots() {
+  effectGrid.replaceChildren();
+
+  EFFECTS.forEach(effect => {
+    const isOwned = hasEffect(effect.id);
+    const isEquipped = getEquippedEffect() === effect.id;
+
+    // 슬롯 껍데기
+    const slot = document.createElement('div');
+    slot.className = 'part-slot effect-slot';
+    if (!isOwned) slot.classList.add('part-slot--locked');
+    
+    // 파티클을 그릴 텅 빈 div (여기에 css 클래스가 들어갑니다)
+    const particleDiv = document.createElement('div');
+    particleDiv.className = effect.uiClass;
+    // 슬롯 안에서는 정지 상태로 보이게끔 관련 애니메이션 클래스나 상태를 뺍니다.
+    // (effects.css 구성에 따라 특정 정지 상태용 클래스를 추가하셔도 좋습니다.)
+    slot.appendChild(particleDiv);
+
+    // 배지 처리 (숫자 없이 회색톤, 장착 중이면 녹색 체크)
+    if (isOwned) {
+      const badge = document.createElement('span');
+      badge.className = 'part-slot__badge';
+      
+      if (isEquipped) {
+        badge.innerHTML = '✓';
+        badge.style.background = '#4caf82'; // 적용 중 강조색 (녹색)
+        badge.style.color = '#ffffff';
+      } else {
+        badge.innerHTML = ''; // 미장착 보유 시 텍스트 없음
+        badge.style.width = '12px';  // 점 형태로 작게 표시
+        badge.style.height = '12px';
+        badge.style.padding = '0';
+      }
+      slot.appendChild(badge);
+    }
+
+    // 클릭 시 모달 열기
+    slot.addEventListener('click', () => openEffectModal(effect));
+
+    effectGrid.appendChild(slot);
+  });
+}
+
+/** 파티클 파괴/중지 (모달 닫을 때 호출) */
+function clearEffectTimers() {
+  if (effectAnimationIntervalId) {
+    clearInterval(effectAnimationIntervalId);
+    effectAnimationIntervalId = null;
+  }
+}
+
+/** 효과 모달 닫기 */
+function closeEffectModal() {
+  clearEffectTimers();
+  effectModal.classList.add('modal-overlay--hidden');
+}
+
+/** 효과 모달 열기 */
+async function openEffectModal(effect) {
+  clearEffectTimers();
+
+  effectModalTitle.textContent = effect.name;
+  effectModalName.textContent = '';
+  effectModalActions.replaceChildren();
+
+  // 1. 캐릭터 미리보기 SVG 생성 및 렌더링
+  const previewSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  previewSvg.setAttribute('viewBox', '0 0 160 300');
+  previewSvg.classList.add('character-placeholder'); // 기존 스타일 유지
+  
+  await renderCharacterSvg(previewSvg, {
+    head: getEquippedPart('head'),
+    body: getEquippedPart('body'),
+    legs: getEquippedPart('legs'),
+    color: getEquippedColor(),
+    colorMix: getEquippedColorMix(),
+    expression: 'idle',
+    animation: 'idle'
+  });
+
+  // 2. 파티클 영역(div) 생성
+  const particleDiv = document.createElement('div');
+  particleDiv.className = effect.uiClass;
+  // 파티클이 캐릭터 뒤(또는 위)에 깔리도록 CSS absolute 세팅 (필요시 조절)
+  particleDiv.style.position = 'absolute';
+  particleDiv.style.inset = '0';
+  particleDiv.style.pointerEvents = 'none';
+
+  // 프리뷰 영역 초기화 및 요소 삽입
+  effectModalPreview.replaceChildren(particleDiv, previewSvg);
+
+  // 3. 2~3초마다 파티클 애니메이션 강제 반복 트리거
+  // (CSS 애니메이션을 다시 재생시키기 위해 클래스를 뗐다 붙이는 트릭 사용)
+  function triggerParticle() {
+    particleDiv.classList.remove('active'); // active는 예시입니다. effects.css에 맞춰 수정 가능
+    void particleDiv.offsetWidth; // 리플로우 강제 (애니메이션 리셋)
+    particleDiv.classList.add('active');
+  }
+  
+  triggerParticle(); // 열자마자 1회 재생
+  effectAnimationIntervalId = setInterval(triggerParticle, 2500); // 2.5초마다 반복
+
+  // 4. 하단 버튼 영역 (구입 / 적용)
+  const isOwned = hasEffect(effect.id);
+  
+  if (!isOwned) {
+    // 구입 버튼
+    const canAffordBuy = getGold() >= effect.price;
+    const buyButton = createPricedButton('modal-card__btn--cancel', '구입', `💎 ${effect.price}`, !canAffordBuy);
+    buyButton.addEventListener('click', () => {
+      const result = purchaseEffect(effect.id);
+      if (!result.success) return;
+
+      updateHeaderGold(result.remainingGold);
+      renderEffectSlots();
+      openEffectModal(effect); // 모달 새로고침 (구입 성공 -> 적용 버튼으로 변경됨)
+    });
+    effectModalActions.appendChild(buyButton);
+  } else {
+    // 적용 버튼
+    const isEquipped = getEquippedEffect() === effect.id;
+    if (isEquipped) {
+      const appliedMessage = document.createElement('p');
+      appliedMessage.className = 'part-modal__applied';
+      appliedMessage.textContent = '적용 중';
+      effectModalActions.appendChild(appliedMessage);
+    } else {
+      const canApply = canApplyEffect(effect.id);
+      const applyButton = createPricedButton('modal-card__btn--cancel', '적용', `💎 ${SHOP_COST.effectApply}`, !canApply);
+      applyButton.addEventListener('click', () => {
+        const result = applyEffect(effect.id);
+        if (!result.success) return;
+
+        updateHeaderGold(result.remainingGold);
+        renderEffectSlots();
+        openEffectModal(effect); // 모달 새로고침 (적용 중 메시지로 변경됨)
+      });
+      effectModalActions.appendChild(applyButton);
+    }
+  }
+
+  effectModal.classList.remove('modal-overlay--hidden');
+}
+
+// 모달 바깥쪽(오버레이) 클릭 시 닫기
+effectModal.addEventListener('click', (event) => {
+  if (event.target === effectModal) closeEffectModal();
+});
+
+// 초기화 시 슬롯 한 번 그리기
+renderEffectSlots();
