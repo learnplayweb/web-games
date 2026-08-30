@@ -41,17 +41,15 @@
 # 애니메이션 미리보기용 html 등 만들기
 
 # 효과 시스템
-[완료] 데이터 구조 / ui
+[완료] 데이터 구조 / ui / 상점 연동
+
+Step 3-1: 상점 연동 (character-shop.js 수정)
+character-shop.js에 renderEffectThumbnail과 setEffectThumbnailActive를 import 하고, 슬롯 렌더링 및 모달 애니메이션 로직에 이를 꽂아 넣습니다.
+Step 3-2: 게임 연동 (games/clock/script.js 수정)
+시계 게임 화면에서 정답(콤보 달성) 시 spawnEffect를 호출하여 게임 화면 위에 파티클이 실제로 팡팡 터지도록 연결합니다.
 
 스튜
-1. 게임 내 재생: 
- - CSS: .fx 컨테이너
- - js: spawnEffect() - 대상 좌표에 매번 랜덤 파티클 생성 (콤보 등 이벤트 발동용)
-2. 상점 썸네일: 
- - CSS: .ui-eff 컨테이너
- - js: renderEffectThumbnail() / setEffectThumbnailActive() - 고정 프리셋 좌표, .active로 재생 토글 // - EFFECT_CONFIG가 두 기능의 단일 설정 소스 (shape/개수/크기/거리/색상)
 
- 이렇게 만들었음. 파일 필요한가? 불필요하면 3단계(파티클 연동) 진행 브리핑.
 
 클로
 "불꽃 연쇄"와 "레이저 발사"의 전체 효과가 0.6초 이내에 종료되도록 animation-delay와 각 파티클의 animation-duration을 함께 조정한다. 순차 발동 느낌은 유지하되 마지막 파티클까지 시간 안에 종료되어 뚝 끊기지 않도록 한다.

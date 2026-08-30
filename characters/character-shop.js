@@ -1,6 +1,6 @@
-// v0.1.48
+// v0.1.49
 // Character Shop
-// Add_효과 슬롯 렌더링 및 모달 기능 연결
+// Add_효과 파티클 연동 및 버튼 활성화 조건 강화
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent } from '../core/svgloader.js';
@@ -17,6 +17,7 @@ import {
 } from './inventory.js';
 import { getGold, getCharacterName, setCharacterName } from '../core/saveManager.js';
 
+import { renderEffectThumbnail, setEffectThumbnailActive } from './assets/effects/effects.js'; 
 
 createHeader();
 
@@ -774,6 +775,7 @@ saveModal.addEventListener('click', (event) => {
   if (event.target === saveModal) saveModal.classList.add('modal-overlay--hidden');
 });
 
+
 /* ===========================
    효과(Effect) 슬롯 및 모달
 =========================== */
@@ -785,7 +787,7 @@ const effectModalPreview = document.getElementById('effect-modal-preview');
 const effectModalName = document.getElementById('effect-modal-name');
 const effectModalActions = document.getElementById('effect-modal-actions');
 
-let effectAnimationIntervalId = null; // 모달 내 반복 재생 타이머
+let effectAnimationIntervalId = null; 
 
 /** 상점 화면에 12개의 효과 슬롯을 동적으로 생성하고 상태를 갱신합니다. */
 function renderEffectSlots() {
@@ -800,12 +802,13 @@ function renderEffectSlots() {
     slot.className = 'part-slot effect-slot';
     if (!isOwned) slot.classList.add('part-slot--locked');
     
-    // 파티클을 그릴 텅 빈 div (여기에 css 클래스가 들어갑니다)
-    const particleDiv = document.createElement('div');
-    particleDiv.className = effect.uiClass;
-    // 슬롯 안에서는 정지 상태로 보이게끔 관련 애니메이션 클래스나 상태를 뺍니다.
-    // (effects.css 구성에 따라 특정 정지 상태용 클래스를 추가하셔도 좋습니다.)
-    slot.appendChild(particleDiv);
+    // 파티클 썸네일을 담을 컨테이너 생성 및 정지 상태 렌더링
+    const thumbnailContainer = document.createElement('div');
+    thumbnailContainer.style.width = '100%';
+    thumbnailContainer.style.height = '100%';
+    renderEffectThumbnail(thumbnailContainer, effect.id); // 작성하신 함수 호출!
+    
+    slot.appendChild(thumbnailContainer);
 
     // 배지 처리 (숫자 없이 회색톤, 장착 중이면 녹색 체크)
     if (isOwned) {
@@ -818,7 +821,7 @@ function renderEffectSlots() {
         badge.style.color = '#ffffff';
       } else {
         badge.innerHTML = ''; // 미장착 보유 시 텍스트 없음
-        badge.style.width = '12px';  // 점 형태로 작게 표시
+        badge.style.width = '12px';  
         badge.style.height = '12px';
         badge.style.padding = '0';
       }
@@ -857,7 +860,7 @@ async function openEffectModal(effect) {
   // 1. 캐릭터 미리보기 SVG 생성 및 렌더링
   const previewSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   previewSvg.setAttribute('viewBox', '0 0 160 300');
-  previewSvg.classList.add('character-placeholder'); // 기존 스타일 유지
+  previewSvg.classList.add('character-placeholder'); 
   
   await renderCharacterSvg(previewSvg, {
     head: getEquippedPart('head'),
@@ -869,46 +872,50 @@ async function openEffectModal(effect) {
     animation: 'idle'
   });
 
-  // 2. 파티클 영역(div) 생성
-  const particleDiv = document.createElement('div');
-  particleDiv.className = effect.uiClass;
-  // 파티클이 캐릭터 뒤(또는 위)에 깔리도록 CSS absolute 세팅 (필요시 조절)
-  particleDiv.style.position = 'absolute';
-  particleDiv.style.inset = '0';
-  particleDiv.style.pointerEvents = 'none';
+  // 2. 모달용 파티클 썸네일 컨테이너 생성 및 렌더링
+  const particleContainer = document.createElement('div');
+  particleContainer.style.position = 'absolute';
+  particleContainer.style.inset = '0';
+  particleContainer.style.pointerEvents = 'none';
+  renderEffectThumbnail(particleContainer, effect.id); // 모달용 파티클 세팅
 
-  // 프리뷰 영역 초기화 및 요소 삽입
-  effectModalPreview.replaceChildren(particleDiv, previewSvg);
+  effectModalPreview.replaceChildren(particleContainer, previewSvg);
 
-  // 3. 2~3초마다 파티클 애니메이션 강제 반복 트리거
-  // (CSS 애니메이션을 다시 재생시키기 위해 클래스를 뗐다 붙이는 트릭 사용)
+  // 3. 2.5초마다 파티클 애니메이션 강제 반복 트리거
   function triggerParticle() {
-    particleDiv.classList.remove('active'); // active는 예시입니다. effects.css에 맞춰 수정 가능
-    void particleDiv.offsetWidth; // 리플로우 강제 (애니메이션 리셋)
-    particleDiv.classList.add('active');
+    setEffectThumbnailActive(particleContainer, false); // 리셋
+    // 약간의 딜레이(리플로우 강제 효과)를 주어 다시 재생시킴
+    setTimeout(() => {
+      setEffectThumbnailActive(particleContainer, true);
+    }, 50);
   }
   
   triggerParticle(); // 열자마자 1회 재생
   effectAnimationIntervalId = setInterval(triggerParticle, 2500); // 2.5초마다 반복
 
-  // 4. 하단 버튼 영역 (구입 / 적용)
+  // 4. 하단 버튼 영역 (구입 / 적용 상태 제어)
   const isOwned = hasEffect(effect.id);
+  const hasCharacter = Boolean(getEquippedPart('head')); // 캐릭터 등록 여부(머리 장착 여부로 판단)
   
   if (!isOwned) {
-    // 구입 버튼
+    // [구입 버튼] 캐릭터가 없거나, 골드가 부족하면 비활성화
     const canAffordBuy = getGold() >= effect.price;
-    const buyButton = createPricedButton('modal-card__btn--cancel', '구입', `💎 ${effect.price}`, !canAffordBuy);
+    const isBuyDisabled = !hasCharacter || !canAffordBuy;
+    
+    const buyButton = createPricedButton('modal-card__btn--cancel', '구입', `💎 ${effect.price}`, isBuyDisabled);
+    
     buyButton.addEventListener('click', () => {
       const result = purchaseEffect(effect.id);
       if (!result.success) return;
 
       updateHeaderGold(result.remainingGold);
       renderEffectSlots();
-      openEffectModal(effect); // 모달 새로고침 (구입 성공 -> 적용 버튼으로 변경됨)
+      openEffectModal(effect); // 구입 성공 시 모달 새로고침
     });
     effectModalActions.appendChild(buyButton);
+
   } else {
-    // 적용 버튼
+    // [적용 버튼 / 상태 텍스트]
     const isEquipped = getEquippedEffect() === effect.id;
     if (isEquipped) {
       const appliedMessage = document.createElement('p');
@@ -916,15 +923,18 @@ async function openEffectModal(effect) {
       appliedMessage.textContent = '적용 중';
       effectModalActions.appendChild(appliedMessage);
     } else {
+      // 적용 비용 검증
       const canApply = canApplyEffect(effect.id);
-      const applyButton = createPricedButton('modal-card__btn--cancel', '적용', `💎 ${SHOP_COST.effectApply}`, !canApply);
+      const isApplyDisabled = !hasCharacter || !canApply;
+
+      const applyButton = createPricedButton('modal-card__btn--cancel', '적용', `💎 ${SHOP_COST.effectApply}`, isApplyDisabled);
       applyButton.addEventListener('click', () => {
         const result = applyEffect(effect.id);
         if (!result.success) return;
 
         updateHeaderGold(result.remainingGold);
         renderEffectSlots();
-        openEffectModal(effect); // 모달 새로고침 (적용 중 메시지로 변경됨)
+        openEffectModal(effect); // 적용 성공 시 모달 새로고침
       });
       effectModalActions.appendChild(applyButton);
     }
@@ -938,5 +948,4 @@ effectModal.addEventListener('click', (event) => {
   if (event.target === effectModal) closeEffectModal();
 });
 
-// 초기화 시 슬롯 한 번 그리기
 renderEffectSlots();
