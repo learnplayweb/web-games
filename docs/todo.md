@@ -43,8 +43,9 @@
 # 효과 시스템
 [완료] 데이터 구조 / ui / 상점 연동
 
-Step 3-1: 상점 연동 (character-shop.js 수정)
-character-shop.js에 renderEffectThumbnail과 setEffectThumbnailActive를 import 하고, 슬롯 렌더링 및 모달 애니메이션 로직에 이를 꽂아 넣습니다.
+  const centerX = rect.left + rect.width / 2 + (Math.random() - 0.5) * rect.width * 0.4;
+  const centerY = rect.top + rect.height * (0.3 + Math.random() * 0.4); // 캐릭터 몸통 범위 정도
+
 Step 3-2: 게임 연동 (games/clock/script.js 수정)
 시계 게임 화면에서 정답(콤보 달성) 시 spawnEffect를 호출하여 게임 화면 위에 파티클이 실제로 팡팡 터지도록 연결합니다.
 

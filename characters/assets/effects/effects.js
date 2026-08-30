@@ -1,9 +1,8 @@
-// v0.3.0
+// v0.3.1
 // effects.js
 // - 게임 내 재생: spawnEffect() - 대상 좌표에 매번 랜덤 파티클 생성
-// - 상점 썸네일: renderEffectThumbnail() / setEffectThumbnailActive() - 고정 프리셋 좌표, .active로 재생 토글
-// - EFFECT_CONFIG가 단순/화려 효과 공통 설정 소스 (shape/개수/크기/거리/색상)
-// - 화려한 효과(F1~F10)는 distance를 크게, staggered 플래그로 순차 발동(연쇄/레이저) 표현
+// - 상점 썸네일: renderEffectThumbnail()(고정 프리셋, 정지 프레임용) / renderEffectPreview()(랜덤, 반복 미리보기용)
+// - setEffectThumbnailActive()로 .active 토글 재생, EFFECT_CONFIG가 전체 설정 소스
 
 export const EFFECT_KEYS = Object.freeze([
   // 단순 (Simple)
@@ -54,8 +53,8 @@ export function spawnEffect(targetElement, effectKey) {
   if (!targetElement) return;
 
   const rect = targetElement.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
+  const centerX = rect.left + rect.width * (0.219 + Math.random() * 0.562);  // 0.219~0.781
+  const centerY = rect.top + rect.height * (0.067 + Math.random() * 0.533); // 0.067~0.600
 
   const layer = document.createElement('div');
   layer.className = `fx fx--${effectKey}`;
@@ -74,6 +73,14 @@ export function renderEffectThumbnail(container, effectKey) {
   container.replaceChildren();
   container.className = `ui-eff ui-eff--${effectKey}`;
   mount(container, effectKey, { deterministic: true });
+}
+
+/** renderEffectPreview(container: HTMLElement, effectKey: string): void */
+export function renderEffectPreview(container, effectKey) {
+  if (!container) return;
+  container.replaceChildren();
+  container.className = `ui-eff ui-eff--${effectKey}`;
+  mount(container, effectKey, { deterministic: false });
 }
 
 /** setEffectThumbnailActive(container: HTMLElement, isActive: boolean): void */
