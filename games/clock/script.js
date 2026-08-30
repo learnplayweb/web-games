@@ -325,14 +325,15 @@ function checkAnswer() {
   isJudging = true;
 
   if (isCorrect) {
-    handleCorrectAnswer();
+    handleCorrectAnswer(); // 골드 및 currentCombo 증가 처리됨
     stageState.correctCount += 1;
     inputArea.classList.add('input-area--correct');
 
-    // 캐릭터 정답 리액션 (표정 correct, 움직임 빠른 파닥임)
+    // 캐릭터 정답 리액션 (빠른 파닥임)
     if (characterSvg && equipState.head) {
       renderCharacterSvg(characterSvg, { ...equipState, expression: 'correct', animation: 'correct' });
     }
+
 
     setTimeout(() => {
       inputArea.classList.remove('input-area--correct');
@@ -346,10 +347,10 @@ function checkAnswer() {
     }, 600);
 
   } else {
-    handleWrongAnswer();
+    handleWrongAnswer(); // 콤보 초기화 처리됨
     inputArea.classList.add('input-area--wrong');
 
-    // 캐릭터 오답 리액션 (표정 wrong, 움직임은 wrong)
+    // 캐릭터 오답 리액션
     if (characterSvg && equipState.head) {
       renderCharacterSvg(characterSvg, { ...equipState, expression: 'wrong', animation: 'wrong' });
     }
@@ -364,6 +365,7 @@ function checkAnswer() {
     }, 600);
   }
 }
+
 
 /* ===========================
    키패드 이벤트 바인딩
