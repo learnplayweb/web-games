@@ -1,17 +1,18 @@
-// v0.3.2
+// v0.3.3
 // effects.js
 // - 게임 내 재생: spawnEffect() - 대상 좌표에 매번 랜덤 파티클 생성
 // - 상점 썸네일: renderEffectThumbnail()(고정, 정지 프레임) / renderEffectPreview()(랜덤, 반복 미리보기)
 //   둘 다 3번째 인자(anchorElement)로 캐릭터 몸통 범위 내 랜덤 위치 지정 가능 (생략 시 컨테이너 정중앙)
+// - 정지 화면은 PREVIEW_DISTANCE_SCALE로 이동거리 축소해 80x80 박스 안에 담음 (실제 재생엔 영향 없음)
 // - setEffectThumbnailActive()로 .active 토글 재생, EFFECT_CONFIG가 전체 설정 소스
 
 export const EFFECT_KEYS = Object.freeze([
   // 단순 (Simple)
   'stardust', 'sparkle', 'ring-burst', 'heart-pop', 'spark',
-  'bubble-pop', 'ribbon-scatter', 'cross-flash', 'falling-leaf', 'water-drop',
+  'bubble-pop', 'ribbon-scatter', 'cross-flash', 'falling-leaf', 'water-drop', 'spark-shower',
   // 화려 (Fancy)
   'firework-launch', 'spiral-whirl', 'flame-chain', 'shooting-star', 'mega-ring-burst',
-  'confetti-burst', 'spark-shower', 'vortex-blast', 'laser-volley', 'cross-laser',
+  'confetti-burst', 'vortex-blast', 'laser-volley', 'cross-laser',
 ]);
 
 // shape: effects.css의 .fx__particle--{shape} 클래스와 매칭 (배열이면 인덱스별로 순환 사용)
@@ -26,6 +27,7 @@ const EFFECT_CONFIG = {
   'ribbon-scatter': { shape: 'ribbon', count: [6, 9], size: [10, 16], distance: [22, 34], angleMode: 'horizontal', colors: ['#ffd166', '#ff8fab', '#8ecae6'] },
   'falling-leaf': { shape: 'leaf', count: [5, 7], size: [8, 12], distance: [20, 30], angleMode: 'downward', colors: ['#b7e4a0', '#8fce6a', '#d8f28d'] },
   'water-drop': { shape: 'drop', count: [5, 8], size: [6, 10], distance: [18, 28], angleMode: 'downward', colors: ['#bfe6ff', '#8ecae6', '#ffffff'] },
+  'spark-shower': { shape: 'ember', count: [6, 8], size: [4, 6], dx: [-30, 30], rise: [-60, -45], fall: [40, 55], colors: ['#ffe066', '#ff9f1c', '#ffffff'] },
 
   // --- 화려 ---
   'firework-launch': { shape: 'firework', count: [5, 7], size: [6, 9], distance: [55, 75], angleMode: 'radial', colors: ['#ff6b6b', '#ffd93d', '#4dd4ac'] },
@@ -33,7 +35,6 @@ const EFFECT_CONFIG = {
   'flame-chain': { shape: 'flame', count: [4, 5], size: [7, 10], distance: [45, 60], angleMode: 'radial', colors: ['#ff9f1c', '#ff4d4d', '#ffd23f'], staggered: true },
   'shooting-star': { shape: 'comet', count: [3, 4], length: [26, 34], thickness: [3, 4], distance: [70, 90], angleMode: 'diagonal', colors: ['#ffffff', '#bfe6ff', '#ffd93d'] },
   'confetti-burst': { shape: ['confetti-rect', 'confetti-tri'], count: [7, 9], size: [8, 12], distance: [50, 70], angleMode: 'radial', colors: ['#ff6b6b', '#ffd93d', '#4dd4ac', '#6bc1ff'] },
-  'spark-shower': { shape: 'ember', count: [6, 8], size: [4, 6], dx: [-30, 30], rise: [-60, -45], fall: [40, 55], colors: ['#ffe066', '#ff9f1c', '#ffffff'] },
   'vortex-blast': { shape: 'vortex', count: [6, 8], size: [5, 8], distance: [55, 75], angleMode: 'radial', colors: ['#4cc9f0', '#4361ee', '#7209b7'] },
   'laser-volley': { shape: 'laser', count: [5, 7], length: [40, 55], thickness: [3, 4], angleMode: 'radial', colors: ['#ff006e', '#8338ec', '#3a86ff'], staggered: true },
 };
@@ -48,6 +49,11 @@ const CLEANUP_FALLBACK_MS = 750; // 안전망 (mega-ring 트레일 0.68s 종료�
 // staggered 효과(불꽃 연쇄, 레이저 발사)의 전체 종료 시점을 0.6s로 맞추기 위한 상수
 const STAGGER_TOTAL_S = 0.6; // 기존 .fx__particle의 animation-duration과 동일
 const STAGGER_MIN_DURATION_S = 0.28; // 가장 늦게 시작하는 파티클도 이 정도는 눈에 보이게 확보
+
+// 정지 화면(deterministic) 전용: 화려한 효과는 distance/rise가 커서 80x80 썸네일 박스를
+// 벗어나 잘려 보이지 않는 문제가 있었다. 정지 화면일 때만 이동 거리를 축소해 박스 안에 담는다.
+// (실제 게임 재생/반복 미리보기는 원래 거리 그대로 유지되어 화려함이 줄지 않는다)
+const PREVIEW_DISTANCE_SCALE = 0.55;
 
 /** spawnEffect(targetElement: HTMLElement, effectKey: string): void */
 export function spawnEffect(targetElement, effectKey) {
@@ -131,7 +137,7 @@ function mount(layer, effectKey, options) {
   } else if (effectKey === 'mega-ring-burst') {
     buildMegaRing(layer);
   } else if (effectKey === 'cross-laser') {
-    buildCrossLaser(layer);
+    buildCrossLaser(layer, options.deterministic);
   } else {
     buildParticles(layer, effectKey, options);
   }
@@ -164,14 +170,20 @@ function buildMegaRing(layer) {
   layer.appendChild(trail);
 }
 
-function buildCrossLaser(layer) {
+function buildCrossLaser(layer, deterministic) {
   const barAngles = [0, 45, 90, 135];
   barAngles.forEach((deg, i) => {
     const bar = document.createElement('span');
     bar.className = 'fx__bar';
     bar.style.setProperty('--bar-angle', `${deg}deg`);
     bar.style.color = pickColor(CROSS_LASER_COLORS, i);
-    bar.style.animationDelay = `${i * 0.02}s`;
+    // deterministic(썸네일 정지 화면)일 때는 인라인 delay를 절대 설정하지 않는다.
+    // 인라인 스타일은 CSS 클래스 규칙보다 우선순위가 높아서, 여기서 delay를 넣으면
+    // .ui-eff 쪽의 정지 프레임용 animation-delay(-0.24s 등)를 덮어써버려 애니메이션이
+    // 시작 지점(투명/길이 0) 근처에서 얼어붙는 버그가 있었다.
+    if (!deterministic) {
+      bar.style.animationDelay = `${i * 0.02}s`;
+    }
     layer.appendChild(bar);
   });
 }
@@ -247,15 +259,23 @@ function setBarSize(particle, config, deterministic) {
 }
 
 function setDistance(particle, config, deterministic) {
-  const distance = deterministic ? averageOf(config.distance) : randomRange(config.distance[0], config.distance[1]);
+  const distance = deterministic
+    ? averageOf(config.distance) * PREVIEW_DISTANCE_SCALE
+    : randomRange(config.distance[0], config.distance[1]);
   particle.style.setProperty('--distance', `${distance}px`);
 }
 
 function setEmberVars(particle, config, index, count, deterministic) {
   const size = deterministic ? averageOf(config.size) : randomRange(config.size[0], config.size[1]);
-  const dx = deterministic ? staticSpread(index, count, config.dx) : randomRange(config.dx[0], config.dx[1]);
-  const rise = deterministic ? averageOf(config.rise) : randomRange(config.rise[0], config.rise[1]);
-  const fall = deterministic ? averageOf(config.fall) : randomRange(config.fall[0], config.fall[1]);
+  const dx = deterministic
+    ? staticSpread(index, count, config.dx) * PREVIEW_DISTANCE_SCALE
+    : randomRange(config.dx[0], config.dx[1]);
+  const rise = deterministic
+    ? averageOf(config.rise) * PREVIEW_DISTANCE_SCALE
+    : randomRange(config.rise[0], config.rise[1]);
+  const fall = deterministic
+    ? averageOf(config.fall) * PREVIEW_DISTANCE_SCALE
+    : randomRange(config.fall[0], config.fall[1]);
   particle.style.width = `${size}px`;
   particle.style.height = `${size}px`;
   particle.style.setProperty('--dx', `${dx}px`);

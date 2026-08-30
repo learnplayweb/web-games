@@ -43,20 +43,18 @@
 # 효과 시스템
 [완료] 데이터 구조 / ui / 상점 연동
 
-  const centerX = rect.left + rect.width / 2 + (Math.random() - 0.5) * rect.width * 0.4;
-  const centerY = rect.top + rect.height * (0.3 + Math.random() * 0.4); // 캐릭터 몸통 범위 정도
+스튜
+구입 및 적용 표시 배지 잘림
+흐리게 적용 없앰?
+
+클로
+spark-shower 단순 효과로 이동시켰음.
+스파크 소나기와 폭죽 발사 2개만 한 번 더 정지화면 조정.
 
 Step 3-2: 게임 연동 (games/clock/script.js 수정)
 시계 게임 화면에서 정답(콤보 달성) 시 spawnEffect를 호출하여 게임 화면 위에 파티클이 실제로 팡팡 터지도록 연결합니다.
 
-스튜
 
-
-클로
-"불꽃 연쇄"와 "레이저 발사"의 전체 효과가 0.6초 이내에 종료되도록 animation-delay와 각 파티클의 animation-duration을 함께 조정한다. 순차 발동 느낌은 유지하되 마지막 파티클까지 시간 안에 종료되어 뚝 끊기지 않도록 한다.
-이를 포함하여 이어서 응답 바람.
-
-파티클별 animation-delay를 살짝 스태거링해서 순차 발동 느낌을 냈는데, 이 때문에 전체 종료 시점이 0.6s를 살짝 넘습니다(~0.7~0.8s).
 
 ## 2단계 — 상점에서 효과 구매
 효과 목록 표시

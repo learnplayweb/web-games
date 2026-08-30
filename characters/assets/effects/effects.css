@@ -1,9 +1,10 @@
-/* v0.3.0
+/* v0.3.1
    effects.css
    - 연출 파티클/버스트 애니메이션: 단순 10종 + 화려한 10종, 각 파티클 animation-duration 0.6s
    - 게임 내 재생: .fx 컨테이너, effects.js가 매번 랜덤 좌표로 파티클 생성
    - 상점 썸네일: .ui-eff 컨테이너, 고정 프리셋 좌표 + .active 클래스로 재생 토글
-   - 화려한 효과는 distance를 더 크게, 2단계 연출(이동→팝)이나 각도 누적(나선)으로 차별화 */
+   - 화려한 효과는 distance를 더 크게, 2단계 연출(이동→팝)이나 각도 누적(나선)으로 차별화
+   - 정지 화면(-0.24s 공용 규칙)이 안 맞는 효과(폭죽/불꽃/별똥별/색종이)는 개별 delay로 재지정 */
 
 /* ===========================
    [게임 내 재생] Container (JS가 대상 좌표에 위치시킴)
@@ -345,3 +346,17 @@
   animation-play-state: running;
   animation-delay: 0s;
 }
+
+/* ===========================
+   화려한 효과 전용 정지 프레임 재지정
+   - 위 공용 규칙(-0.24s = 40% 지점)이 이 효과들에는 잘 안 맞아서 개별 지정함:
+     · 폭죽/불꽃: 40% 지점은 opacity는 1이지만 "팝" 연출 전이라 밋밋 → 팝 순간(80~85%)으로 이동
+     · 별똥별: 55% 지점(전체 궤적)은 PREVIEW_DISTANCE_SCALE 적용 후에도 박스를 벗어나 30% 지점으로 당김
+     · 색종이: 40% 지점은 opacity가 이미 0.6까지 빠져 흐릿함 → opacity 0.7대인 30% 지점으로 당김
+   - 이 규칙들은 selector 특정성이 위 공용 규칙과 동일(0,0,2,0)해서 소스 순서로 우선 적용됨
+=========================== */
+.ui-eff .fx__particle--firework { animation-delay: -0.51s; } /* 85% 지점: 팝 순간, opacity 1 */
+.ui-eff .fx__particle--flame { animation-delay: -0.48s; } /* 80% 지점: 팝 순간, opacity 1 */
+.ui-eff .fx__particle--comet { animation-delay: -0.18s; } /* 30% 지점: 꼬리 형성 중, opacity 1 */
+.ui-eff .fx__particle--confetti-rect,
+.ui-eff .fx__particle--confetti-tri { animation-delay: -0.18s; } /* 30% 지점: opacity 약 0.7로 선명 */

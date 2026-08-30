@@ -34,6 +34,8 @@ export const EFFECTS = Object.freeze([
   { id: 'cross-flash', name: '크로스 플래시', price: 500, type: 'particle', uiClass: 'ui-eff-cross-flash' },
   { id: 'falling-leaf', name: '낙엽', price: 500, type: 'particle', uiClass: 'ui-eff-falling-leaf' },
   { id: 'water-drop', name: '물방울', price: 500, type: 'particle', uiClass: 'ui-eff-water-drop' },
+  { id: 'spark-shower', name: '스파크 소나기', price: 500, type: 'particle', uiClass: 'ui-eff-spark-shower' },
+
   
 // 화려한 효과 (1000골드) 10종
   { id: 'firework-launch', name: '폭죽 발사', price: 1000, type: 'particle', uiClass: 'ui-eff-firework' },
@@ -42,7 +44,6 @@ export const EFFECTS = Object.freeze([
   { id: 'shooting-star', name: '별똥별', price: 1000, type: 'particle', uiClass: 'ui-eff-shooting-star' },
   { id: 'mega-ring-burst', name: '메가 링 버스트', price: 1000, type: 'particle', uiClass: 'ui-eff-mega-ring' },
   { id: 'confetti-burst', name: '꽃가루 폭발', price: 1000, type: 'particle', uiClass: 'ui-eff-confetti' },
-  { id: 'spark-shower', name: '스파크 소나기', price: 1000, type: 'particle', uiClass: 'ui-eff-spark-shower' },
   { id: 'vortex-blast', name: '볼텍스 블래스트', price: 1000, type: 'particle', uiClass: 'ui-eff-vortex' },
   { id: 'laser-volley', name: '레이저 발리', price: 1000, type: 'particle', uiClass: 'ui-eff-laser-volley' },
   { id: 'cross-laser', name: '크로스 레이저', price: 1000, type: 'particle', uiClass: 'ui-eff-cross-laser' },
