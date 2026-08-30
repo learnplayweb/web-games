@@ -1,7 +1,8 @@
-// v0.3.1
+// v0.3.2
 // effects.js
 // - 게임 내 재생: spawnEffect() - 대상 좌표에 매번 랜덤 파티클 생성
-// - 상점 썸네일: renderEffectThumbnail()(고정 프리셋, 정지 프레임용) / renderEffectPreview()(랜덤, 반복 미리보기용)
+// - 상점 썸네일: renderEffectThumbnail()(고정, 정지 프레임) / renderEffectPreview()(랜덤, 반복 미리보기)
+//   둘 다 3번째 인자(anchorElement)로 캐릭터 몸통 범위 내 랜덤 위치 지정 가능 (생략 시 컨테이너 정중앙)
 // - setEffectThumbnailActive()로 .active 토글 재생, EFFECT_CONFIG가 전체 설정 소스
 
 export const EFFECT_KEYS = Object.freeze([
@@ -53,8 +54,8 @@ export function spawnEffect(targetElement, effectKey) {
   if (!targetElement) return;
 
   const rect = targetElement.getBoundingClientRect();
-  const centerX = rect.left + rect.width * (0.219 + Math.random() * 0.562);  // 0.219~0.781
-  const centerY = rect.top + rect.height * (0.067 + Math.random() * 0.533); // 0.067~0.600
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
 
   const layer = document.createElement('div');
   layer.className = `fx fx--${effectKey}`;
@@ -67,20 +68,47 @@ export function spawnEffect(targetElement, effectKey) {
   scheduleCleanup(layer);
 }
 
-/** renderEffectThumbnail(container: HTMLElement, effectKey: string): void */
-export function renderEffectThumbnail(container, effectKey) {
-  if (!container) return;
-  container.replaceChildren();
-  container.className = `ui-eff ui-eff--${effectKey}`;
-  mount(container, effectKey, { deterministic: true });
+/** renderEffectThumbnail(container: HTMLElement, effectKey: string, anchorElement?: HTMLElement): void */
+export function renderEffectThumbnail(container, effectKey, anchorElement) {
+  mountAtAnchor(container, effectKey, { deterministic: true }, anchorElement);
 }
 
-/** renderEffectPreview(container: HTMLElement, effectKey: string): void */
-export function renderEffectPreview(container, effectKey) {
+/** renderEffectPreview(container: HTMLElement, effectKey: string, anchorElement?: HTMLElement): void */
+export function renderEffectPreview(container, effectKey, anchorElement) {
+  mountAtAnchor(container, effectKey, { deterministic: false }, anchorElement);
+}
+
+// container 안에 위치 계산용 anchor(0x0, position:absolute)를 만들어 그 자리에 파티클을 그림.
+// anchorElement가 주어지면 그 엘리먼트의 몸통 범위(viewBox 0 0 160 300 기준 x:35~125, y:20~180)
+// 안에서 매번 랜덤한 지점을 골라 anchor를 그 좌표로 옮긴다. 생략 시 container 정중앙(기존 동작).
+function mountAtAnchor(container, effectKey, options, anchorElement) {
   if (!container) return;
   container.replaceChildren();
   container.className = `ui-eff ui-eff--${effectKey}`;
-  mount(container, effectKey, { deterministic: false });
+
+  const anchor = document.createElement('span');
+  anchor.style.position = 'absolute';
+  anchor.style.width = '0';
+  anchor.style.height = '0';
+  positionAnchor(container, anchor, anchorElement);
+  container.appendChild(anchor);
+
+  mount(anchor, effectKey, options);
+}
+
+function positionAnchor(container, anchor, anchorElement) {
+  if (!anchorElement) {
+    anchor.style.left = '50%';
+    anchor.style.top = '50%';
+    return;
+  }
+  const containerRect = container.getBoundingClientRect();
+  const targetRect = anchorElement.getBoundingClientRect();
+  // 캐릭터 몸통 범위 비율: viewBox 0 0 160 300 기준 x=35~125(21.9%~78.1%), y=20~180(6.7%~60%)
+  const pointX = targetRect.left + targetRect.width * (0.219 + Math.random() * 0.562);
+  const pointY = targetRect.top + targetRect.height * (0.067 + Math.random() * 0.533);
+  anchor.style.left = `${pointX - containerRect.left}px`;
+  anchor.style.top = `${pointY - containerRect.top}px`;
 }
 
 /** setEffectThumbnailActive(container: HTMLElement, isActive: boolean): void */

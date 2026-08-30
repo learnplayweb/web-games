@@ -885,7 +885,7 @@ async function openEffectModal(effect) {
 
   function triggerParticle() {
     // 1) 랜덤 파티클 DOM 새로 그리기 & .active 부여로 재생 시작
-    renderEffectPreview(particleContainer, effect.id);
+    renderEffectPreview(particleContainer, effect.id, previewSvg);
     setEffectThumbnailActive(particleContainer, true);
 
     // 2) 애니메이션이 끝나는 정확한 시점에 .active 제거 (잔상 숨김)
