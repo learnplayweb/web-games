@@ -63,6 +63,19 @@ git switch main
 - docs : 문서 변경
 - chore : 빌드, 설정, 폴더 정리 등
 
+# css 필터
+brightness()   명도
+saturate()     채도
+contrast()     대비
+opacity()      투명도
+hue-rotate()   색상 회전
+grayscale()    흑백
+sepia()        세피아
+invert()       색상 반전
+blur()         흐림
+drop-shadow()  그림자
+
+
 # 모달 자동 닫기 시간 조정
 characters\character-shop.js
 const RESULT_AUTO_CLOSE_MS = 2000; 2.5초면 2500으로 수정

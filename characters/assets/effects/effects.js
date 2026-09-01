@@ -1,15 +1,16 @@
-// v0.3.3
+// v0.3.4
 // effects.js
 // - 게임 내 재생: spawnEffect() - 대상 좌표에 매번 랜덤 파티클 생성
 // - 상점 썸네일: renderEffectThumbnail()(고정, 정지 프레임) / renderEffectPreview()(랜덤, 반복 미리보기)
 //   둘 다 3번째 인자(anchorElement)로 캐릭터 몸통 범위 내 랜덤 위치 지정 가능 (생략 시 컨테이너 정중앙)
-// - 정지 화면은 PREVIEW_DISTANCE_SCALE로 이동거리 축소해 80x80 박스 안에 담음 (실제 재생엔 영향 없음)
+// - 정지 화면은 PREVIEW_DISTANCE_SCALE(효과별 previewScale로 override 가능)로 이동거리 축소해 박스 안에 담음
 // - setEffectThumbnailActive()로 .active 토글 재생, EFFECT_CONFIG가 전체 설정 소스
 
 export const EFFECT_KEYS = Object.freeze([
   // 단순 (Simple)
   'stardust', 'sparkle', 'ring-burst', 'heart-pop', 'spark',
-  'bubble-pop', 'ribbon-scatter', 'cross-flash', 'falling-leaf', 'water-drop', 'spark-shower',
+  'bubble-pop', 'ribbon-scatter', 'cross-flash', 'falling-leaf', 'water-drop',
+  'spark-shower',
   // 화려 (Fancy)
   'firework-launch', 'spiral-whirl', 'flame-chain', 'shooting-star', 'mega-ring-burst',
   'confetti-burst', 'vortex-blast', 'laser-volley', 'cross-laser',
@@ -27,10 +28,10 @@ const EFFECT_CONFIG = {
   'ribbon-scatter': { shape: 'ribbon', count: [6, 9], size: [10, 16], distance: [22, 34], angleMode: 'horizontal', colors: ['#ffd166', '#ff8fab', '#8ecae6'] },
   'falling-leaf': { shape: 'leaf', count: [5, 7], size: [8, 12], distance: [20, 30], angleMode: 'downward', colors: ['#b7e4a0', '#8fce6a', '#d8f28d'] },
   'water-drop': { shape: 'drop', count: [5, 8], size: [6, 10], distance: [18, 28], angleMode: 'downward', colors: ['#bfe6ff', '#8ecae6', '#ffffff'] },
-  'spark-shower': { shape: 'ember', count: [6, 8], size: [4, 6], dx: [-30, 30], rise: [-60, -45], fall: [40, 55], colors: ['#ffe066', '#ff9f1c', '#ffffff'] },
+  'spark-shower': { shape: 'ember', count: [6, 8], size: [10, 16], dx: [-30, 30], rise: [-60, -45], fall: [40, 55], colors: ['#ffe066', '#ff9f1c', '#ffffff'], previewScale: 0.35 },
 
   // --- 화려 ---
-  'firework-launch': { shape: 'firework', count: [5, 7], size: [6, 9], distance: [55, 75], angleMode: 'radial', colors: ['#ff6b6b', '#ffd93d', '#4dd4ac'] },
+  'firework-launch': { shape: 'firework', count: [5, 7], size: [6, 9], distance: [55, 75], angleMode: 'radial', colors: ['#ff6b6b', '#ffd93d', '#4dd4ac'], previewScale: 0.3 },
   'spiral-whirl': { shape: 'spiral', count: [5, 7], size: [5, 8], distance: [50, 70], angleMode: 'radial', colors: ['#c77dff', '#7b2ff7', '#5ee7df'] },
   'flame-chain': { shape: 'flame', count: [4, 5], size: [7, 10], distance: [45, 60], angleMode: 'radial', colors: ['#ff9f1c', '#ff4d4d', '#ffd23f'], staggered: true },
   'shooting-star': { shape: 'comet', count: [3, 4], length: [26, 34], thickness: [3, 4], distance: [70, 90], angleMode: 'diagonal', colors: ['#ffffff', '#bfe6ff', '#ffd93d'] },
@@ -39,7 +40,7 @@ const EFFECT_CONFIG = {
   'laser-volley': { shape: 'laser', count: [5, 7], length: [40, 55], thickness: [3, 4], angleMode: 'radial', colors: ['#ff006e', '#8338ec', '#3a86ff'], staggered: true },
 };
 
-const RING_COLORS = ['#ffffff', '#bfe6ff', '#fff6b3'];
+const RING_COLORS = ['#d5fdfaf3', '#a1f8f2f3', '#fff6b3'];
 const CROSS_COLORS = ['#fff6b3', '#bfe6ff', '#ffb3c6'];
 const MEGA_RING_COLORS = ['#ffffff', '#bfe6ff'];
 const CROSS_LASER_COLORS = ['#ff006e', '#8338ec', '#3a86ff', '#ffbe0b'];
@@ -53,6 +54,7 @@ const STAGGER_MIN_DURATION_S = 0.28; // 가장 늦게 시작하는 파티클도 
 // 정지 화면(deterministic) 전용: 화려한 효과는 distance/rise가 커서 80x80 썸네일 박스를
 // 벗어나 잘려 보이지 않는 문제가 있었다. 정지 화면일 때만 이동 거리를 축소해 박스 안에 담는다.
 // (실제 게임 재생/반복 미리보기는 원래 거리 그대로 유지되어 화려함이 줄지 않는다)
+// 효과별로 더 강하게 줄여야 하면 EFFECT_CONFIG에 previewScale을 개별 지정해 이 기본값을 덮어쓴다.
 const PREVIEW_DISTANCE_SCALE = 0.55;
 
 /** spawnEffect(targetElement: HTMLElement, effectKey: string): void */
@@ -259,22 +261,24 @@ function setBarSize(particle, config, deterministic) {
 }
 
 function setDistance(particle, config, deterministic) {
+  const scale = config.previewScale ?? PREVIEW_DISTANCE_SCALE;
   const distance = deterministic
-    ? averageOf(config.distance) * PREVIEW_DISTANCE_SCALE
+    ? averageOf(config.distance) * scale
     : randomRange(config.distance[0], config.distance[1]);
   particle.style.setProperty('--distance', `${distance}px`);
 }
 
 function setEmberVars(particle, config, index, count, deterministic) {
+  const scale = config.previewScale ?? PREVIEW_DISTANCE_SCALE;
   const size = deterministic ? averageOf(config.size) : randomRange(config.size[0], config.size[1]);
   const dx = deterministic
-    ? staticSpread(index, count, config.dx) * PREVIEW_DISTANCE_SCALE
+    ? staticSpread(index, count, config.dx) * scale
     : randomRange(config.dx[0], config.dx[1]);
   const rise = deterministic
-    ? averageOf(config.rise) * PREVIEW_DISTANCE_SCALE
+    ? averageOf(config.rise) * scale
     : randomRange(config.rise[0], config.rise[1]);
   const fall = deterministic
-    ? averageOf(config.fall) * PREVIEW_DISTANCE_SCALE
+    ? averageOf(config.fall) * scale
     : randomRange(config.fall[0], config.fall[1]);
   particle.style.width = `${size}px`;
   particle.style.height = `${size}px`;

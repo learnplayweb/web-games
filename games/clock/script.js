@@ -298,7 +298,7 @@ function finishStage() {
 }
 
 /* ===========================
-   정답 판정
+   정답 판정 및 효과 연동
 =========================== */
 
 let isJudging = false;
@@ -325,19 +325,41 @@ function checkAnswer() {
   isJudging = true;
 
   if (isCorrect) {
-    handleCorrectAnswer(); // 골드 및 currentCombo 증가 처리됨
+    handleCorrectAnswer(); 
     stageState.correctCount += 1;
     inputArea.classList.add('input-area--correct');
 
-    // 캐릭터 정답 리액션 (빠른 파닥임)
+    // [캐릭터 정답 리액션]
     if (characterSvg && equipState.head) {
       renderCharacterSvg(characterSvg, { ...equipState, expression: 'correct', animation: 'correct' });
     }
 
+    // [콤보 파티클 효과 연동] 
+    // 조건: 3콤보 이상이면서 3의 배수일 때 (3, 6, 9 ...)
+    if (currentCombo >= 3 && currentCombo % 3 === 0) {
+      
+      // 장착된 효과 목록 (최대 3개 배열로 가정)
+      let equippedEffects = getEquippedEffect(); 
+      
+      // 만약 배열이 아니라 단일 문자열이 반환된다면 배열로 감싸줌 (호환성 유지)
+      if (typeof equippedEffects === 'string') equippedEffects = [equippedEffects];
+
+      // 장착된 효과가 하나라도 있다면
+      if (equippedEffects && equippedEffects.length > 0) {
+        // 장착된 목록 중에서 무작위로 1개 선택
+        const randomEffectId = equippedEffects[Math.floor(Math.random() * equippedEffects.length)];
+        
+        // 파티클 생성기 호출 (앵커 엘리먼트로 characterSvg를 넘겨 내부에서 절대좌표 변환 지원)
+        // (만약 파라미터가 3개가 아니라 2개(centerX, centerY)라면 effects.js의 스펙에 맞게 수정 필요)
+        if (typeof spawnEffect === 'function') {
+          spawnEffect(randomEffectId, characterSvg);
+        }
+      }
+    }
 
     setTimeout(() => {
       inputArea.classList.remove('input-area--correct');
-      // 원래 상태로 복구
+      // 복구 후 다음 문제로 진행
       if (characterSvg && equipState.head) {
         renderCharacterSvg(characterSvg, { ...equipState, expression: 'idle', animation: 'idle' });
       }
@@ -347,17 +369,17 @@ function checkAnswer() {
     }, 600);
 
   } else {
-    handleWrongAnswer(); // 콤보 초기화 처리됨
+    handleWrongAnswer(); 
     inputArea.classList.add('input-area--wrong');
 
-    // 캐릭터 오답 리액션
+    // [캐릭터 오답 리액션]
     if (characterSvg && equipState.head) {
       renderCharacterSvg(characterSvg, { ...equipState, expression: 'wrong', animation: 'wrong' });
     }
 
     setTimeout(() => {
       inputArea.classList.remove('input-area--wrong');
-      // 오답 모달 닫힐 때 복구해야 하므로 여기서는 표정만 원복(생략 가능하지만 안전하게 처리)
+      // 복구 후 오답 모달 띄우기
       if (characterSvg && equipState.head) {
         renderCharacterSvg(characterSvg, { ...equipState, expression: 'idle', animation: 'idle' });
       }

@@ -216,7 +216,7 @@ body {
 
 /* 미보유: 흐릿하게 (커서는 유지 — 구매 가능) */
 .part-slot--locked {
-  opacity: 0.35;
+  opacity: 0.5;
 }
 
 .part-slot__svg {
@@ -563,12 +563,22 @@ body {
   width: 56px;
   height: 56px;
   position: relative;
-  overflow: hidden;
   border-radius: 0.75rem;
   background: var(--color-surface); /* 배경색 지정으로 빈칸도 확실히 보이게 함 */
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* (배지 크기 통일용 코드 추가) 적용 중인 배지도 12x12로 강제 맞춤 */
+.effect-slot .part-slot__badge {
+  width: 14px; /* 기존 보유 배지보다 살짝 크게 해야 체크표시가 예쁩니다 */
+  height: 14px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px; /* 체크 폰트 크기 축소 */
 }
 
 /* 그리드 레이아웃의 행(row) 최소 높이를 강제하여 내용물이 없어도 영역 유지 */
@@ -581,7 +591,7 @@ body {
    - 슬롯 안의 파티클 썸네일을 더 또렷하고 선명하게 보이게 함
 =========================== */
 .effect-slot > div {
-  filter: saturate(20) brightness(0.7) contrast(1.2);
+  filter: saturate(1) brightness(0.83) contrast(1);
 }
 
 /* (참고: 모달 안의 미리보기에도 필터를 먹이고 싶다면 아래 코드도 함께 추가 */
