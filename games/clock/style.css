@@ -325,3 +325,9 @@ body {
 
 .answer-modal__label { font-size: 0.95rem; font-weight: 700; color: var(--color-text-muted); }
 .answer-modal__value { font-size: 1.6rem; font-weight: 800; color: var(--color-primary-dark); }
+
+/* 파티클 레이어 강제 최상단 노출 테스트 */
+.fx {
+  z-index: 9999 !important;
+  pointer-events: none;
+}

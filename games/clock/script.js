@@ -1,4 +1,4 @@
-// v0.4.13 : Implement_캐릭터 랜덤 위치 및 360도 무작위 회전 이동 기능 추가 (문제 변경 시 이동)
+// v0.4.14 : Adjust spawnEffect parameter order and validate element bounds for accurate rendering
 // - 의존: data/levels.js (LEVELS, shuffleArray), core/saveManager.js (SaveManager), characters/characterRenderer.js (renderCharacterSvg)
 //
 // Public API (Internal Game Logic)
@@ -11,6 +11,8 @@
 import { getClockBestStars, getGold, addGold, saveClockResult, getEquippedParts } from '../../core/saveManager.js';
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
 import { LEVELS, shuffleArray } from './data/levels.js';
+import { spawnEffect } from '../../characters/assets/effects/effects.js';
+import { getEquippedEffect } from '../../characters/inventory.js';
 
 /* ===========================
    시계 표시
@@ -336,32 +338,33 @@ function checkAnswer() {
 
 // [콤보 파티클 효과 연동] 
     // 조건: 3콤보 이상이면서 3의 배수일 때 (3, 6, 9 ...)
-    try {
+ try {
+      console.log("현재 콤보:", currentCombo); // 디버깅 1
+
       if (currentCombo >= 3 && currentCombo % 3 === 0) {
         let equippedEffects = getEquippedEffect(); 
+        console.log("가져온 장착 효과:", equippedEffects); // 디버깅 2
         
-        // 문자열(단일 장착)이면 배열로 감싸서 에러 방지
         if (typeof equippedEffects === 'string') {
           equippedEffects = [equippedEffects];
         }
 
-        // 장착된 효과가 존재할 때만 실행
         if (equippedEffects && equippedEffects.length > 0) {
           const randomEffectId = equippedEffects[Math.floor(Math.random() * equippedEffects.length)];
+          console.log("선택된 효과 ID:", randomEffectId); // 디버깅 3
           
-          if (typeof spawnEffect === 'function' && characterContainer) {
-            // 좌표 계산 다시 추가 (이전 코드에서 누락된 부분)
-            const rect = characterContainer.getBoundingClientRect();
-            const centerX = rect.left + (rect.width / 2);
-            const centerY = rect.top + (rect.height / 2);
-            
-            // effects.js의 스펙에 맞게 (x, y, id) 순으로 올바르게 전달
-            spawnEffect(centerX, centerY, randomEffectId);
+        // 수정 코드: characterContainer 껍데기 대신, 실제 형태를 가진 characterSvg를 타겟으로 넘김
+          if (typeof spawnEffect === 'function' && characterSvg) {
+            spawnEffect(characterSvg, randomEffectId);
+          } else {
+            console.log("spawnEffect 함수가 없거나 컨테이너를 못 찾음");
           }
+        } else {
+          console.log("장착된 효과 배열이 비어 있음");
         }
       }
     } catch (e) {
-      console.error("파티클 생성 중 에러 발생 (게임은 계속 진행됩니다):", e);
+      console.error("파티클 생성 중 에러 발생:", e);
     }
 
     setTimeout(() => {
