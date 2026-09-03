@@ -43,31 +43,13 @@
 # 효과 시스템
 [완료] 데이터 구조 / ui / 상점 연동
 
+## !! 수정
+문제 맞힐 때 골드 바로 상승
+> 이때 새로고침하면 쉬운 문제만 계속 풀어 골드 획득 가능
+> 골드 표시를 없애고 최종 결과 나왔을 때 골드에 반영하도록 수정?
+
 스튜
-구입 및 적용 표시 배지 잘림
-흐리게 적용 없앰?
 
-게임 연동 코드 다시 재공
-1. 정답 표시(0.6초) 후 다음 문제로 넘어가지 않음.
-// 콤보 파티클 효과 연동 (콤보 달성 시)
-    // 예: 2콤보 이상일 때 매번 터지게 하거나, 특정 배수에서 터지게 설정 가능 (현재는 2콤보 이상 매 정답 시)
-    const equippedEffectId = getEquippedEffect();
-    if (equippedEffectId && currentCombo >= 2) {
-      // 캐릭터가 있는 위치의 정중앙 좌표를 구합니다.
-      const rect = characterContainer.getBoundingClientRect();
-      const centerX = rect.left + (rect.width / 2);
-      const centerY = rect.top + (rect.height / 2);
-      
-      // 작성하신 파티클 생성기 호출
-      spawnEffect(centerX, centerY, equippedEffectId);
-    }
-이 부분 없으면 정상 작동.
-
-2.  콤보 파티클 효과 연동 (콤보 달성 시)
-    // 예: 2콤보 이상일 때 매번 터지게 하거나, 특정 배수에서 터지게 설정 가능 (현재는 2콤보 이상 매 정답 시)
-    const equippedEffectId = getEquippedEffect();
-    if (equippedEffectId && currentCombo >= 2) 
-    > 3콤보 이상일 때 3의 배수마다 적용된 효과(3개까지, 보유 아님 유의) 중 랜덤 선택되어 발동. 
 
 클로
 

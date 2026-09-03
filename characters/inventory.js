@@ -704,7 +704,7 @@ export function hasEffect(id) {
 /** 특정 효과가 현재 장착되어 있는지 확인합니다. */
 export function getEquippedEffect() {
   const equip = getEquippedParts();
-  return equip.effect || null;
+  return equip.effect || [];
 }
 
 /** 효과를 구매합니다. (중복 구매 불가) */
@@ -729,13 +729,27 @@ export function canApplyEffect(id) {
   return getGold() >= SHOP_COST.effectApply;
 }
 
-/** 효과를 장착합니다. */
+/** 효과를 장착합니다. (최대 3개 다중 장착, 4개째 장착 시 가장 먼저 장착한 것을 밀어냄) */
 export function applyEffect(id) {
   if (!canApplyEffect(id)) return { success: false, reason: 'cannot_apply' };
   if (!spendGold(SHOP_COST.effectApply)) return { success: false, reason: 'insufficient_gold' };
 
   const equip = getEquippedParts();
-  equip.effect = id;
+  
+  // 기존에 문자열로 저장되어 있거나 배열이 아니면 배열로 강제 변환
+  if (!Array.isArray(equip.effect)) {
+    equip.effect = equip.effect ? [equip.effect] : [];
+  }
+
+  // 이미 장착된 효과인지 확인
+  if (!equip.effect.includes(id)) {
+    equip.effect.push(id); // 새 효과 추가
+    // 최대 3개를 초과하면 가장 오래된 것(첫 번째 항목)을 제거
+    if (equip.effect.length > 3) {
+      equip.effect.shift();
+    }
+  }
+
   setEquippedParts(equip);
 
   return { success: true, id, remainingGold: getGold() };

@@ -795,7 +795,8 @@ function renderEffectSlots() {
 
   EFFECTS.forEach(effect => {
     const isOwned = hasEffect(effect.id);
-    const isEquipped = getEquippedEffect() === effect.id;
+    const equippedEffects = getEquippedEffect();
+    const isEquipped = Array.isArray(equippedEffects) ? equippedEffects.includes(effect.id) : equippedEffects === effect.id;
 
     // 슬롯 껍데기
     const slot = document.createElement('div');
@@ -923,7 +924,8 @@ async function openEffectModal(effect) {
     effectModalActions.appendChild(buyButton);
 
   } else {
-    const isEquipped = getEquippedEffect() === effect.id;
+    const equippedEffects = getEquippedEffect();
+    const isEquipped = Array.isArray(equippedEffects) ? equippedEffects.includes(effect.id) : equippedEffects === effect.id;
     if (isEquipped) {
       const appliedMessage = document.createElement('p');
       appliedMessage.className = 'part-modal__applied';
