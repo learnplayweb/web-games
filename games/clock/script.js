@@ -12,7 +12,8 @@ import { getClockBestStars, getGold, addGold, saveClockResult, getEquippedParts 
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
 import { LEVELS, shuffleArray } from './data/levels.js';
 import { spawnEffect } from '../../characters/assets/effects/effects.js';
-import { getEquippedEffect } from '../../characters/inventory.js';
+import { pickRandomEquippedEffect } from '../../characters/inventory.js';
+// ↑↑↑
 
 /* ===========================
    시계 표시
@@ -299,6 +300,27 @@ function finishStage() {
   }, { once: true });
 }
 
+/* ==================
+   효과 이벤트 라우터 
+===================== */
+function playEventEffect(eventType, targetElement) {
+  try {
+    if (!targetElement || typeof spawnEffect !== 'function') return;
+
+    if (eventType === 'combo') {
+      // 5단계 선택 시스템 호출
+      const effectId = pickRandomEquippedEffect(); 
+      if (effectId) {
+        // 4단계 실행 시스템 호출
+        spawnEffect(targetElement, effectId);
+      }
+    }
+    // 추후 'correct', 'clear' 등 다른 이벤트 추가 가능
+  } catch (e) {
+    console.error("이벤트 효과 실행 중 에러 발생:", e);
+  }
+}
+
 /* ===========================
    정답 판정 및 효과 연동
 =========================== */
@@ -338,29 +360,21 @@ function checkAnswer() {
 
 // [콤보 파티클 효과 연동] 
     // 조건: 3콤보 이상이면서 3의 배수일 때 (3, 6, 9 ...)
-    try {
-      if (currentCombo >= 3 && currentCombo % 3 === 0) {
-        let equippedEffects = getEquippedEffect(); 
-        
-        // 문자열(단일 장착)일 경우 호환성을 위해 배열로 변환
-        if (typeof equippedEffects === 'string') {
-          equippedEffects = [equippedEffects];
-        }
+if (isCorrect) {
+    handleCorrectAnswer(); 
+    stageState.correctCount += 1;
+    inputArea.classList.add('input-area--correct');
 
-        // 장착된 효과가 존재할 때만 실행
-        if (equippedEffects && equippedEffects.length > 0) {
-          // 장착된 목록 중 무작위 1개 선택
-          const randomEffectId = equippedEffects[Math.floor(Math.random() * equippedEffects.length)];
-          
-          // 껍데기 컨테이너 대신 실제 형태를 가진 characterSvg를 타겟으로 넘겨 정확한 좌표 획득
-          if (typeof spawnEffect === 'function' && characterSvg) {
-            spawnEffect(characterSvg, randomEffectId);
-          }
-        }
-      }
-    } catch (e) {
-      console.error("파티클 생성 중 에러 발생 (게임은 계속 진행됩니다):", e);
+    // 캐릭터 정답 리액션
+    if (characterSvg && equipState.head) {
+      renderCharacterSvg(characterSvg, { ...equipState, expression: 'correct', animation: 'correct' });
     }
+
+    // [이벤트 연결 (Stage 6)] 3의 배수 콤보 시 'combo' 타입 효과 발동 요청
+    if (currentCombo >= 3 && currentCombo % 3 === 0) {
+      playEventEffect('combo', characterSvg);
+    }
+  }
 
     setTimeout(() => {
       inputArea.classList.remove('input-area--correct');

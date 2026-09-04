@@ -1,4 +1,4 @@
-// v0.1.20 : Add_효과(Effect) 조회, 구매, 장착 기능 추가
+// v0.1.21 : Add_효과 랜덤 선택 및 중복 방지 시스템 분리 
 // 
 // Inventory
 // - Feat: 색 섞기/다시 섞기 시 패턴 및 그래디언트를 아우르는 통합 추첨(pickRandomMixStyle) 연동
@@ -753,4 +753,33 @@ export function applyEffect(id) {
   setEquippedParts(equip);
 
   return { success: true, id, remainingGold: getGold() };
+}
+
+
+let lastSpawnedEffectId = null; // 최근 재생된 효과 기억 (모듈 스코프)
+
+/** 
+ * 장착된 효과 중 하나를 랜덤으로 선택하여 반환합니다. 
+ * 2개 이상 장착 시 직전에 재생된 효과는 제외합니다.
+ */
+export function pickRandomEquippedEffect() {
+  let equipped = getEquippedEffect();
+  if (!equipped) return null;
+  
+  if (typeof equipped === 'string') equipped = [equipped];
+  if (equipped.length === 0) return null;
+
+  // 장착된 효과가 1개뿐이면 그대로 반환
+  if (equipped.length === 1) {
+    lastSpawnedEffectId = equipped[0];
+    return equipped[0];
+  }
+
+  // 2개 이상이면 직전 효과 제외
+  let candidates = equipped.filter(id => id !== lastSpawnedEffectId);
+  if (candidates.length === 0) candidates = equipped; // 만약의 오류 대비 원상복구
+
+  const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+  lastSpawnedEffectId = chosen; // 이번에 뽑힌 효과 기억
+  return chosen;
 }
