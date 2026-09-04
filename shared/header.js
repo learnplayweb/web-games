@@ -24,7 +24,7 @@ function createHeader() {
   // 화면 상단에 고정 표시
   document.body.insertBefore(header, document.body.firstChild);
 
-  setupDebugMenu();
+  //setupDebugMenu();
 }
 
 /**
@@ -45,7 +45,7 @@ function updateHeaderGold(amount) {
 //   달라(캐릭터샵 파츠/단계 카드 등) header.js가 개별적으로 알 필요 없이
 //   한 번에 최신 저장 데이터를 반영하기 위함.
 // ===========================
-const DEBUG_TAP_TARGET_COUNT = 7;
+/*const DEBUG_TAP_TARGET_COUNT = 7;
 const DEBUG_TAP_WINDOW_MS = 2000;
 
 const DEBUG_MENU_ITEMS = [
@@ -133,6 +133,6 @@ function setupDebugMenu() {
       // core/debug.js가 없는 배포 환경: 조용히 무시
     }
   });
-}
+}*/
 
 export { createHeader, updateHeaderGold };

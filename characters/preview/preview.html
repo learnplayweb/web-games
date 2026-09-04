@@ -3,21 +3,76 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Character Preview</title>
+  <title>Character Animation Preview</title>
+  <link rel="stylesheet" href="../character-anim.css">
   <link rel="stylesheet" href="preview.css">
 </head>
 <body>
 
-<div class="character">
-  <img src="../assets/parts/p-triangle-u.svg">
-    <img src="../assets/left-arm.svg">
-    <img src="../assets/right-arm.svg">
-    <img src="../assets/right-leg.svg">
-    <img src="../assets/left-leg.svg">
-    
-<img src="../assets/face/mouth-correct.svg"> 
-<img src="../assets/face/eyes-correct.svg"> 
-</div>
+  <div class="preview-layout">
 
+    <div class="stage" id="character-stage">
+      <svg id="character-svg" class="character-svg" viewBox="0 0 160 300" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <div class="controls">
+
+      <section class="panel">
+        <h2>파츠 설정</h2>
+
+        <label>
+          Head
+          <select id="input-head"></select>
+        </label>
+
+        <label>
+          Body <span class="sub">(없음 선택 시 팔도 함께 숨김)</span>
+          <select id="input-body"></select>
+        </label>
+
+        <label>
+          Legs <span class="sub">(없음 선택 시 다리도 함께 숨김)</span>
+          <select id="input-legs"></select>
+        </label>
+
+        <label>
+          Eyes <span class="sub">(독립 선택 — mouth와 다른 상태 조합 가능)</span>
+          <select id="input-eyes"></select>
+        </label>
+
+        <label>
+          Mouth <span class="sub">(독립 선택 — eyes와 다른 상태 조합 가능)</span>
+          <select id="input-mouth"></select>
+        </label>
+
+        <label class="row">
+          <input type="checkbox" id="input-color-enabled" checked>
+          색상 적용
+          <input type="color" id="input-color" value="#ffd54f">
+        </label>
+
+        <button id="btn-apply" class="btn-primary">적용 (파츠 다시 렌더링)</button>
+      </section>
+
+      <section class="panel">
+        <h2>애니메이션 상태</h2>
+        <p class="hint">재렌더링 없이 즉시 전환됩니다.</p>
+        <div class="anim-buttons">
+          <button data-anim="idle">idle</button>
+          <button data-anim="correct">correct</button>
+          <button data-anim="wrong">wrong</button>
+          <button data-anim="wiggle">wiggle</button>
+          <button data-anim="bounce">bounce</button>
+          <button data-anim="squish">squish</button>
+          <button data-anim="sway">sway</button>
+          <button data-anim="breathe">breathe</button>
+        </div>
+      </section>
+
+    </div>
+
+  </div>
+
+  <script type="module" src="preview.js"></script>
 </body>
 </html>

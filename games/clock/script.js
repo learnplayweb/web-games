@@ -338,33 +338,28 @@ function checkAnswer() {
 
 // [콤보 파티클 효과 연동] 
     // 조건: 3콤보 이상이면서 3의 배수일 때 (3, 6, 9 ...)
- try {
-      console.log("현재 콤보:", currentCombo); // 디버깅 1
-
+    try {
       if (currentCombo >= 3 && currentCombo % 3 === 0) {
         let equippedEffects = getEquippedEffect(); 
-        console.log("가져온 장착 효과:", equippedEffects); // 디버깅 2
         
+        // 문자열(단일 장착)일 경우 호환성을 위해 배열로 변환
         if (typeof equippedEffects === 'string') {
           equippedEffects = [equippedEffects];
         }
 
+        // 장착된 효과가 존재할 때만 실행
         if (equippedEffects && equippedEffects.length > 0) {
+          // 장착된 목록 중 무작위 1개 선택
           const randomEffectId = equippedEffects[Math.floor(Math.random() * equippedEffects.length)];
-          console.log("선택된 효과 ID:", randomEffectId); // 디버깅 3
           
-        // 수정 코드: characterContainer 껍데기 대신, 실제 형태를 가진 characterSvg를 타겟으로 넘김
+          // 껍데기 컨테이너 대신 실제 형태를 가진 characterSvg를 타겟으로 넘겨 정확한 좌표 획득
           if (typeof spawnEffect === 'function' && characterSvg) {
             spawnEffect(characterSvg, randomEffectId);
-          } else {
-            console.log("spawnEffect 함수가 없거나 컨테이너를 못 찾음");
           }
-        } else {
-          console.log("장착된 효과 배열이 비어 있음");
         }
       }
     } catch (e) {
-      console.error("파티클 생성 중 에러 발생:", e);
+      console.error("파티클 생성 중 에러 발생 (게임은 계속 진행됩니다):", e);
     }
 
     setTimeout(() => {
