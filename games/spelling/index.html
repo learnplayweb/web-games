@@ -1,0 +1,50 @@
+<!-- v0.1.0
+ Spelling Game - Stage 1: 기본 화면 구조
+ - 상단 정보바(Combo/하트), 캐릭터 영역(정면 idle), 게임 진행 영역(placeholder), 키패드 -->
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spelling Game</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="../../characters/character-anim.css" />
+</head>
+<body>
+
+  <div id="game-wrapper" class="game-wrapper">
+
+    <!-- 상단 정보 영역 : Combo(좌) / 하트(우) -->
+    <header class="info-bar">
+      <span class="info-bar__item info-bar__combo">
+        <span class="info-bar__icon">🔥</span>
+        <span id="display-combo" class="info-bar__value">0</span>
+      </span>
+      <span class="info-bar__item info-bar__hearts" id="display-hearts">
+        <span class="heart" data-index="1">❤️</span>
+        <span class="heart" data-index="2">❤️</span>
+        <span class="heart" data-index="3">❤️</span>
+      </span>
+    </header>
+
+    <!-- 캐릭터 영역 (상단 약 1/3) : 정면 idle 표시 -->
+    <section class="character-area">
+      <div id="character-container" class="character-container"></div>
+    </section>
+
+    <!-- 게임 진행 영역 (이전/현재/다음 블록) : 추후 단계에서 구현 -->
+    <section id="board-area" class="board-area"></section>
+
+    <!-- 진행용 키패드 : ← / ↓(점프) / → -->
+    <section class="keypad-area">
+      <button type="button" class="keypad-btn keypad-btn--side" data-key="left" aria-label="왼쪽">←</button>
+      <button type="button" class="keypad-btn keypad-btn--jump" data-key="jump" aria-label="점프">↓</button>
+      <button type="button" class="keypad-btn keypad-btn--side" data-key="right" aria-label="오른쪽">→</button>
+    </section>
+
+  </div><!-- /.game-wrapper -->
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>

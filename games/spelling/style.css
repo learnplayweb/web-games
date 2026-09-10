@@ -1,0 +1,168 @@
+/* v0.1.0
+ Spelling Game - Stage 1: 기본 레이아웃
+ - :root 변수는 games/clock/style.css와 동일한 값을 사용 (디자인 통일)
+ - info-bar, keypad-btn 등 클래스명/스타일도 시계 게임과 동일한 기준을 따름 */
+
+/* ===========================
+   1. 전역 초기화 & 변수 (시계 게임과 동일)
+=========================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  touch-action: manipulation;
+}
+
+:root {
+  --color-bg: #f0f4ff;
+  --color-surface: #ffffff;
+  --color-primary: #5b8dee;
+  --color-primary-dark: #3a6fdb;
+  --color-text: #2d3a4a;
+  --color-text-muted: #7a8fa6;
+  --color-keypad-bg: #eaf0fb;
+  --color-keypad-active: #dce8fb;
+
+  --font-base: 'Segoe UI', system-ui, sans-serif;
+  --max-width: 480px;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-base);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+/* ===========================
+   2. 전체 레이아웃
+=========================== */
+.game-wrapper {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ===========================
+   3. 상단 정보 영역 (시계 게임과 동일한 높이/폰트 기준)
+=========================== */
+.info-bar {
+  flex: 1 1 8.33%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.info-bar__combo {
+  color: var(--color-primary-dark);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.info-bar__hearts {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 1.1rem;
+}
+
+/* ===========================
+   4. 캐릭터 영역 (상단 약 1/3, 정면 idle 표시)
+=========================== */
+.character-area {
+  flex: 1 1 33%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.character-container {
+  position: relative;
+  width: 120px;
+  height: 225px; /* viewBox 160x300 비율 유지 */
+}
+
+.character-container > svg.ingame-character {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ===========================
+   5. 게임 진행 영역 (나머지 가운데 영역, 추후 블록 UI 구현)
+=========================== */
+.board-area {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===========================
+   6. 키패드 영역 (약 1/5, 시계 게임 버튼 디자인 재사용)
+=========================== */
+.keypad-area {
+  flex: 1 1 20%;
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem 1rem;
+}
+
+.keypad-btn {
+  flex: 1;
+  min-height: 44px;
+  background: var(--color-keypad-bg);
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.keypad-btn:active {
+  background: var(--color-keypad-active);
+}
+
+.keypad-btn--side {
+  flex: 1 1 30%;
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: 1.5rem;
+}
+
+.keypad-btn--side:active {
+  background: var(--color-primary-dark);
+}
+
+/* 가운데 점프 버튼 : 더 굵고 크게 강조 */
+.keypad-btn--jump {
+  flex: 1 1 40%;
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+/* ===========================
+   7. PC 대응 (480px 이상, 시계 게임과 동일)
+=========================== */
+@media (min-width: 480px) {
+  .game-wrapper {
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.05);
+  }
+}
