@@ -1,14 +1,17 @@
-// v0.4.14 : Adjust spawnEffect parameter order and validate element bounds for accurate rendering
-// - 의존: data/levels.js (LEVELS, shuffleArray), core/saveManager.js (SaveManager), characters/characterRenderer.js (renderCharacterSvg)
+// v0.5.0
+// Clock Game - Gold reward finalized only once at stage completion
+// - 정답 시 골드 즉시 저장 제거, 결과 화면에서 1회 합산 저장
+// - rewardGranted 플래그로 finishStage 중복 실행 방지
+// - 상단 골드 표시 제거 (콤보만 표시), checkAnswer 중복 정답 처리 블록 제거
 //
 // Public API (Internal Game Logic)
-// - setClock(hour, minute, second): SVG 시계 바늘 각도 계산 및 적용
-// - getQuizRewardGold(): 이전 최고 별점 기반 문제당 골드 보상 산정
-// - checkAnswer(): 사용자의 입력 시각과 정답 시각 비교 판정
-// - moveCharacterToRandomPosition(): 캐릭터 컨테이너를 지정된 좌표 목록 중 하나로 이동하고 0~360도 무작위 회전 적용
-// - initCharacter(): 저장된 파츠 정보로 SVG 캐릭터를 생성하여 화면에 렌더링하고 최초 위치 설정
+// - setClock(hour, minute, second)
+// - getQuizRewardGold()
+// - checkAnswer()
+// - moveCharacterToRandomPosition()
+// - initCharacter()
 
-import { getClockBestStars, getGold, addGold, saveClockResult, getEquippedParts } from '../../core/saveManager.js';
+import { getClockBestStars, saveClockResult, getEquippedParts } from '../../core/saveManager.js';
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
 import { LEVELS, shuffleArray } from './data/levels.js';
 import { spawnEffect } from '../../characters/assets/effects/effects.js';
@@ -35,7 +38,9 @@ function setClock(hour, minute, second) {
 
 const currentAnswer = { hour: 0, minute: 0, second: 0 };
 
-let gold         = 0;
+// 골드는 세션 중 실제 저장소에 즉시 반영하지 않는다. (새로고침 악용 방지)
+// 문제당 골드(goldQuiz)는 finishStage()에서 correctCount 기준으로 한 번에 계산되며,
+// 여기서는 콤보 카운트/표시만 처리한다.
 let currentCombo = 0;
 let maxCombo     = 0;
 
@@ -46,21 +51,13 @@ function getQuizRewardGold() {
   return table[prevBestStars] ?? 10;
 }
 
-function updateGoldDisplay() {
-  document.getElementById('display-gold').textContent = gold;
-}
-
 function updateComboDisplay() {
   document.getElementById('display-combo').textContent = currentCombo;
 }
 
 function handleCorrectAnswer() {
-  const reward = getQuizRewardGold();
-  gold += reward;
-  addGold(reward); 
   currentCombo += 1;
   if (currentCombo > maxCombo) maxCombo = currentCombo;
-  updateGoldDisplay();
   updateComboDisplay();
 }
 
@@ -180,11 +177,12 @@ function resetInput() {
 =========================== */
 
 const stageState = {
-  currentLevel:   1,
-  questionIndex:  0,
-  totalQuestions: LEVELS[0].totalQuestions,
-  correctCount:   0,
-  questionPool:   [],
+  currentLevel:    1,
+  questionIndex:   0,
+  totalQuestions:  LEVELS[0].totalQuestions,
+  correctCount:    0,
+  questionPool:    [],
+  rewardGranted:   false, // 최종 보상 중복 지급 방지 플래그
 };
 
 function initStage(level) {
@@ -194,6 +192,7 @@ function initStage(level) {
   stageState.questionIndex  = 0;
   stageState.totalQuestions = levelDef.totalQuestions;
   stageState.correctCount   = 0;
+  stageState.rewardGranted  = false;
 
   const pool = shuffleArray(levelDef.buildPool());
   stageState.questionPool = pool.slice(0, levelDef.totalQuestions);
@@ -267,6 +266,9 @@ function starsToString(stars) {
 =========================== */
 
 function finishStage() {
+  // [중복 실행 방지] 이미 보상이 지급된 세션이면 재실행하지 않는다.
+  if (stageState.rewardGranted) return;
+
   const { currentLevel, correctCount, totalQuestions } = stageState;
   const rate  = Math.round((correctCount / totalQuestions) * 100);
   const stars = calcStars(correctCount, totalQuestions);
@@ -279,9 +281,9 @@ function finishStage() {
   const goldBonus = goldCombo + goldStar;
   const goldTotal = goldQuiz + goldBonus;
 
-  saveClockResult(currentLevel, stars, goldBonus, LEVELS.length);
-  gold += goldBonus;                          
-  updateGoldDisplay();
+  // [최종 보상 1회 지급] 문제 정답 + 콤보 + 별 보너스를 합산해 한 번만 실제 저장소에 반영
+  saveClockResult(currentLevel, stars, goldTotal, LEVELS.length);
+  stageState.rewardGranted = true;
 
   document.getElementById('result-level').textContent = `Lv.${currentLevel} 완료!`;
   document.getElementById('result-stars').textContent = starsToString(stars);
@@ -349,7 +351,7 @@ function checkAnswer() {
   isJudging = true;
 
   if (isCorrect) {
-    handleCorrectAnswer(); 
+    handleCorrectAnswer();
     stageState.correctCount += 1;
     inputArea.classList.add('input-area--correct');
 
@@ -358,23 +360,10 @@ function checkAnswer() {
       renderCharacterSvg(characterSvg, { ...equipState, expression: 'correct', animation: 'correct' });
     }
 
-// [콤보 파티클 효과 연동] 
-    // 조건: 3콤보 이상이면서 3의 배수일 때 (3, 6, 9 ...)
-if (isCorrect) {
-    handleCorrectAnswer(); 
-    stageState.correctCount += 1;
-    inputArea.classList.add('input-area--correct');
-
-    // 캐릭터 정답 리액션
-    if (characterSvg && equipState.head) {
-      renderCharacterSvg(characterSvg, { ...equipState, expression: 'correct', animation: 'correct' });
-    }
-
-    // [이벤트 연결 (Stage 6)] 3의 배수 콤보 시 'combo' 타입 효과 발동 요청
+    // [콤보 파티클 효과 연동] 3콤보 이상이면서 3의 배수일 때 (3, 6, 9 ...)
     if (currentCombo >= 3 && currentCombo % 3 === 0) {
       playEventEffect('combo', characterSvg);
     }
-  }
 
     setTimeout(() => {
       inputArea.classList.remove('input-area--correct');
@@ -494,9 +483,6 @@ function initCharacter() {
 
 const _params = new URLSearchParams(location.search);
 const _level  = parseInt(_params.get('level'), 10) || 1;
-
-gold = getGold();
-updateGoldDisplay();
 
 prevBestStars = _level === 8 ? 0 : getClockBestStars(_level);
 currentCombo = 0;
