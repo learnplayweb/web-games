@@ -1,7 +1,27 @@
-/* v0.1.0
- Spelling Game - Stage 1: 기본 레이아웃
- - :root 변수는 games/clock/style.css와 동일한 값을 사용 (디자인 통일)
- - info-bar, keypad-btn 등 클래스명/스타일도 시계 게임과 동일한 기준을 따름 */
+/* v0.2.0
+ Spelling Game - Stage 2-1: 블록 3단 배치(원근감) + 갈림길 미리보기
+ - 키패드 좌우 폭을 시계 게임 nav 버튼(15%)과 동일하게, 점프 버튼 화살표 색상은 좌우와 동일한 파랑 계열
+ - 화살표 전용 폰트(KERISKEDU_B), 블록 텍스트 전용 폰트(HakgyoansimGeurimilgi, 얇은 획 보정) 추가
+ - 캐릭터 크기를 시계 게임과 동일하게(80x150) 조정 */
+
+/* ===========================
+   0. 폰트 선언
+=========================== */
+@font-face {
+  font-family: 'KerisKeduArrow';
+  src: url('../../assets/fonts/KERISKEDU_B.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'HakgyoansimGeurimilgi';
+  src: url('../../assets/fonts/HakgyoansimGeurimilgi.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 /* ===========================
    1. 전역 초기화 & 변수 (시계 게임과 동일)
@@ -91,8 +111,8 @@ body {
 
 .character-container {
   position: relative;
-  width: 120px;
-  height: 225px; /* viewBox 160x300 비율 유지 */
+  width: 80px;
+  height: 150px; /* 시계 게임 캐릭터와 동일 크기 (viewBox 160x300 비율 유지) */
 }
 
 .character-container > svg.ingame-character {
@@ -102,7 +122,7 @@ body {
 }
 
 /* ===========================
-   5. 게임 진행 영역 (나머지 가운데 영역, 추후 블록 UI 구현)
+   5. 게임 진행 영역 (나머지 가운데 영역) : 이전 / 현재 / 갈림길(다음) 블록
 =========================== */
 .board-area {
   flex: 1 1 auto;
@@ -110,7 +130,69 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 1.1rem;
+  perspective: 600px; /* 자식 블록들의 원근감 기준점 통일 */
 }
+
+/* 블록 공통 : 텍스트는 얇은 전용 폰트라 text-stroke로 두께 보정 */
+.block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
+  border-radius: 0.6rem;
+  font-family: 'HakgyoansimGeurimilgi', var(--font-base);
+  color: var(--color-text);
+  -webkit-text-stroke: 0.4px var(--color-text);
+  text-shadow: 0.3px 0 currentColor, -0.3px 0 currentColor, 0 0.3px currentColor, 0 -0.3px currentColor;
+  position: relative;
+}
+
+/* 옆면(측면 두께) 표현용 pseudo-element : 시점이 정면에 가까울수록(이전 블록) 더 두껍게 보이도록 처리 */
+.block::after {
+  content: '';
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  bottom: -6px;
+  height: 6px;
+  background: var(--color-primary-dark);
+  border-radius: 0 0 0.6rem 0.6rem;
+}
+
+/* 이전 블록 : 가장 작고, 정면에 가까운 시점(옆면이 가장 많이 보임) */
+.block--previous {
+  width: 150px;
+  height: 46px;
+  font-size: 1rem;
+  transform: rotateX(15deg);
+  opacity: 0.85;
+}
+.block--previous::after { height: 10px; }
+
+/* 현재 블록 : 중간 크기, 중간 시점 */
+.block--current {
+  width: 175px;
+  height: 54px;
+  font-size: 1.15rem;
+  transform: rotateX(35deg);
+}
+.block--current::after { height: 7px; }
+
+/* 다음 블록(갈림길 포함) : 가장 크고, 위에서 내려다보는 각도(옆면이 거의 안 보임) */
+.fork-row {
+  display: flex;
+  gap: 0.9rem;
+}
+
+.block--next {
+  width: 150px;
+  height: 62px;
+  font-size: 1.15rem;
+  transform: rotateX(55deg);
+}
+.block--next::after { height: 4px; opacity: 0.6; }
 
 /* ===========================
    6. 키패드 영역 (약 1/5, 시계 게임 버튼 디자인 재사용)
@@ -129,6 +211,7 @@ body {
   background: var(--color-keypad-bg);
   border: none;
   border-radius: 0.75rem;
+  font-family: 'KerisKeduArrow', var(--font-base);
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--color-text);
@@ -140,8 +223,9 @@ body {
   background: var(--color-keypad-active);
 }
 
+/* 좌우 버튼 : 시계 게임 nav 버튼과 동일한 폭(15%)으로, 점프 버튼까지의 이동 거리 단축 */
 .keypad-btn--side {
-  flex: 1 1 30%;
+  flex: 0 0 15%;
   background: var(--color-primary);
   color: #ffffff;
   font-size: 1.5rem;
@@ -151,11 +235,16 @@ body {
   background: var(--color-primary-dark);
 }
 
-/* 가운데 점프 버튼 : 더 굵고 크게 강조 */
+/* 가운데 점프 버튼 : 좌우 버튼과 같은 파랑 계열 화살표 색상, 크고 굵게 강조 */
 .keypad-btn--jump {
-  flex: 1 1 40%;
+  flex: 1;
   font-size: 2rem;
   font-weight: 800;
+  color: var(--color-primary);
+}
+
+.keypad-btn--jump:active {
+  color: var(--color-primary-dark);
 }
 
 /* ===========================
