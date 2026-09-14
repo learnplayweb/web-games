@@ -1,7 +1,7 @@
-<!-- v0.2.0
- Spelling Game - Stage 2-1: 블록 3단 배치(정적) + 원근감 + 갈림길 미리보기
- - board-area: 이전/현재/갈림길(다음) 블록을 예시 문장으로 고정 배치 (전진 로직은 다음 단계)
- - 키패드 폭을 시계 게임 nav 버튼과 동일하게, 캐릭터 크기도 시계 게임과 동일하게 조정 -->
+<!-- v0.2.1
+ Spelling Game - Stage 2-1: 블록 원근 수정 (후/중/전 명명, 위치·크기·두께막대 버그 수정)
+ - block--back(후=이전) / block--mid(중=현재) / block--front(전=다음·갈림길)
+ - 3D rotateX 방식 제거(두께막대 위치 오류 원인) → 크기/투명도 기반 2D 원근 표현으로 교체 -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -34,14 +34,14 @@
       <div id="character-container" class="character-container"></div>
     </section>
 
-    <!-- 게임 진행 영역 : 이전/현재/갈림길(다음) 블록을 예시 문장으로 고정 배치한 미리보기 -->
+    <!-- 게임 진행 영역 : 후(이전)/중(현재)/전(다음·갈림길) 블록을 예시 문장으로 고정 배치한 미리보기 -->
     <!-- (화면 구성 확인용 정적 예시이며, 전진/판정 로직은 다음 단계에서 구현) -->
     <section id="board-area" class="board-area">
-      <div class="block block--previous">밥을</div>
-      <div class="block block--current">먹지</div>
+      <div class="block block--back">밥을</div>
+      <div class="block block--mid">먹지</div>
       <div class="fork-row">
-        <div class="block block--next">않았더니</div>
-        <div class="block block--next">안았더니</div>
+        <div class="block block--front">않았더니</div>
+        <div class="block block--front">안았더니</div>
       </div>
     </section>
 

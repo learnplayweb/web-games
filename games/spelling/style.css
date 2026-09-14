@@ -1,8 +1,7 @@
-/* v0.2.0
- Spelling Game - Stage 2-1: 블록 3단 배치(원근감) + 갈림길 미리보기
- - 키패드 좌우 폭을 시계 게임 nav 버튼(15%)과 동일하게, 점프 버튼 화살표 색상은 좌우와 동일한 파랑 계열
- - 화살표 전용 폰트(KERISKEDU_B), 블록 텍스트 전용 폰트(HakgyoansimGeurimilgi, 얇은 획 보정) 추가
- - 캐릭터 크기를 시계 게임과 동일하게(80x150) 조정 */
+/* v0.3.0
+ Spelling Game - Stage 2-1: 블록 원근 방식 교체 (3D rotateX → 크기/투명도 기반 2D)
+ - 후(block--back=이전)/중(block--mid=현재)/전(block--front=다음·갈림길) 명명으로 정리
+ - rotateX 제거로 두께막대(::after) 위치 오류 해결, 중 블록이 board-area 중앙에 오도록 그룹 높이 축소 */
 
 /* ===========================
    0. 폰트 선언
@@ -122,7 +121,7 @@ body {
 }
 
 /* ===========================
-   5. 게임 진행 영역 (나머지 가운데 영역) : 이전 / 현재 / 갈림길(다음) 블록
+   5. 게임 진행 영역 (나머지 가운데 영역) : 후(이전) / 중(현재) / 전(다음·갈림길) 블록
 =========================== */
 .board-area {
   flex: 1 1 auto;
@@ -130,8 +129,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1.1rem;
-  perspective: 600px; /* 자식 블록들의 원근감 기준점 통일 */
+  gap: 0.8rem;
 }
 
 /* 블록 공통 : 텍스트는 얇은 전용 폰트라 text-stroke로 두께 보정 */
@@ -149,7 +147,7 @@ body {
   position: relative;
 }
 
-/* 옆면(측면 두께) 표현용 pseudo-element : 시점이 정면에 가까울수록(이전 블록) 더 두껍게 보이도록 처리 */
+/* 옆면(측면 두께) 표현용 pseudo-element : 항상 사각형 바로 아래에 고정 (3D transform을 쓰지 않아 위치가 틀어지지 않음) */
 .block::after {
   content: '';
   position: absolute;
@@ -161,38 +159,37 @@ body {
   border-radius: 0 0 0.6rem 0.6rem;
 }
 
-/* 이전 블록 : 가장 작고, 정면에 가까운 시점(옆면이 가장 많이 보임) */
-.block--previous {
-  width: 150px;
-  height: 46px;
-  font-size: 1rem;
-  transform: rotateX(15deg);
-  opacity: 0.85;
+/* 후(block--back) = 이전 블록 "밥을" : 화면 가장 뒤쪽 → 가장 작고 납작하고(높이 낮음) 옅게 */
+.block--back {
+  width: 130px;
+  height: 34px;
+  font-size: 0.85rem;
+  opacity: 0.7;
 }
-.block--previous::after { height: 10px; }
+.block--back::after { height: 4px; opacity: 0.6; }
 
-/* 현재 블록 : 중간 크기, 중간 시점 */
-.block--current {
-  width: 175px;
-  height: 54px;
-  font-size: 1.15rem;
-  transform: rotateX(35deg);
+/* 중(block--mid) = 현재 블록 "먹지" : 중간 크기 */
+.block--mid {
+  width: 168px;
+  height: 50px;
+  font-size: 1.05rem;
+  opacity: 0.9;
 }
-.block--current::after { height: 7px; }
+.block--mid::after { height: 6px; }
 
-/* 다음 블록(갈림길 포함) : 가장 크고, 위에서 내려다보는 각도(옆면이 거의 안 보임) */
+/* 전(block--front) = 다음·갈림길 블록 : 화면 가장 앞쪽 → 가장 크고 또렷하고 높이도 가장 큼 */
 .fork-row {
   display: flex;
   gap: 0.9rem;
 }
 
-.block--next {
+.block--front {
   width: 150px;
-  height: 62px;
-  font-size: 1.15rem;
-  transform: rotateX(55deg);
+  height: 68px;
+  font-size: 1.2rem;
+  opacity: 1;
 }
-.block--next::after { height: 4px; opacity: 0.6; }
+.block--front::after { height: 9px; }
 
 /* ===========================
    6. 키패드 영역 (약 1/5, 시계 게임 버튼 디자인 재사용)
