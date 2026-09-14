@@ -1,7 +1,7 @@
-/* v0.4.1
- Spelling Game - Stage 3-1 수정: 3칸(좌/중/우) 상대 이동으로 로직 교체, 갈림길 간격/캐릭터 위치 값 반영
- - fork-row gap 0.9rem → 5rem (좌우 착지 좌표 재계산 필요, script.js 참고)
- - character-anchor top 42% → 39% */
+/* v0.5.0
+ Spelling Game - Stage 3-2: 블록 스크롤(전진) 연출
+ - board-area gap 0.8rem → 5rem
+ - 블록 텍스트 순환 전환용 크로스페이드(block--scrolling) 추가 */
 
 /* ===========================
    0. 폰트 선언
@@ -139,6 +139,13 @@ body {
   -webkit-text-stroke: 0.4px var(--color-text);
   text-shadow: 0.3px 0 currentColor, -0.3px 0 currentColor, 0 0.3px currentColor, 0 -0.3px currentColor;
   position: relative;
+  transition: opacity 0.18s ease, transform 0.18s ease; /* 전진 시 텍스트 크로스페이드용 */
+}
+
+/* 전진(스크롤) 중 : 텍스트가 위로 살짝 빠지며 페이드아웃 → 교체 후 자동으로 원상태 복귀(트랜지션) */
+.block--scrolling {
+  opacity: 0 !important;
+  transform: translateY(-8px);
 }
 
 /* 옆면(측면 두께) 표현용 pseudo-element : 항상 사각형 바로 아래에 고정 (3D transform을 쓰지 않아 위치가 틀어지지 않음) */
@@ -155,7 +162,7 @@ body {
 
 /* 후(block--back) = 이전 블록 "밥을" : 화면 가장 뒤쪽 → 가장 작고 납작하고(높이 낮음) 옅게 */
 .block--back {
-  width: 130px;
+  width: 100px;
   height: 34px;
   font-size: 0.85rem;
   opacity: 0.7;
@@ -164,7 +171,7 @@ body {
 
 /* 중(block--mid) = 현재 블록 "먹지" : 중간 크기 */
 .block--mid {
-  width: 168px;
+  width: 130px;
   height: 50px;
   font-size: 1.05rem;
   opacity: 0.9;
@@ -178,7 +185,7 @@ body {
 }
 
 .block--front {
-  width: 150px;
+  width: 170px;
   height: 68px;
   font-size: 1.2rem;
   opacity: 1;

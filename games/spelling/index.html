@@ -1,7 +1,8 @@
-<!-- v0.3.0
- Spelling Game - Stage 3-1: 점프 및 키보드 조작
- - 캐릭터를 board-area 내부로 이동해 중(현재) 블록과 겹치도록 배치 (근사 배치, 정밀 동기화는 추후)
- - character-anchor(고정 위치) > character-x-track(좌우 이동, transition) > character-jump(점프 아크, animation) 3중 래퍼 -->
+<!-- v0.4.0
+ Spelling Game - Stage 3-2: 블록 스크롤(전진) 연출
+ - board-area gap → 5rem (fork-row는 그대로 5rem 유지)
+ - 갈림길(fork-row 2블록)은 판정 로직 붙이는 단계까지 단일 전(front) 블록으로 임시 단순화
+ - id 부여(board-back/mid/front)로 script.js에서 텍스트 순환 제어 -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -29,14 +30,12 @@
       </span>
     </header>
 
-    <!-- 게임 진행 영역 : 후(이전)/중(현재)/전(다음·갈림길) 블록 + 캐릭터(중 블록과 겹쳐 배치) -->
+    <!-- 게임 진행 영역 : 후(이전)/중(현재)/전(다음) 블록 + 캐릭터(중 블록과 겹쳐 배치) -->
+    <!-- 갈림길(2블록)은 판정 로직 단계에서 재도입 예정. 현재는 단일 전 블록으로 스크롤 연출만 검증 -->
     <section id="board-area" class="board-area">
-      <div class="block block--back">밥을</div>
-      <div class="block block--mid">먹지</div>
-      <div class="fork-row">
-        <div class="block block--front">않았더니</div>
-        <div class="block block--front">안았더니</div>
-      </div>
+      <div id="board-back" class="block block--back">밥을</div>
+      <div id="board-mid" class="block block--mid">먹지</div>
+      <div id="board-front" class="block block--front">않았더니</div>
 
       <!-- 캐릭터 : anchor(위치 고정) > x-track(좌우 이동) > jump(점프 아크) -->
       <div class="character-anchor">

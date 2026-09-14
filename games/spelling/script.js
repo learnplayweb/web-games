@@ -1,7 +1,8 @@
-// v0.3.0
-// Spelling Game - Stage 3-1 수정: 좌/중앙/우 3칸 상대 이동으로 로직 교체
-// - 점프(↓/Space)는 현재 칸에서 제자리 점프, 좌우 방향키는 한 칸씩만 이동(좌↔중, 중↔우)
-// - 좌우 착지 좌표 재계산: block--front 150px + fork-row gap 5rem(80px) → 150/2 + 80/2 = 115px
+// v0.4.0
+// Spelling Game - Stage 3-2: 블록 스크롤(전진) 연출
+// - 점프(↓/Space/점프 버튼) 입력 시 캐릭터는 제자리 점프, 블록 3칸의 텍스트가 후←중←전←신규 순으로 순환
+// - 문제은행 연동 전이므로 임시 단어 배열(WORD_QUEUE)을 순환 사용 (실제 문제 데이터는 이후 단계에서 교체)
+// - 갈림길(2블록)은 판정 로직을 붙이는 단계에서 재도입 예정. 현재는 단일 전(front) 블록만 사용
 //
 // Public API
 // - initCharacter()
@@ -15,6 +16,10 @@ import { getEquippedParts } from '../../core/saveManager.js';
 
 const CHARACTER_X_OFFSET = 115; // 좌/우 칸 좌표 (board-area 가로 중심 기준)
 const JUMP_ANIM_DURATION = 400; // character-jump-arc(0.4s)와 동일하게 유지
+const SCROLL_TRANSITION_DURATION = 180; // .block--scrolling 트랜지션(0.18s)과 동일하게 유지
+
+// 임시 플레이스홀더 단어 (문제은행 연동 전 데모용, 실제 데이터로 이후 교체 예정)
+const WORD_QUEUE = ['밥을', '먹지', '않았더니', '배가', '고프다', '오늘', '하루도', '무사히', '지나갔다', '다행이다'];
 
 /* ===========================
    캐릭터 초기화 (정면 idle)
@@ -46,7 +51,32 @@ function initCharacter() {
 }
 
 /* ===========================
-   좌/중앙/우 3칸 상대 이동 (좌표 변경만, 블록 이동은 3-2에서 구현)
+   블록 스크롤(전진) : 점프 입력 시 텍스트가 후←중←전←신규 순으로 순환
+=========================== */
+
+const backEl  = document.getElementById('board-back');
+const midEl   = document.getElementById('board-mid');
+const frontEl = document.getElementById('board-front');
+
+// 초기 화면(밥을/먹지/않았더니)에 이어질 다음 단어부터 큐 포인터 시작
+let wordIndex = 3;
+
+function advanceBoard() {
+  // [전진 연출] 세 블록 모두 살짝 페이드아웃 → 텍스트 교체 → 트랜지션으로 자동 페이드인
+  [backEl, midEl, frontEl].forEach((el) => el.classList.add('block--scrolling'));
+
+  setTimeout(() => {
+    backEl.textContent  = midEl.textContent;
+    midEl.textContent   = frontEl.textContent;
+    frontEl.textContent = WORD_QUEUE[wordIndex];
+    wordIndex = (wordIndex + 1) % WORD_QUEUE.length;
+
+    [backEl, midEl, frontEl].forEach((el) => el.classList.remove('block--scrolling'));
+  }, SCROLL_TRANSITION_DURATION);
+}
+
+/* ===========================
+   좌/중앙/우 3칸 상대 이동 (캐릭터 좌표만 변경, 블록 스크롤과는 독립 동작)
 =========================== */
 
 const xTrackEl = document.getElementById('character-x-track');
@@ -78,9 +108,10 @@ function stepRight() {
   playJumpMotion();
 }
 
-// 점프(↓/Space) : 칸 이동 없이 현재 위치에서 제자리 점프만 수행
+// 점프(↓/Space) : 캐릭터는 제자리 점프, 동시에 블록이 한 칸 전진
 function jumpInPlace() {
   playJumpMotion();
+  advanceBoard();
 }
 
 // 점프 아크(위치 이동) + 팔다리 파닥임(correct 세트) 동시 재생
