@@ -1,8 +1,7 @@
-/* v0.4.0
- Spelling Game - Stage 3-1: 점프 및 키보드 조작
- - 캐릭터 영역(character-area) 제거, board-area 내부로 이동해 중(현재) 블록과 겹치도록 오버레이 배치
- - character-anchor(위치 고정) > character-x-track(좌우 이동 transition) > character-jump(점프 아크 animation) 3중 래퍼
- - 좌/우 착지 좌표: ±82px (fork-row 블록 폭 150px + gap 0.9rem 기준 중심 좌표) */
+/* v0.4.1
+ Spelling Game - Stage 3-1 수정: 3칸(좌/중/우) 상대 이동으로 로직 교체, 갈림길 간격/캐릭터 위치 값 반영
+ - fork-row gap 0.9rem → 5rem (좌우 착지 좌표 재계산 필요, script.js 참고)
+ - character-anchor top 42% → 39% */
 
 /* ===========================
    0. 폰트 선언
@@ -175,7 +174,7 @@ body {
 /* 전(block--front) = 다음·갈림길 블록 : 화면 가장 앞쪽 → 가장 크고 또렷하고 높이도 가장 큼 */
 .fork-row {
   display: flex;
-  gap: 0.9rem;
+  gap: 5rem;
 }
 
 .block--front {

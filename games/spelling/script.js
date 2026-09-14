@@ -1,12 +1,10 @@
-// v0.2.0
-// Spelling Game - Stage 3-1: 점프 및 키보드 조작
-// - 모바일(키패드)/PC(키보드) 동일 조작: ←/→ = 좌우 착지, ↓ 또는 Space = 중앙 점프
-// - 캐릭터 좌표만 이동(블록이 흘러가는 연출은 3-2에서 구현)
-// - 점프 동작은 character-anim.css의 'correct' 세트(팔다리 파닥임)를 재사용
+// v0.3.0
+// Spelling Game - Stage 3-1 수정: 좌/중앙/우 3칸 상대 이동으로 로직 교체
+// - 점프(↓/Space)는 현재 칸에서 제자리 점프, 좌우 방향키는 한 칸씩만 이동(좌↔중, 중↔우)
+// - 좌우 착지 좌표 재계산: block--front 150px + fork-row gap 5rem(80px) → 150/2 + 80/2 = 115px
 //
 // Public API
 // - initCharacter()
-// - moveCharacterTo(target)
 
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
 import { getEquippedParts } from '../../core/saveManager.js';
@@ -15,9 +13,7 @@ import { getEquippedParts } from '../../core/saveManager.js';
    상수
 =========================== */
 
-// 갈림길 블록 중심 좌표 (board-area 가로 중심 기준, ±82px)
-// 산출 근거: block--front 폭 150px + fork-row gap 0.9rem(14.4px) → 150/2 + 14.4/2 = 82.2px
-const CHARACTER_X_OFFSET = 82;
+const CHARACTER_X_OFFSET = 115; // 좌/우 칸 좌표 (board-area 가로 중심 기준)
 const JUMP_ANIM_DURATION = 400; // character-jump-arc(0.4s)와 동일하게 유지
 
 /* ===========================
@@ -50,19 +46,40 @@ function initCharacter() {
 }
 
 /* ===========================
-   좌우 이동 + 점프 (좌표 변경만, 블록 이동은 3-2에서 구현)
+   좌/중앙/우 3칸 상대 이동 (좌표 변경만, 블록 이동은 3-2에서 구현)
 =========================== */
 
 const xTrackEl = document.getElementById('character-x-track');
 const jumpEl   = document.getElementById('character-jump');
 
-// target: 'left' | 'center' | 'right'
-function moveCharacterTo(target) {
-  const offset = target === 'left' ? -CHARACTER_X_OFFSET
-               : target === 'right' ? CHARACTER_X_OFFSET
-               : 0;
+// 현재 캐릭터가 서 있는 칸. 한 번에 한 칸씩만 이동 가능 (좌 ↔ 중 ↔ 우)
+let currentLane = 'center'; // 'left' | 'center' | 'right'
 
+function applyLanePosition() {
+  const offset = currentLane === 'left' ? -CHARACTER_X_OFFSET
+               : currentLane === 'right' ? CHARACTER_X_OFFSET
+               : 0;
   xTrackEl.style.transform = `translateX(${offset}px)`;
+}
+
+// 왼쪽 방향키 : 중앙→좌, 우→중앙. 이미 좌인 경우 더 갈 곳이 없어 제자리 점프만 수행.
+function stepLeft() {
+  if (currentLane === 'center') currentLane = 'left';
+  else if (currentLane === 'right') currentLane = 'center';
+  applyLanePosition();
+  playJumpMotion();
+}
+
+// 오른쪽 방향키 : 중앙→우, 좌→중앙. 이미 우인 경우 더 갈 곳이 없어 제자리 점프만 수행.
+function stepRight() {
+  if (currentLane === 'center') currentLane = 'right';
+  else if (currentLane === 'left') currentLane = 'center';
+  applyLanePosition();
+  playJumpMotion();
+}
+
+// 점프(↓/Space) : 칸 이동 없이 현재 위치에서 제자리 점프만 수행
+function jumpInPlace() {
   playJumpMotion();
 }
 
@@ -107,25 +124,25 @@ document.querySelector('.keypad-area').addEventListener('click', (e) => {
   if (!btn) return;
 
   const key = btn.dataset.key;
-  if (key === 'left')  moveCharacterTo('left');
-  if (key === 'right') moveCharacterTo('right');
-  if (key === 'jump')  moveCharacterTo('center');
+  if (key === 'left')  stepLeft();
+  if (key === 'right') stepRight();
+  if (key === 'jump')  jumpInPlace();
 });
 
 document.addEventListener('keydown', (e) => {
   switch (e.key) {
     case 'ArrowLeft':
       e.preventDefault();
-      moveCharacterTo('left');
+      stepLeft();
       break;
     case 'ArrowRight':
       e.preventDefault();
-      moveCharacterTo('right');
+      stepRight();
       break;
     case 'ArrowDown':
     case ' ': // Space
       e.preventDefault();
-      moveCharacterTo('center');
+      jumpInPlace();
       break;
   }
 });
