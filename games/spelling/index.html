@@ -1,7 +1,7 @@
-<!-- v0.2.1
- Spelling Game - Stage 2-1: 블록 원근 수정 (후/중/전 명명, 위치·크기·두께막대 버그 수정)
- - block--back(후=이전) / block--mid(중=현재) / block--front(전=다음·갈림길)
- - 3D rotateX 방식 제거(두께막대 위치 오류 원인) → 크기/투명도 기반 2D 원근 표현으로 교체 -->
+<!-- v0.3.0
+ Spelling Game - Stage 3-1: 점프 및 키보드 조작
+ - 캐릭터를 board-area 내부로 이동해 중(현재) 블록과 겹치도록 배치 (근사 배치, 정밀 동기화는 추후)
+ - character-anchor(고정 위치) > character-x-track(좌우 이동, transition) > character-jump(점프 아크, animation) 3중 래퍼 -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -29,19 +29,22 @@
       </span>
     </header>
 
-    <!-- 캐릭터 영역 (상단 약 1/3) : 정면 idle 표시 -->
-    <section class="character-area">
-      <div id="character-container" class="character-container"></div>
-    </section>
-
-    <!-- 게임 진행 영역 : 후(이전)/중(현재)/전(다음·갈림길) 블록을 예시 문장으로 고정 배치한 미리보기 -->
-    <!-- (화면 구성 확인용 정적 예시이며, 전진/판정 로직은 다음 단계에서 구현) -->
+    <!-- 게임 진행 영역 : 후(이전)/중(현재)/전(다음·갈림길) 블록 + 캐릭터(중 블록과 겹쳐 배치) -->
     <section id="board-area" class="board-area">
       <div class="block block--back">밥을</div>
       <div class="block block--mid">먹지</div>
       <div class="fork-row">
         <div class="block block--front">않았더니</div>
         <div class="block block--front">안았더니</div>
+      </div>
+
+      <!-- 캐릭터 : anchor(위치 고정) > x-track(좌우 이동) > jump(점프 아크) -->
+      <div class="character-anchor">
+        <div id="character-x-track" class="character-x-track">
+          <div id="character-jump" class="character-jump">
+            <div id="character-container" class="character-container"></div>
+          </div>
+        </div>
       </div>
     </section>
 

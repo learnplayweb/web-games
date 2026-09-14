@@ -1,7 +1,8 @@
-/* v0.3.0
- Spelling Game - Stage 2-1: 블록 원근 방식 교체 (3D rotateX → 크기/투명도 기반 2D)
- - 후(block--back=이전)/중(block--mid=현재)/전(block--front=다음·갈림길) 명명으로 정리
- - rotateX 제거로 두께막대(::after) 위치 오류 해결, 중 블록이 board-area 중앙에 오도록 그룹 높이 축소 */
+/* v0.4.0
+ Spelling Game - Stage 3-1: 점프 및 키보드 조작
+ - 캐릭터 영역(character-area) 제거, board-area 내부로 이동해 중(현재) 블록과 겹치도록 오버레이 배치
+ - character-anchor(위치 고정) > character-x-track(좌우 이동 transition) > character-jump(점프 아크 animation) 3중 래퍼
+ - 좌/우 착지 좌표: ±82px (fork-row 블록 폭 150px + gap 0.9rem 기준 중심 좌표) */
 
 /* ===========================
    0. 폰트 선언
@@ -99,15 +100,8 @@ body {
 }
 
 /* ===========================
-   4. 캐릭터 영역 (상단 약 1/3, 정면 idle 표시)
+   4. 캐릭터 (board-area 내부에 오버레이, 5번 섹션 참고)
 =========================== */
-.character-area {
-  flex: 1 1 33%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .character-container {
   position: relative;
   width: 80px;
@@ -129,7 +123,8 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.8rem;
+  gap: 5rem;
+  position: relative; /* 캐릭터 오버레이(character-anchor)의 기준점 */
 }
 
 /* 블록 공통 : 텍스트는 얇은 전용 폰트라 text-stroke로 두께 보정 */
@@ -190,6 +185,32 @@ body {
   opacity: 1;
 }
 .block--front::after { height: 9px; }
+
+/* 캐릭터 오버레이 : 중(현재) 블록 부근에 겹쳐 보이도록 배치 (근사 배치, 정밀 동기화는 추후 단계) */
+.character-anchor {
+  position: absolute;
+  left: 50%;
+  top: 39%;
+  transform: translate(-50%, -80%);
+  z-index: 20;
+  pointer-events: none;
+}
+
+/* 좌우 이동 : JS가 translateX(±82px)를 부여, transition으로 부드럽게 이동 */
+.character-x-track {
+  transition: transform 0.26s ease-out;
+}
+
+/* 점프 아크 : is-jumping 클래스가 붙는 동안만 위로 튀었다 착지하는 keyframe 실행 */
+.character-jump.is-jumping {
+  animation: character-jump-arc 0.4s ease-out;
+}
+
+@keyframes character-jump-arc {
+  0%   { transform: translateY(0); }
+  40%  { transform: translateY(-26px); }
+  100% { transform: translateY(0); }
+}
 
 /* ===========================
    6. 키패드 영역 (약 1/5, 시계 게임 버튼 디자인 재사용)
