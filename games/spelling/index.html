@@ -1,8 +1,6 @@
-<!-- v0.4.0
- Spelling Game - Stage 3-2: 블록 스크롤(전진) 연출
- - board-area gap → 5rem (fork-row는 그대로 5rem 유지)
- - 갈림길(fork-row 2블록)은 판정 로직 붙이는 단계까지 단일 전(front) 블록으로 임시 단순화
- - id 부여(board-back/mid/front)로 script.js에서 텍스트 순환 제어 -->
+<!-- v0.5.0
+ Spelling Game - 문제은행(doe-dwae) 랜덤 출제 연동
+ - board-back/mid/front 초기 텍스트는 script.js의 initBoard()가 문제은행에서 채움 (하드코딩 예시 제거) -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -31,11 +29,11 @@
     </header>
 
     <!-- 게임 진행 영역 : 후(이전)/중(현재)/전(다음) 블록 + 캐릭터(중 블록과 겹쳐 배치) -->
-    <!-- 갈림길(2블록)은 판정 로직 단계에서 재도입 예정. 현재는 단일 전 블록으로 스크롤 연출만 검증 -->
+    <!-- 갈림길(2블록)은 판정 로직 단계에서 재도입 예정. 텍스트는 script.js가 문제은행에서 채움 -->
     <section id="board-area" class="board-area">
-      <div id="board-back" class="block block--back">밥을</div>
-      <div id="board-mid" class="block block--mid">먹지</div>
-      <div id="board-front" class="block block--front">않았더니</div>
+      <div id="board-back" class="block block--back"></div>
+      <div id="board-mid" class="block block--mid"></div>
+      <div id="board-front" class="block block--front"></div>
 
       <!-- 캐릭터 : anchor(위치 고정) > x-track(좌우 이동) > jump(점프 아크) -->
       <div class="character-anchor">

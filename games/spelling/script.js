@@ -1,14 +1,18 @@
-// v0.4.0
-// Spelling Game - Stage 3-2: 블록 스크롤(전진) 연출
-// - 점프(↓/Space/점프 버튼) 입력 시 캐릭터는 제자리 점프, 블록 3칸의 텍스트가 후←중←전←신규 순으로 순환
-// - 문제은행 연동 전이므로 임시 단어 배열(WORD_QUEUE)을 순환 사용 (실제 문제 데이터는 이후 단계에서 교체)
-// - 갈림길(2블록)은 판정 로직을 붙이는 단계에서 재도입 예정. 현재는 단일 전(front) 블록만 사용
+// v0.6.0
+// Spelling Game - 문제은행 연동(랜덤 출제) + 블록 전진 연출을 페이드(+스케일)로 변경
+// - WORD_QUEUE(임시 플레이스홀더) 제거, doe-dwae 문제은행에서 실제 랜덤 출제
+// - 마당(stage 1)에 연결된 주제의 문제은행에서 NORMAL_STAGE_QUESTION_COUNT개 문장을 랜덤으로 뽑고,
+//   문장 내부 토큰 순서를 유지한 채로 펼쳐 하나의 블록 큐로 사용 (문장이 쪼개지지 않음)
+// - 선택 지점(choice) 판정/좌우 배치 로직은 아직 없어 정답 텍스트만 블록에 표시 (판정 단계에서 교체)
+// - 큐를 다 쓰면 처음부터 반복 (마당 종료 판정은 이후 단계에서 구현)
 //
 // Public API
 // - initCharacter()
 
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
 import { getEquippedParts } from '../../core/saveManager.js';
+import { DOE_DWAE_PROBLEMS } from './data/problems/doe-dwae.js';
+import { STAGES, NORMAL_STAGE_QUESTION_COUNT } from './data/stages.js';
 
 /* ===========================
    상수
@@ -16,10 +20,42 @@ import { getEquippedParts } from '../../core/saveManager.js';
 
 const CHARACTER_X_OFFSET = 115; // 좌/우 칸 좌표 (board-area 가로 중심 기준)
 const JUMP_ANIM_DURATION = 400; // character-jump-arc(0.4s)와 동일하게 유지
-const SCROLL_TRANSITION_DURATION = 180; // .block--scrolling 트랜지션(0.18s)과 동일하게 유지
+const FADE_OUT_DURATION = 180;  // .block--fade-out 트랜지션(0.18s)과 동일하게 유지
 
-// 임시 플레이스홀더 단어 (문제은행 연동 전 데모용, 실제 데이터로 이후 교체 예정)
-const WORD_QUEUE = ['밥을', '먹지', '않았더니', '배가', '고프다', '오늘', '하루도', '무사히', '지나갔다', '다행이다'];
+/* ===========================
+   문제은행 랜덤 출제 : 문장 단위로 뽑은 뒤 토큰을 순서대로 펼쳐 블록 큐 생성
+=========================== */
+
+// topic 문자열(stages.js) → 문제은행 배열 매핑. 주제가 추가되면 여기에도 등록.
+const PROBLEM_BANKS = {
+  'doe-dwae': DOE_DWAE_PROBLEMS
+};
+
+function shuffleArray(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+// 문제은행에서 sentenceCount개 문장을 랜덤으로 뽑고, 각 문장의 토큰을 순서 그대로 펼쳐 블록 큐를 만든다.
+// 선택 지점(correct/wrong)은 아직 판정 UI가 없어 정답 텍스트만 사용한다.
+function buildBlockQueue(problems, sentenceCount) {
+  const picked = shuffleArray(problems).slice(0, sentenceCount);
+  const queue = [];
+  picked.forEach((problem) => {
+    problem.tokens.forEach((token) => {
+      queue.push(token.text ?? token.correct);
+    });
+  });
+  return queue;
+}
+
+// 현재는 마당(stage) 1 = 되/돼 고정. 마당 선택 화면 연동은 이후 단계에서 구현.
+const currentStage = STAGES.find((stage) => stage.level === 1);
+const BLOCK_QUEUE = buildBlockQueue(PROBLEM_BANKS[currentStage.topic], NORMAL_STAGE_QUESTION_COUNT);
 
 /* ===========================
    캐릭터 초기화 (정면 idle)
@@ -52,27 +88,45 @@ function initCharacter() {
 
 /* ===========================
    블록 스크롤(전진) : 점프 입력 시 텍스트가 후←중←전←신규 순으로 순환
+   연출 : 페이드아웃(+살짝 축소) → 텍스트 교체 → 자동 페이드인
 =========================== */
 
-const backEl  = document.getElementById('board-back');
-const midEl   = document.getElementById('board-mid');
-const frontEl = document.getElementById('board-front');
+const boardEls = [
+  document.getElementById('board-back'),
+  document.getElementById('board-mid'),
+  document.getElementById('board-front')
+];
 
-// 초기 화면(밥을/먹지/않았더니)에 이어질 다음 단어부터 큐 포인터 시작
-let wordIndex = 3;
+let queuePointer = 0; // BLOCK_QUEUE에서 다음에 꺼낼 위치
+
+function nextBlockText() {
+  const text = BLOCK_QUEUE[queuePointer % BLOCK_QUEUE.length];
+  queuePointer += 1;
+  return text;
+}
+
+// 화면 최초 진입 시 후/중/전 블록을 큐의 앞 3개로 채움
+function initBoard() {
+  const [backEl, midEl, frontEl] = boardEls;
+  backEl.textContent  = nextBlockText();
+  midEl.textContent   = nextBlockText();
+  frontEl.textContent = nextBlockText();
+}
 
 function advanceBoard() {
-  // [전진 연출] 세 블록 모두 살짝 페이드아웃 → 텍스트 교체 → 트랜지션으로 자동 페이드인
-  [backEl, midEl, frontEl].forEach((el) => el.classList.add('block--scrolling'));
+  // 1) 페이드아웃(+축소)
+  boardEls.forEach((el) => el.classList.add('block--fade-out'));
 
   setTimeout(() => {
+    // 2) 텍스트 교체
+    const [backEl, midEl, frontEl] = boardEls;
     backEl.textContent  = midEl.textContent;
     midEl.textContent   = frontEl.textContent;
-    frontEl.textContent = WORD_QUEUE[wordIndex];
-    wordIndex = (wordIndex + 1) % WORD_QUEUE.length;
+    frontEl.textContent = nextBlockText();
 
-    [backEl, midEl, frontEl].forEach((el) => el.classList.remove('block--scrolling'));
-  }, SCROLL_TRANSITION_DURATION);
+    // 3) 클래스 제거 → 트랜지션으로 자동 페이드인
+    boardEls.forEach((el) => el.classList.remove('block--fade-out'));
+  }, FADE_OUT_DURATION);
 }
 
 /* ===========================
@@ -183,3 +237,4 @@ document.addEventListener('keydown', (e) => {
 =========================== */
 
 initCharacter();
+initBoard();

@@ -1,7 +1,5 @@
-/* v0.5.0
- Spelling Game - Stage 3-2: 블록 스크롤(전진) 연출
- - board-area gap 0.8rem → 5rem
- - 블록 텍스트 순환 전환용 크로스페이드(block--scrolling) 추가 */
+/* v0.7.0
+ Spelling Game - 블록 전진 연출을 슬라이드에서 페이드(+살짝 스케일)로 변경 */
 
 /* ===========================
    0. 폰트 선언
@@ -139,35 +137,40 @@ body {
   -webkit-text-stroke: 0.4px var(--color-text);
   text-shadow: 0.3px 0 currentColor, -0.3px 0 currentColor, 0 0.3px currentColor, 0 -0.3px currentColor;
   position: relative;
-  transition: opacity 0.18s ease, transform 0.18s ease; /* 전진 시 텍스트 크로스페이드용 */
+  transition: opacity 0.18s ease, transform 0.18s ease; /* 전진 시 페이드+스케일 전환용 */
 }
 
-/* 전진(스크롤) 중 : 텍스트가 위로 살짝 빠지며 페이드아웃 → 교체 후 자동으로 원상태 복귀(트랜지션) */
-.block--scrolling {
-  opacity: 0 !important;
-  transform: translateY(-8px);
+/* 전진 중 : 페이드아웃 + 살짝 축소 → 텍스트 교체 후 클래스 제거로 자동 페이드인(트랜지션) */
+/* 스케일 없이 순수 페이드만 원하면 transform 줄만 지우면 됨 */
+.block--fade-out {
+  opacity: 0;
+  transform: scale(0.94);
 }
 
-/* 옆면(측면 두께) 표현용 pseudo-element : 항상 사각형 바로 아래에 고정 (3D transform을 쓰지 않아 위치가 틀어지지 않음) */
+/* 옆면(측면 두께) 표현용 pseudo-element : left/right/height/border-radius는 공통, position 값은 각 티어에서 명시 재선언(고정) */
 .block::after {
   content: '';
   position: absolute;
   left: 4%;
   right: 4%;
-  bottom: -6px;
   height: 6px;
   background: var(--color-primary-dark);
   border-radius: 0 0 0.6rem 0.6rem;
 }
 
-/* 후(block--back) = 이전 블록 "밥을" : 화면 가장 뒤쪽 → 가장 작고 납작하고(높이 낮음) 옅게 */
+/* 후(block--back) = 이전 블록 "밥을" : 화면 가장 뒤쪽 → 가장 납작하고(높이 낮음) 옅게 */
 .block--back {
-  width: 100px;
+  width: 170px;
   height: 34px;
   font-size: 0.85rem;
   opacity: 0.7;
 }
-.block--back::after { height: 4px; opacity: 0.6; }
+.block--back::after {
+  top: auto;
+  bottom: -4px; /* 항상 블록 하단에 고정 (top 값을 절대 쓰지 않음) */
+  height: 4px;
+  opacity: 0.6;
+}
 
 /* 중(block--mid) = 현재 블록 "먹지" : 중간 크기 */
 .block--mid {
@@ -176,21 +179,29 @@ body {
   font-size: 1.05rem;
   opacity: 0.9;
 }
-.block--mid::after { height: 6px; }
+.block--mid::after {
+  top: auto;
+  bottom: -6px;
+  height: 6px;
+}
 
-/* 전(block--front) = 다음·갈림길 블록 : 화면 가장 앞쪽 → 가장 크고 또렷하고 높이도 가장 큼 */
+/* 전(block--front) = 다음·갈림길 블록 : 화면 가장 앞쪽 → 가장 또렷함 */
 .fork-row {
   display: flex;
   gap: 5rem;
 }
 
 .block--front {
-  width: 170px;
+  width: 100px;
   height: 68px;
   font-size: 1.2rem;
   opacity: 1;
 }
-.block--front::after { height: 9px; }
+.block--front::after {
+  top: auto;
+  bottom: -9px;
+  height: 9px;
+}
 
 /* 캐릭터 오버레이 : 중(현재) 블록 부근에 겹쳐 보이도록 배치 (근사 배치, 정밀 동기화는 추후 단계) */
 .character-anchor {
