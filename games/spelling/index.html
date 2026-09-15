@@ -1,6 +1,7 @@
-<!-- v0.5.0
- Spelling Game - 문제은행(doe-dwae) 랜덤 출제 연동
- - board-back/mid/front 초기 텍스트는 script.js의 initBoard()가 문제은행에서 채움 (하드코딩 예시 제거) -->
+<!-- v0.6.0
+ Spelling Game - 판정/좌우 배치/갈림길 UI/마당 종료 구현
+ - front 슬롯을 fork-row(board-front-left/right)로 분리, 일반 블록일 땐 right를 숨겨 단일 블록처럼 표시
+ - 학습 모달(learning-modal), 마당 완료/실패 오버레이(stage-result) 추가 -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -28,12 +29,16 @@
       </span>
     </header>
 
-    <!-- 게임 진행 영역 : 후(이전)/중(현재)/전(다음) 블록 + 캐릭터(중 블록과 겹쳐 배치) -->
-    <!-- 갈림길(2블록)은 판정 로직 단계에서 재도입 예정. 텍스트는 script.js가 문제은행에서 채움 -->
+    <!-- 게임 진행 영역 : 후(이전)/중(현재)/전(다음·갈림길) 블록 + 캐릭터(중 블록과 겹쳐 배치) -->
     <section id="board-area" class="board-area">
       <div id="board-back" class="block block--back"></div>
       <div id="board-mid" class="block block--mid"></div>
-      <div id="board-front" class="block block--front"></div>
+
+      <!-- 전(front) : 일반 블록일 땐 right를 숨겨 단일 블록처럼, 갈림길일 땐 둘 다 표시 -->
+      <div class="fork-row">
+        <div id="board-front-left" class="block block--front"></div>
+        <div id="board-front-right" class="block block--front"></div>
+      </div>
 
       <!-- 캐릭터 : anchor(위치 고정) > x-track(좌우 이동) > jump(점프 아크) -->
       <div class="character-anchor">
@@ -53,6 +58,23 @@
     </section>
 
   </div><!-- /.game-wrapper -->
+
+  <!-- 오답(갈림길) 시 학습 모달 : 탭하면 닫힘, 같은 갈림길 재시도 -->
+  <div id="learning-modal" class="learning-modal learning-modal--hidden">
+    <div class="learning-modal__card">
+      <p class="learning-modal__label">다시 한번!</p>
+      <p id="learning-modal-text" class="learning-modal__text"></p>
+      <p class="learning-modal__hint">화면을 탭하면 다시 도전할 수 있어요.</p>
+    </div>
+  </div>
+
+  <!-- 마당 완료/실패 결과 화면 -->
+  <div id="stage-result" class="stage-result stage-result--hidden">
+    <div class="stage-result__card">
+      <h2 id="stage-result-title" class="stage-result__title"></h2>
+      <p id="stage-result-detail" class="stage-result__detail"></p>
+    </div>
+  </div>
 
   <script type="module" src="script.js"></script>
 </body>

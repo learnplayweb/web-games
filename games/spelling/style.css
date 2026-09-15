@@ -1,5 +1,7 @@
-/* v0.7.0
- Spelling Game - 블록 전진 연출을 슬라이드에서 페이드(+살짝 스케일)로 변경 */
+/* v0.8.0
+ Spelling Game - 판정/좌우 배치/갈림길 UI/마당 종료 화면 스타일 추가
+ - board-front-right 기본 숨김(일반 블록일 땐 단일 블록처럼 보이도록)
+ - learning-modal(학습 모달), stage-result(완료/실패 오버레이) 스타일 추가 */
 
 /* ===========================
    0. 폰트 선언
@@ -203,6 +205,11 @@ body {
   height: 9px;
 }
 
+/* 일반 블록(다음이 갈림길이 아닐 때)은 오른쪽을 숨겨 단일 블록처럼 보이게 함. JS가 갈림길일 때만 보이게 전환 */
+#board-front-right {
+  display: none;
+}
+
 /* 캐릭터 오버레이 : 중(현재) 블록 부근에 겹쳐 보이도록 배치 (근사 배치, 정밀 동기화는 추후 단계) */
 .character-anchor {
   position: absolute;
@@ -283,7 +290,76 @@ body {
 }
 
 /* ===========================
-   7. PC 대응 (480px 이상, 시계 게임과 동일)
+   7. 학습 모달 (갈림길 오답 시) / 마당 완료·실패 오버레이
+=========================== */
+.learning-modal,
+.stage-result {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  cursor: pointer;
+}
+
+.learning-modal {
+  background: rgba(45, 58, 74, 0.45);
+}
+
+.stage-result {
+  background: rgba(240, 244, 255, 0.92);
+}
+
+.learning-modal--hidden,
+.stage-result--hidden {
+  display: none;
+}
+
+.learning-modal__card,
+.stage-result__card {
+  background: var(--color-surface);
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px rgba(91, 141, 238, 0.18);
+  padding: 1.5rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: min(280px, 82vw);
+}
+
+.learning-modal__label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.learning-modal__text {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+}
+
+.learning-modal__hint {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.stage-result__title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.stage-result__detail {
+  font-size: 1rem;
+  color: var(--color-text);
+  white-space: pre-line;
+}
+
+/* ===========================
+   8. PC 대응 (480px 이상, 시계 게임과 동일)
 =========================== */
 @media (min-width: 480px) {
   .game-wrapper {

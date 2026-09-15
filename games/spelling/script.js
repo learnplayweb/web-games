@@ -1,10 +1,12 @@
-// v0.6.0
-// Spelling Game - 문제은행 연동(랜덤 출제) + 블록 전진 연출을 페이드(+스케일)로 변경
-// - WORD_QUEUE(임시 플레이스홀더) 제거, doe-dwae 문제은행에서 실제 랜덤 출제
-// - 마당(stage 1)에 연결된 주제의 문제은행에서 NORMAL_STAGE_QUESTION_COUNT개 문장을 랜덤으로 뽑고,
-//   문장 내부 토큰 순서를 유지한 채로 펼쳐 하나의 블록 큐로 사용 (문장이 쪼개지지 않음)
-// - 선택 지점(choice) 판정/좌우 배치 로직은 아직 없어 정답 텍스트만 블록에 표시 (판정 단계에서 교체)
-// - 큐를 다 쓰면 처음부터 반복 (마당 종료 판정은 이후 단계에서 구현)
+// v0.7.0
+// Spelling Game - 판정(정답/오답) / 좌우 배치 / 갈림길 UI / 마당 종료 구현
+// - front 슬롯이 갈림길(choice)이면 두 블록(fork-row)에 정답/오답을 배치, 일반(text)이면 단일 블록
+// - 좌우 착지 좌표 재계산: block--front 100px + fork-row gap 5rem(80px) → 100/2 + 80/2 = 90px
+// - 조작 규칙: 일반 블록엔 점프만, 갈림길엔 좌/우만 허용. 어긋나면 조작 실수(목숨 차감)
+// - 갈림길 정답 후에는 반대쪽 방향키로 복귀해야 다음으로 전진 (편도 이동 금지)
+// - 갈림길 오답: 목숨 차감 없이 학습 모달만 표시, 같은 갈림길 재시도 (일반 마당 규칙)
+// - 정답률/보상 집계는 선택 지점(갈림길) 단위, 첫 시도 결과만 기록 (재시도는 집계에 영향 없음)
+// - 목숨 0 또는 문제은행 소진 시 마당 종료. Gold 보상 연동은 이후 단계에서 구현
 //
 // Public API
 // - initCharacter()
@@ -12,15 +14,16 @@
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
 import { getEquippedParts } from '../../core/saveManager.js';
 import { DOE_DWAE_PROBLEMS } from './data/problems/doe-dwae.js';
-import { STAGES, NORMAL_STAGE_QUESTION_COUNT } from './data/stages.js';
+import { STAGES, NORMAL_STAGE_QUESTION_COUNT, NORMAL_STAGE_LIVES } from './data/stages.js';
 
 /* ===========================
    상수
 =========================== */
 
-const CHARACTER_X_OFFSET = 115; // 좌/우 칸 좌표 (board-area 가로 중심 기준)
+const CHARACTER_X_OFFSET = 90; // 좌/우 갈림길 착지 좌표 (board-area 가로 중심 기준)
 const JUMP_ANIM_DURATION = 400; // character-jump-arc(0.4s)와 동일하게 유지
 const FADE_OUT_DURATION = 180;  // .block--fade-out 트랜지션(0.18s)과 동일하게 유지
+const MISTAKE_ANIM_DURATION = 400; // 조작 실수 시 캐릭터 'wrong' 모션 재생 시간
 
 /* ===========================
    문제은행 랜덤 출제 : 문장 단위로 뽑은 뒤 토큰을 순서대로 펼쳐 블록 큐 생성
@@ -41,21 +44,51 @@ function shuffleArray(arr) {
 }
 
 // 문제은행에서 sentenceCount개 문장을 랜덤으로 뽑고, 각 문장의 토큰을 순서 그대로 펼쳐 블록 큐를 만든다.
-// 선택 지점(correct/wrong)은 아직 판정 UI가 없어 정답 텍스트만 사용한다.
+// 토큰이 { text }면 'text' 타입, { correct, wrong }이면 'choice' 타입 아이템으로 변환한다.
 function buildBlockQueue(problems, sentenceCount) {
   const picked = shuffleArray(problems).slice(0, sentenceCount);
   const queue = [];
   picked.forEach((problem) => {
     problem.tokens.forEach((token) => {
-      queue.push(token.text ?? token.correct);
+      if (token.text !== undefined) {
+        queue.push({ type: 'text', text: token.text });
+      } else {
+        queue.push({
+          type: 'choice',
+          correct: token.correct,
+          wrong: token.wrong,
+          fixedSide: token.fixedSide,
+          _resolved: false,
+          _recorded: false
+        });
+      }
     });
   });
   return queue;
 }
 
-// 현재는 마당(stage) 1 = 되/돼 고정. 마당 선택 화면 연동은 이후 단계에서 구현.
+// 아이템의 표시 텍스트 (back/mid처럼 이미 지나간 자리는 항상 정답으로 통과했다고 가정)
+function displayText(item) {
+  return item.type === 'choice' ? item.correct : item.text;
+}
+
+// 갈림길 아이템의 좌/우 텍스트를 최초 1회만 계산해 캐싱 (fixedSide 없으면 랜덤 배치)
+function resolveChoiceSides(item) {
+  if (item.type !== 'choice' || item._resolved) return;
+  const correctSide = (item.fixedSide === 'left' || item.fixedSide === 'right')
+    ? item.fixedSide
+    : (Math.random() < 0.5 ? 'left' : 'right');
+
+  item.correctSide = correctSide;
+  item.leftText  = correctSide === 'left'  ? item.correct : item.wrong;
+  item.rightText = correctSide === 'right' ? item.correct : item.wrong;
+  item._resolved = true;
+}
+
+// 현재 마당(stage) 1 = 되/돼 고정. 마당 선택 화면 연동은 이후 단계에서 구현.
 const currentStage = STAGES.find((stage) => stage.level === 1);
 const BLOCK_QUEUE = buildBlockQueue(PROBLEM_BANKS[currentStage.topic], NORMAL_STAGE_QUESTION_COUNT);
+const TOTAL_CHOICE_POINTS = BLOCK_QUEUE.filter((item) => item.type === 'choice').length;
 
 /* ===========================
    캐릭터 초기화 (정면 idle)
@@ -86,96 +119,7 @@ function initCharacter() {
   });
 }
 
-/* ===========================
-   블록 스크롤(전진) : 점프 입력 시 텍스트가 후←중←전←신규 순으로 순환
-   연출 : 페이드아웃(+살짝 축소) → 텍스트 교체 → 자동 페이드인
-=========================== */
-
-const boardEls = [
-  document.getElementById('board-back'),
-  document.getElementById('board-mid'),
-  document.getElementById('board-front')
-];
-
-let queuePointer = 0; // BLOCK_QUEUE에서 다음에 꺼낼 위치
-
-function nextBlockText() {
-  const text = BLOCK_QUEUE[queuePointer % BLOCK_QUEUE.length];
-  queuePointer += 1;
-  return text;
-}
-
-// 화면 최초 진입 시 후/중/전 블록을 큐의 앞 3개로 채움
-function initBoard() {
-  const [backEl, midEl, frontEl] = boardEls;
-  backEl.textContent  = nextBlockText();
-  midEl.textContent   = nextBlockText();
-  frontEl.textContent = nextBlockText();
-}
-
-function advanceBoard() {
-  // 1) 페이드아웃(+축소)
-  boardEls.forEach((el) => el.classList.add('block--fade-out'));
-
-  setTimeout(() => {
-    // 2) 텍스트 교체
-    const [backEl, midEl, frontEl] = boardEls;
-    backEl.textContent  = midEl.textContent;
-    midEl.textContent   = frontEl.textContent;
-    frontEl.textContent = nextBlockText();
-
-    // 3) 클래스 제거 → 트랜지션으로 자동 페이드인
-    boardEls.forEach((el) => el.classList.remove('block--fade-out'));
-  }, FADE_OUT_DURATION);
-}
-
-/* ===========================
-   좌/중앙/우 3칸 상대 이동 (캐릭터 좌표만 변경, 블록 스크롤과는 독립 동작)
-=========================== */
-
-const xTrackEl = document.getElementById('character-x-track');
-const jumpEl   = document.getElementById('character-jump');
-
-// 현재 캐릭터가 서 있는 칸. 한 번에 한 칸씩만 이동 가능 (좌 ↔ 중 ↔ 우)
-let currentLane = 'center'; // 'left' | 'center' | 'right'
-
-function applyLanePosition() {
-  const offset = currentLane === 'left' ? -CHARACTER_X_OFFSET
-               : currentLane === 'right' ? CHARACTER_X_OFFSET
-               : 0;
-  xTrackEl.style.transform = `translateX(${offset}px)`;
-}
-
-// 왼쪽 방향키 : 중앙→좌, 우→중앙. 이미 좌인 경우 더 갈 곳이 없어 제자리 점프만 수행.
-function stepLeft() {
-  if (currentLane === 'center') currentLane = 'left';
-  else if (currentLane === 'right') currentLane = 'center';
-  applyLanePosition();
-  playJumpMotion();
-}
-
-// 오른쪽 방향키 : 중앙→우, 좌→중앙. 이미 우인 경우 더 갈 곳이 없어 제자리 점프만 수행.
-function stepRight() {
-  if (currentLane === 'center') currentLane = 'right';
-  else if (currentLane === 'left') currentLane = 'center';
-  applyLanePosition();
-  playJumpMotion();
-}
-
-// 점프(↓/Space) : 캐릭터는 제자리 점프, 동시에 블록이 한 칸 전진
-function jumpInPlace() {
-  playJumpMotion();
-  advanceBoard();
-}
-
-// 점프 아크(위치 이동) + 팔다리 파닥임(correct 세트) 동시 재생
-function playJumpMotion() {
-  // [점프 아크] 클래스를 껐다 켜서 애니메이션 재시작 (reflow로 강제)
-  jumpEl.classList.remove('is-jumping');
-  void jumpEl.offsetWidth;
-  jumpEl.classList.add('is-jumping');
-
-  // [팔다리 파닥임] correct 세트를 잠깐 재생 후 idle로 복귀
+function playCharacterMotion(animation, duration) {
   if (!characterSvgEl || !characterEquipState) return;
   renderCharacterSvg(characterSvgEl, {
     head: characterEquipState.head,
@@ -184,7 +128,7 @@ function playJumpMotion() {
     color: characterEquipState.color,
     colorMix: characterEquipState.colorMix,
     expression: 'idle',
-    animation: 'correct'
+    animation
   });
 
   setTimeout(() => {
@@ -197,7 +141,272 @@ function playJumpMotion() {
       expression: 'idle',
       animation: 'idle'
     });
-  }, JUMP_ANIM_DURATION);
+  }, duration);
+}
+
+/* ===========================
+   보드 상태 : 후(back)/중(mid)/전(front) 슬롯에 실제 아이템 객체를 보관
+=========================== */
+
+const backEl       = document.getElementById('board-back');
+const midEl        = document.getElementById('board-mid');
+const frontLeftEl  = document.getElementById('board-front-left');
+const frontRightEl = document.getElementById('board-front-right');
+
+const currentItems = { back: null, mid: null, front: null };
+let queuePointer = 0;
+
+// front 슬롯의 현재 아이템을 화면에 반영 (갈림길이면 두 블록, 아니면 왼쪽 블록만)
+function renderFront() {
+  const item = currentItems.front;
+  if (!item) return;
+
+  if (item.type === 'choice') {
+    resolveChoiceSides(item);
+    frontLeftEl.textContent  = item.leftText;
+    frontRightEl.textContent = item.rightText;
+    frontRightEl.style.display = '';
+  } else {
+    frontLeftEl.textContent = item.text;
+    frontRightEl.style.display = 'none';
+  }
+}
+
+// 큐에서 다음 아이템을 front로 끌어옴. 큐가 비었으면 마당 완료 처리.
+function pullNextFront() {
+  if (queuePointer >= BLOCK_QUEUE.length) {
+    currentItems.front = null;
+    finishStage();
+    return;
+  }
+  currentItems.front = BLOCK_QUEUE[queuePointer];
+  queuePointer += 1;
+  renderFront();
+}
+
+// 최초 화면 : 큐 앞 2개는 이미 지나온 것으로 가정해 후/중에 배치, 3번째를 front로
+function initBoard() {
+  currentItems.back = BLOCK_QUEUE[0] ?? null;
+  currentItems.mid  = BLOCK_QUEUE[1] ?? null;
+  backEl.textContent = currentItems.back ? displayText(currentItems.back) : '';
+  midEl.textContent  = currentItems.mid  ? displayText(currentItems.mid)  : '';
+
+  queuePointer = 2;
+  pullNextFront();
+}
+
+// front를 통과했을 때(일반 블록 점프 성공, 또는 갈림길 정답 후 복귀 성공) 한 칸 전진
+function advancePastFront() {
+  const boardFadeEls = [backEl, midEl, frontLeftEl, frontRightEl];
+  boardFadeEls.forEach((el) => el.classList.add('block--fade-out'));
+
+  setTimeout(() => {
+    currentItems.back = currentItems.mid;
+    currentItems.mid  = currentItems.front;
+
+    backEl.textContent = currentItems.back ? displayText(currentItems.back) : '';
+    midEl.textContent  = currentItems.mid  ? displayText(currentItems.mid)  : '';
+
+    pullNextFront();
+
+    boardFadeEls.forEach((el) => el.classList.remove('block--fade-out'));
+  }, FADE_OUT_DURATION);
+}
+
+/* ===========================
+   정답률 집계 (선택 지점 단위, 첫 시도만 기록)
+=========================== */
+
+const firstAttemptResults = [];
+
+function recordChoiceResult(item, isCorrect) {
+  if (item._recorded) return;
+  item._recorded = true;
+  firstAttemptResults.push(isCorrect);
+}
+
+/* ===========================
+   목숨 (조작 실수에서만 차감 - 일반 마당 규칙)
+=========================== */
+
+let livesRemaining = NORMAL_STAGE_LIVES;
+
+function updateHeartsDisplay() {
+  const heartEls = document.querySelectorAll('#display-hearts .heart');
+  heartEls.forEach((el, idx) => {
+    el.textContent = idx < livesRemaining ? '❤️' : '♡';
+  });
+}
+
+/* ===========================
+   학습 모달 (갈림길 오답 시 - 목숨 차감 없음, 탭하면 닫고 재시도)
+=========================== */
+
+const learningModalEl = document.getElementById('learning-modal');
+const learningModalTextEl = document.getElementById('learning-modal-text');
+
+function showLearningModal(item) {
+  learningModalTextEl.textContent = `정답은 "${item.correct}" 예요.`;
+  learningModalEl.classList.remove('learning-modal--hidden');
+}
+
+learningModalEl.addEventListener('click', () => {
+  learningModalEl.classList.add('learning-modal--hidden');
+});
+
+/* ===========================
+   마당 완료 / 실패 (Gold 보상 연동은 이후 단계에서 구현)
+=========================== */
+
+const stageResultEl = document.getElementById('stage-result');
+const stageResultTitleEl = document.getElementById('stage-result-title');
+const stageResultDetailEl = document.getElementById('stage-result-detail');
+
+let stageEnded = false;
+
+function calcStars(correctCount, total) {
+  if (total === 0) return 0;
+  const rate = correctCount / total;
+  if (rate >= 1) return 3;
+  if (rate >= 2 / 3) return 2;
+  if (rate >= 1 / 3) return 1;
+  return 0;
+}
+
+function finishStage() {
+  stageEnded = true;
+  const correctCount = firstAttemptResults.filter(Boolean).length;
+  const stars = calcStars(correctCount, TOTAL_CHOICE_POINTS);
+
+  stageResultTitleEl.textContent = '마당 완료!';
+  stageResultDetailEl.textContent =
+    `${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}\n` +
+    `선택 지점 ${correctCount} / ${TOTAL_CHOICE_POINTS} 정답\n` +
+    `(Gold 보상 반영은 다음 단계에서 구현)`;
+  stageResultEl.classList.remove('stage-result--hidden');
+}
+
+function failStage() {
+  stageEnded = true;
+  const correctCount = firstAttemptResults.filter(Boolean).length;
+
+  stageResultTitleEl.textContent = '마당 실패';
+  stageResultDetailEl.textContent =
+    `목숨을 모두 잃었어요.\n` +
+    `선택 지점 ${correctCount} / ${TOTAL_CHOICE_POINTS} 정답\n` +
+    `보상은 지급되지 않습니다.`;
+  stageResultEl.classList.remove('stage-result--hidden');
+}
+
+/* ===========================
+   좌/중앙/우 3칸 캐릭터 위치 + 점프
+=========================== */
+
+const xTrackEl = document.getElementById('character-x-track');
+const jumpEl   = document.getElementById('character-jump');
+
+let currentLane = 'center'; // 'left' | 'center' | 'right' (캐릭터가 현재 서 있는 칸)
+
+function applyLanePosition() {
+  const offset = currentLane === 'left' ? -CHARACTER_X_OFFSET
+               : currentLane === 'right' ? CHARACTER_X_OFFSET
+               : 0;
+  xTrackEl.style.transform = `translateX(${offset}px)`;
+}
+
+function playJumpMotion() {
+  jumpEl.classList.remove('is-jumping');
+  void jumpEl.offsetWidth; // 리플로우로 애니메이션 재시작
+  jumpEl.classList.add('is-jumping');
+  playCharacterMotion('correct', JUMP_ANIM_DURATION);
+}
+
+/* ===========================
+   조작 실수 처리 (일반 블록에 좌우 입력 / 갈림길에 점프 입력 / 복귀 시 잘못된 방향키)
+   → 목숨 차감. 칸/큐 상태는 그대로 두고 재시도 가능하게 함.
+=========================== */
+
+function handleOperationMistake() {
+  livesRemaining -= 1;
+  updateHeartsDisplay();
+  playCharacterMotion('wrong', MISTAKE_ANIM_DURATION);
+
+  if (livesRemaining <= 0) {
+    failStage();
+  }
+}
+
+/* ===========================
+   조작 판정 상태머신
+   phase: 'idle'    - 중앙에서 다음 블록(일반/갈림길) 대기
+          'onFork'  - 갈림길 정답을 맞혀 좌/우 블록에 착지, 반대쪽 방향키로 복귀 대기
+=========================== */
+
+let phase = 'idle';
+let forkSide = null; // phase === 'onFork'일 때 현재 서 있는 쪽
+
+// action: 'left' | 'right' | 'jump'
+function handleInput(action) {
+  if (stageEnded) return;
+
+  // 학습 모달이 열려있는 동안은 입력을 무시 (탭으로 먼저 닫아야 함)
+  if (!learningModalEl.classList.contains('learning-modal--hidden')) return;
+
+  if (phase === 'onFork') {
+    const returnKey = forkSide === 'left' ? 'right' : 'left';
+    if (action === returnKey) {
+      // 정상 복귀 : 중앙으로, 다음 블록으로 전진
+      currentLane = 'center';
+      applyLanePosition();
+      playJumpMotion();
+      phase = 'idle';
+      forkSide = null;
+      advancePastFront();
+    } else {
+      // 점프로 복귀하거나, 반대쪽이 아닌 다른 키를 누른 경우 → 조작 실수
+      handleOperationMistake();
+    }
+    return;
+  }
+
+  // phase === 'idle'
+  const nextItem = currentItems.front;
+  if (!nextItem) return;
+
+  if (nextItem.type === 'choice') {
+    // 갈림길 : 좌/우만 허용, 점프는 조작 실수
+    if (action === 'jump') {
+      handleOperationMistake();
+      return;
+    }
+
+    const chosenSide = action; // 'left' | 'right'
+    const isCorrect = nextItem.correctSide === chosenSide;
+    recordChoiceResult(nextItem, isCorrect);
+
+    if (isCorrect) {
+      currentLane = chosenSide;
+      applyLanePosition();
+      playJumpMotion();
+      phase = 'onFork';
+      forkSide = chosenSide;
+    } else {
+      // 오답 : 목숨 차감 없음(일반 마당), 학습 모달만 표시 후 같은 갈림길 재시도
+      showLearningModal(nextItem);
+    }
+    return;
+  }
+
+  // 일반 블록 : 점프만 허용, 좌우는 조작 실수
+  if (action !== 'jump') {
+    handleOperationMistake();
+    return;
+  }
+
+  currentLane = 'center';
+  applyLanePosition();
+  playJumpMotion();
+  advancePastFront();
 }
 
 /* ===========================
@@ -207,27 +416,23 @@ function playJumpMotion() {
 document.querySelector('.keypad-area').addEventListener('click', (e) => {
   const btn = e.target.closest('[data-key]');
   if (!btn) return;
-
-  const key = btn.dataset.key;
-  if (key === 'left')  stepLeft();
-  if (key === 'right') stepRight();
-  if (key === 'jump')  jumpInPlace();
+  handleInput(btn.dataset.key);
 });
 
 document.addEventListener('keydown', (e) => {
   switch (e.key) {
     case 'ArrowLeft':
       e.preventDefault();
-      stepLeft();
+      handleInput('left');
       break;
     case 'ArrowRight':
       e.preventDefault();
-      stepRight();
+      handleInput('right');
       break;
     case 'ArrowDown':
     case ' ': // Space
       e.preventDefault();
-      jumpInPlace();
+      handleInput('jump');
       break;
   }
 });
@@ -238,3 +443,4 @@ document.addEventListener('keydown', (e) => {
 
 initCharacter();
 initBoard();
+updateHeartsDisplay();
