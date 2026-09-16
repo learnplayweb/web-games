@@ -209,7 +209,7 @@ body {
 /* 다음(block--front) = 다가올·갈림길 블록 : 화면 가장 앞쪽 → 가장 또렷함 */
 .fork-row {
   display: flex;
-  gap: 5rem;
+  gap: 3rem;
 }
 
 .block--front {
