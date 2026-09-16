@@ -42,7 +42,7 @@ export const DOE_DWAE_PROBLEMS = [
     tokens: [
       { text: '준비가' },
       { text: '다' },
-      { correct: '되었어.', wrong: '됐었어.', fixedSide: 'left' } // 되 계열 → 왼쪽
+      { correct: '되었어.', wrong: '돼었어.', fixedSide: 'left' } // 되 계열 → 왼쪽
     ]
   },
   {
@@ -73,6 +73,7 @@ export const DOE_DWAE_PROBLEMS = [
   {
     id: 'doe-dwae-08',
     tokens: [
+      { text: '스스로' },
       { correct: '됐다고', wrong: '됬다고', fixedSide: 'right' }, // 됐(돼 계열) → 오른쪽
       { text: '할' },
       { text: '때까지' },
@@ -96,7 +97,63 @@ export const DOE_DWAE_PROBLEMS = [
       { text: '하면' },
       { correct: '돼?', wrong: '되?', fixedSide: 'right' } // 돼 계열 → 오른쪽
     ]
-  }
+  },
+  {
+    id: 'doe-dwae-11',
+    tokens: [
+    { text: '열심히' },
+    { text: '했다면' },
+    { text: '잘' },
+    { correct: '될', wrong: '됄', fixedSide: 'left' },
+    { text: '거야.' }
+  ]
+},
+{
+  id: 'doe-dwae-12',
+  tokens: [
+    { text: '오늘은' },
+    { text: '여기까지' },
+    { text: '해도' },
+    { correct: '돼.', wrong: '되.', fixedSide: 'right' }
+  ]
+},
+{
+    id: 'doe-dwae-13',
+    tokens: [
+      { text: '그러면' },
+      { text: '절대' },
+      { text: '안' },
+      { correct: '된다고', wrong: '됀다고', fixedSide: 'left' },
+      { text: '하셨어.' }
+    ]
+},
+  {
+    id: 'doe-dwae-14',
+    tokens: [
+      { text: '그렇게' },
+      { correct: '될 줄', wrong: '됄 줄', fixedSide: 'left' }, 
+      { text: '몰라서' },
+      { text: '이렇게' },
+      { correct: '됐네.', wrong: '됬네.', fixedSide: 'right' }
+    ]
+  },
+  {
+    id: 'doe-dwae-15',
+    tokens: [
+      { text: '준비가' },
+      { correct: '됐다면', wrong: '됬다면', fixedSide: 'right' },
+      { text: '바로' },
+      { text: '시작하자.' }
+    ]
+  },
+    {
+    id: 'doe-dwae-16',
+    tokens: [
+      { text: '맞춤법을' },
+      { text: '틀리면' },
+      { correct: '되겠어요?', wrong: '돼겠어요?', fixedSide: 'left' },
+    ]
+  },
 ];
 
 // 학습 모달 콘텐츠 (마당 시작 시 + 오답 시 공통 노출, 주제마다 달라지므로 해당 주제 파일에 위치)
