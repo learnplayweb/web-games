@@ -1,7 +1,7 @@
-// v0.7.0
-// Spelling Game - 판정(정답/오답) / 좌우 배치 / 갈림길 UI / 마당 종료 구현
+// v0.8.0
+// Spelling Game - 학습 모달을 주제별 가이드 콘텐츠로 교체(마당 시작 시 + 갈림길 오답 시 공통 노출)
 // - front 슬롯이 갈림길(choice)이면 두 블록(fork-row)에 정답/오답을 배치, 일반(text)이면 단일 블록
-// - 좌우 착지 좌표 재계산: block--front 100px + fork-row gap 5rem(80px) → 100/2 + 80/2 = 90px
+// - 좌우 착지 좌표: block--front 100px + fork-row gap 5rem(80px) → 100/2 + 80/2 = 90px
 // - 조작 규칙: 일반 블록엔 점프만, 갈림길엔 좌/우만 허용. 어긋나면 조작 실수(목숨 차감)
 // - 갈림길 정답 후에는 반대쪽 방향키로 복귀해야 다음으로 전진 (편도 이동 금지)
 // - 갈림길 오답: 목숨 차감 없이 학습 모달만 표시, 같은 갈림길 재시도 (일반 마당 규칙)
@@ -13,7 +13,7 @@
 
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
 import { getEquippedParts } from '../../core/saveManager.js';
-import { DOE_DWAE_PROBLEMS } from './data/problems/doe-dwae.js';
+import { DOE_DWAE_PROBLEMS, DOE_DWAE_GUIDE } from './data/problems/doe-dwae.js';
 import { STAGES, NORMAL_STAGE_QUESTION_COUNT, NORMAL_STAGE_LIVES } from './data/stages.js';
 
 /* ===========================
@@ -29,9 +29,12 @@ const MISTAKE_ANIM_DURATION = 400; // 조작 실수 시 캐릭터 'wrong' 모션
    문제은행 랜덤 출제 : 문장 단위로 뽑은 뒤 토큰을 순서대로 펼쳐 블록 큐 생성
 =========================== */
 
-// topic 문자열(stages.js) → 문제은행 배열 매핑. 주제가 추가되면 여기에도 등록.
+// topic 문자열(stages.js) → 문제은행/학습 가이드 매핑. 주제가 추가되면 여기에도 등록.
 const PROBLEM_BANKS = {
   'doe-dwae': DOE_DWAE_PROBLEMS
+};
+const TOPIC_GUIDES = {
+  'doe-dwae': DOE_DWAE_GUIDE
 };
 
 function shuffleArray(arr) {
@@ -89,6 +92,7 @@ function resolveChoiceSides(item) {
 const currentStage = STAGES.find((stage) => stage.level === 1);
 const BLOCK_QUEUE = buildBlockQueue(PROBLEM_BANKS[currentStage.topic], NORMAL_STAGE_QUESTION_COUNT);
 const TOTAL_CHOICE_POINTS = BLOCK_QUEUE.filter((item) => item.type === 'choice').length;
+const CURRENT_GUIDE = TOPIC_GUIDES[currentStage.topic];
 
 /* ===========================
    캐릭터 초기화 (정면 idle)
@@ -145,7 +149,7 @@ function playCharacterMotion(animation, duration) {
 }
 
 /* ===========================
-   보드 상태 : 후(back)/중(mid)/전(front) 슬롯에 실제 아이템 객체를 보관
+   보드 상태 : 이전(back)/현재(mid)/다음(front) 슬롯에 실제 아이템 객체를 보관
 =========================== */
 
 const backEl       = document.getElementById('board-back');
@@ -184,7 +188,7 @@ function pullNextFront() {
   renderFront();
 }
 
-// 최초 화면 : 큐 앞 2개는 이미 지나온 것으로 가정해 후/중에 배치, 3번째를 front로
+// 최초 화면 : 큐 앞 2개는 이미 지나온 것으로 가정해 이전/현재에 배치, 3번째를 다음(front)으로
 function initBoard() {
   currentItems.back = BLOCK_QUEUE[0] ?? null;
   currentItems.mid  = BLOCK_QUEUE[1] ?? null;
@@ -239,14 +243,37 @@ function updateHeartsDisplay() {
 }
 
 /* ===========================
-   학습 모달 (갈림길 오답 시 - 목숨 차감 없음, 탭하면 닫고 재시도)
+   학습 모달 (마당 시작 시 + 갈림길 오답 시 공통 노출)
+   콘텐츠는 주제별 문제은행 파일의 GUIDE 데이터(줄/세그먼트 배열)를 렌더링한다.
 =========================== */
 
 const learningModalEl = document.getElementById('learning-modal');
+const learningModalTitleEl = document.getElementById('learning-modal-title');
 const learningModalTextEl = document.getElementById('learning-modal-text');
 
-function showLearningModal(item) {
-  learningModalTextEl.textContent = `정답은 "${item.correct}" 예요.`;
+// guide.lines: 줄 배열, 각 줄은 세그먼트 배열. { text, emph? } — emph: 'blue' | 'red'
+function renderGuideModal(guide) {
+  learningModalTitleEl.textContent = guide.title;
+  learningModalTextEl.innerHTML = '';
+
+  guide.lines.forEach((line) => {
+    const p = document.createElement('p');
+    line.forEach((segment) => {
+      if (segment.emph === 'blue' || segment.emph === 'red') {
+        const span = document.createElement('span');
+        span.className = segment.emph === 'blue' ? 'emph-blue' : 'emph-red';
+        span.textContent = segment.text;
+        p.appendChild(span);
+      } else {
+        p.appendChild(document.createTextNode(segment.text));
+      }
+    });
+    learningModalTextEl.appendChild(p);
+  });
+}
+
+function showLearningModal() {
+  renderGuideModal(CURRENT_GUIDE);
   learningModalEl.classList.remove('learning-modal--hidden');
 }
 
@@ -391,8 +418,8 @@ function handleInput(action) {
       phase = 'onFork';
       forkSide = chosenSide;
     } else {
-      // 오답 : 목숨 차감 없음(일반 마당), 학습 모달만 표시 후 같은 갈림길 재시도
-      showLearningModal(nextItem);
+      // 오답 : 목숨 차감 없음(일반 마당), 학습 모달(주제 가이드) 표시 후 같은 갈림길 재시도
+      showLearningModal();
     }
     return;
   }
@@ -444,3 +471,4 @@ document.addEventListener('keydown', (e) => {
 initCharacter();
 initBoard();
 updateHeartsDisplay();
+showLearningModal(); // 마당 시작 시 주제 학습 가이드 먼저 안내

@@ -1,7 +1,7 @@
-<!-- v0.6.0
- Spelling Game - 판정/좌우 배치/갈림길 UI/마당 종료 구현
- - front 슬롯을 fork-row(board-front-left/right)로 분리, 일반 블록일 땐 right를 숨겨 단일 블록처럼 표시
- - 학습 모달(learning-modal), 마당 완료/실패 오버레이(stage-result) 추가 -->
+<!-- v0.7.0
+ Spelling Game - 명칭 정정(전/후 → 이전/다음, 헷갈림 방지) + 학습 모달을 주제별 가이드 콘텐츠로 교체
+ - block--back = 이전(지나간, 화면 위쪽/납작) / block--front = 다음(다가올, 화면 아래쪽/큼) — 이전 코멘트의 "전/후" 라벨이 반대로 적혀 있었음
+ - learning-modal-text를 div로 변경, script.js가 주제 가이드(예: doe-dwae.js의 DOE_DWAE_GUIDE)를 줄/세그먼트 단위로 렌더링 -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -29,12 +29,12 @@
       </span>
     </header>
 
-    <!-- 게임 진행 영역 : 후(이전)/중(현재)/전(다음·갈림길) 블록 + 캐릭터(중 블록과 겹쳐 배치) -->
+    <!-- 게임 진행 영역 : 이전(back)/현재(mid)/다음(front, 갈림길 포함) 블록 + 캐릭터(현재 블록과 겹쳐 배치) -->
     <section id="board-area" class="board-area">
       <div id="board-back" class="block block--back"></div>
       <div id="board-mid" class="block block--mid"></div>
 
-      <!-- 전(front) : 일반 블록일 땐 right를 숨겨 단일 블록처럼, 갈림길일 땐 둘 다 표시 -->
+      <!-- 다음(front) : 일반 블록일 땐 right를 숨겨 단일 블록처럼, 갈림길일 땐 둘 다 표시 -->
       <div class="fork-row">
         <div id="board-front-left" class="block block--front"></div>
         <div id="board-front-right" class="block block--front"></div>
@@ -59,12 +59,13 @@
 
   </div><!-- /.game-wrapper -->
 
-  <!-- 오답(갈림길) 시 학습 모달 : 탭하면 닫힘, 같은 갈림길 재시도 -->
+  <!-- 학습 모달 : 마당 시작 시 + 갈림길 오답 시 노출. 탭하면 닫힘(오답 시엔 같은 갈림길 재시도) -->
+  <!-- 콘텐츠는 주제별 문제은행 파일(data/problems/*.js)의 GUIDE 데이터를 script.js가 렌더링 -->
   <div id="learning-modal" class="learning-modal learning-modal--hidden">
     <div class="learning-modal__card">
-      <p class="learning-modal__label">다시 한번!</p>
-      <p id="learning-modal-text" class="learning-modal__text"></p>
-      <p class="learning-modal__hint">화면을 탭하면 다시 도전할 수 있어요.</p>
+      <p id="learning-modal-title" class="learning-modal__label"></p>
+      <div id="learning-modal-text" class="learning-modal__text"></div>
+      <p class="learning-modal__hint">화면을 탭하면 계속할 수 있어요.</p>
     </div>
   </div>
 

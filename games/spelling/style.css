@@ -1,7 +1,7 @@
-/* v0.8.0
- Spelling Game - 판정/좌우 배치/갈림길 UI/마당 종료 화면 스타일 추가
- - board-front-right 기본 숨김(일반 블록일 땐 단일 블록처럼 보이도록)
- - learning-modal(학습 모달), stage-result(완료/실패 오버레이) 스타일 추가 */
+/* v0.10.0
+ Spelling Game - 블록을 좌우대칭 사다리꼴로 변경
+ - clip-path로 윗변을 아랫변보다 1rem(양옆 8px씩) 좁게 잘라 사다리꼴 표현, 위=먼 곳 원근감 보강
+ - 기존 ::after 두께 표현은 clip-path에 가려 사라지므로 배경 그라디언트 하단 띠로 교체 */
 
 /* ===========================
    0. 폰트 선언
@@ -114,7 +114,7 @@ body {
 }
 
 /* ===========================
-   5. 게임 진행 영역 (나머지 가운데 영역) : 후(이전) / 중(현재) / 전(다음·갈림길) 블록
+   5. 게임 진행 영역 (나머지 가운데 영역) : 이전(back) / 현재(mid) / 다음(front, 갈림길 포함) 블록
 =========================== */
 .board-area {
   flex: 1 1 auto;
@@ -127,19 +127,24 @@ body {
 }
 
 /* 블록 공통 : 텍스트는 얇은 전용 폰트라 text-stroke로 두께 보정 */
+/* 좌우대칭 사다리꼴 : 윗변이 아랫변보다 1rem(양옆 각 8px=0.5rem씩) 좁음 → 위=먼 곳이라는 원근감 보강 */
+/* 측면 두께는 기존 ::after 방식 대신 배경 그라디언트 하단 띠로 표현 (::after는 clip-path에 잘려 안 보이게 됨) */
 .block {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-surface);
+  background: linear-gradient(to bottom,
+    var(--color-surface) 0%, var(--color-surface) 86%,
+    var(--color-primary-dark) 86%, var(--color-primary-dark) 100%);
   border: 2px solid var(--color-primary);
-  border-radius: 0.6rem;
+  border-radius: 0.25rem;
   font-family: 'HakgyoansimGeurimilgi', var(--font-base);
   color: var(--color-text);
   -webkit-text-stroke: 0.4px var(--color-text);
   text-shadow: 0.3px 0 currentColor, -0.3px 0 currentColor, 0 0.3px currentColor, 0 -0.3px currentColor;
   position: relative;
   transition: opacity 0.18s ease, transform 0.18s ease; /* 전진 시 페이드+스케일 전환용 */
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%);
 }
 
 /* 전진 중 : 페이드아웃 + 살짝 축소 → 텍스트 교체 후 클래스 제거로 자동 페이드인(트랜지션) */
@@ -149,60 +154,33 @@ body {
   transform: scale(0.94);
 }
 
-/* 옆면(측면 두께) 표현용 pseudo-element : left/right/height/border-radius는 공통, position 값은 각 티어에서 명시 재선언(고정) */
-.block::after {
-  content: '';
-  position: absolute;
-  left: 4%;
-  right: 4%;
-  height: 6px;
-  background: var(--color-primary-dark);
-  border-radius: 0 0 0.6rem 0.6rem;
-}
-
-/* 후(block--back) = 이전 블록 "밥을" : 화면 가장 뒤쪽 → 가장 납작하고(높이 낮음) 옅게 */
+/* 이전(block--back) = 지나간 블록 "밥을" : 화면 가장 뒤쪽 → 가장 납작하고(높이 낮음) 옅게 */
 .block--back {
-  width: 170px;
+  width: 100px;
   height: 34px;
   font-size: 0.85rem;
   opacity: 0.7;
 }
-.block--back::after {
-  top: auto;
-  bottom: -4px; /* 항상 블록 하단에 고정 (top 값을 절대 쓰지 않음) */
-  height: 4px;
-  opacity: 0.6;
-}
 
-/* 중(block--mid) = 현재 블록 "먹지" : 중간 크기 */
+/* 현재(block--mid) = 지금 서 있는 블록 "먹지" : 중간 크기 */
 .block--mid {
   width: 130px;
   height: 50px;
   font-size: 1.05rem;
   opacity: 0.9;
 }
-.block--mid::after {
-  top: auto;
-  bottom: -6px;
-  height: 6px;
-}
 
-/* 전(block--front) = 다음·갈림길 블록 : 화면 가장 앞쪽 → 가장 또렷함 */
+/* 다음(block--front) = 다가올·갈림길 블록 : 화면 가장 앞쪽 → 가장 또렷함 */
 .fork-row {
   display: flex;
   gap: 5rem;
 }
 
 .block--front {
-  width: 100px;
+  width: 170px;
   height: 68px;
   font-size: 1.2rem;
   opacity: 1;
-}
-.block--front::after {
-  top: auto;
-  bottom: -9px;
-  height: 9px;
 }
 
 /* 일반 블록(다음이 갈림길이 아닐 때)은 오른쪽을 숨겨 단일 블록처럼 보이게 함. JS가 갈림길일 때만 보이게 전환 */
@@ -210,7 +188,7 @@ body {
   display: none;
 }
 
-/* 캐릭터 오버레이 : 중(현재) 블록 부근에 겹쳐 보이도록 배치 (근사 배치, 정밀 동기화는 추후 단계) */
+/* 캐릭터 오버레이 : 현재(mid) 블록 부근에 겹쳐 보이도록 배치 (근사 배치, 정밀 동기화는 추후 단계) */
 .character-anchor {
   position: absolute;
   left: 50%;
@@ -220,7 +198,7 @@ body {
   pointer-events: none;
 }
 
-/* 좌우 이동 : JS가 translateX(±82px)를 부여, transition으로 부드럽게 이동 */
+/* 좌우 이동 : JS가 translateX(±90px)를 부여, transition으로 부드럽게 이동 */
 .character-x-track {
   transition: transform 0.26s ease-out;
 }
@@ -336,10 +314,23 @@ body {
 }
 
 .learning-modal__text {
-  font-size: 1.4rem;
-  font-weight: 800;
-  color: var(--color-primary-dark);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text);
 }
+
+/* 학습 모달 강조 텍스트 : '되/하' = 짙은 파랑, '돼/해' = 짙은 빨강, 둘 다 굵고 크게 */
+.emph-blue,
+.emph-red {
+  font-weight: 900;
+  font-size: 1.3em;
+}
+
+.emph-blue { color: #1e3a6e; }
+.emph-red  { color: #8f2323; }
 
 .learning-modal__hint {
   font-size: 0.85rem;
