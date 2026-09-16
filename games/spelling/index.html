@@ -1,7 +1,7 @@
-<!-- v0.7.0
- Spelling Game - 명칭 정정(전/후 → 이전/다음, 헷갈림 방지) + 학습 모달을 주제별 가이드 콘텐츠로 교체
- - block--back = 이전(지나간, 화면 위쪽/납작) / block--front = 다음(다가올, 화면 아래쪽/큼) — 이전 코멘트의 "전/후" 라벨이 반대로 적혀 있었음
- - learning-modal-text를 div로 변경, script.js가 주제 가이드(예: doe-dwae.js의 DOE_DWAE_GUIDE)를 줄/세그먼트 단위로 렌더링 -->
+<!-- v0.8.0
+ Spelling Game - 정오답 연출 + 마당 실패 모달 개편
+ - 학습 모달/마당 실패 모달 모두 탭하면 닫힘
+ - 마당 실패 모달 : 문구 변경("다시 도전해요"/"신중하게 뛰어 봐요!"), 정답률 등 통계 제거, wrong 캐릭터 표시 추가 -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -40,7 +40,7 @@
         <div id="board-front-right" class="block block--front"></div>
       </div>
 
-      <!-- 캐릭터 : anchor(위치 고정) > x-track(좌우 이동) > jump(점프 아크) -->
+      <!-- 캐릭터 : anchor(위치 고정) > x-track(좌우 이동) > jump(점프 아크 + 조작실수 추락) -->
       <div class="character-anchor">
         <div id="character-x-track" class="character-x-track">
           <div id="character-jump" class="character-jump">
@@ -59,7 +59,7 @@
 
   </div><!-- /.game-wrapper -->
 
-  <!-- 학습 모달 : 마당 시작 시 + 갈림길 오답 시 노출. 탭하면 닫힘(오답 시엔 같은 갈림길 재시도) -->
+  <!-- 학습 모달 : 마당 시작 시 + 갈림길 오답 시 노출. 아무 곳이나 탭하면 닫힘(오답 시엔 같은 갈림길 재시도) -->
   <!-- 콘텐츠는 주제별 문제은행 파일(data/problems/*.js)의 GUIDE 데이터를 script.js가 렌더링 -->
   <div id="learning-modal" class="learning-modal learning-modal--hidden">
     <div class="learning-modal__card">
@@ -69,11 +69,12 @@
     </div>
   </div>
 
-  <!-- 마당 완료/실패 결과 화면 -->
+  <!-- 마당 완료/실패 결과 화면. 아무 곳이나 탭하면 닫힘 (실패 시엔 select 화면으로 이동 예정 - select 구현 후 연결) -->
   <div id="stage-result" class="stage-result stage-result--hidden">
     <div class="stage-result__card">
       <h2 id="stage-result-title" class="stage-result__title"></h2>
       <p id="stage-result-detail" class="stage-result__detail"></p>
+      <div id="stage-result-character" class="stage-result__character"></div>
     </div>
   </div>
 

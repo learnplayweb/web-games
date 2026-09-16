@@ -1,10 +1,12 @@
-// v0.8.0
-// Spelling Game - 학습 모달을 주제별 가이드 콘텐츠로 교체(마당 시작 시 + 갈림길 오답 시 공통 노출)
+// v0.10.0
+// Spelling Game - 갈림길 표시 버그 수정 + 조작 규칙 완화 + 실패 모달 캐릭터 회전
+// - 갈림길 오른쪽 블록이 항상 숨겨지던 버그 수정 (style.display='' 대신 'flex'로 명시)
+// - 조작 실수는 갈림길에서 점프를 눌렀을 때만 발생. 일반 블록 전진/갈림길 복귀는 어떤 방향이든 진행됨
 // - front 슬롯이 갈림길(choice)이면 두 블록(fork-row)에 정답/오답을 배치, 일반(text)이면 단일 블록
-// - 좌우 착지 좌표: block--front 100px + fork-row gap 5rem(80px) → 100/2 + 80/2 = 90px
-// - 조작 규칙: 일반 블록엔 점프만, 갈림길엔 좌/우만 허용. 어긋나면 조작 실수(목숨 차감)
-// - 갈림길 정답 후에는 반대쪽 방향키로 복귀해야 다음으로 전진 (편도 이동 금지)
-// - 갈림길 오답: 목숨 차감 없이 학습 모달만 표시, 같은 갈림길 재시도 (일반 마당 규칙)
+// - 좌우 착지 좌표: block--front 170px + fork-row gap 5rem(80px) → 170/2 + 80/2 = 125px
+// - 정답 : 블록 0.6초 초록 플래시 + 캐릭터 correct 세트
+// - 오답 : 목숨 차감 없음. 블록 0.6초 빨강 플래시 + 캐릭터 wrong 세트 + 빠른 점멸, 이후 중앙 롤백과 동시에 학습 모달
+// - 조작 실수 : 목숨 차감. 캐릭터만 추락+회전(1.6초) 후 빠른 점멸과 함께 원래 칸으로 복귀
 // - 정답률/보상 집계는 선택 지점(갈림길) 단위, 첫 시도 결과만 기록 (재시도는 집계에 영향 없음)
 // - 목숨 0 또는 문제은행 소진 시 마당 종료. Gold 보상 연동은 이후 단계에서 구현
 //
@@ -20,10 +22,12 @@ import { STAGES, NORMAL_STAGE_QUESTION_COUNT, NORMAL_STAGE_LIVES } from './data/
    상수
 =========================== */
 
-const CHARACTER_X_OFFSET = 90; // 좌/우 갈림길 착지 좌표 (board-area 가로 중심 기준)
-const JUMP_ANIM_DURATION = 400; // character-jump-arc(0.4s)와 동일하게 유지
-const FADE_OUT_DURATION = 180;  // .block--fade-out 트랜지션(0.18s)과 동일하게 유지
-const MISTAKE_ANIM_DURATION = 400; // 조작 실수 시 캐릭터 'wrong' 모션 재생 시간
+const CHARACTER_X_OFFSET = 125; // 좌/우 갈림길 착지 좌표 (board-area 가로 중심 기준)
+const JUMP_ANIM_DURATION = 400;    // character-jump-arc(0.4s)와 동일하게 유지
+const FADE_OUT_DURATION = 180;     // .block--fade-out 트랜지션(0.18s)과 동일하게 유지
+const FLASH_DURATION = 600;        // 정오답 블록 플래시 (0.6초, 시계 게임 참고)
+const FALL_DURATION = 1600;        // 조작 실수 캐릭터 추락(1.6초)
+const BLINK_DURATION = 500;        // 추락/오답 롤백 시 빠른 점멸 시간
 
 /* ===========================
    문제은행 랜덤 출제 : 문장 단위로 뽑은 뒤 토큰을 순서대로 펼쳐 블록 큐 생성
@@ -95,7 +99,7 @@ const TOTAL_CHOICE_POINTS = BLOCK_QUEUE.filter((item) => item.type === 'choice')
 const CURRENT_GUIDE = TOPIC_GUIDES[currentStage.topic];
 
 /* ===========================
-   캐릭터 초기화 (정면 idle)
+   캐릭터 초기화 (정면 idle) + 모션 재생 헬퍼
 =========================== */
 
 let characterSvgEl = null;
@@ -123,7 +127,8 @@ function initCharacter() {
   });
 }
 
-function playCharacterMotion(animation, duration) {
+// expression/animation을 독립적으로 지정 가능 (예: 조작 실수는 눈·입은 wrong, 움직임은 correct)
+function renderCharacterState(expression, animation) {
   if (!characterSvgEl || !characterEquipState) return;
   renderCharacterSvg(characterSvgEl, {
     head: characterEquipState.head,
@@ -131,21 +136,14 @@ function playCharacterMotion(animation, duration) {
     legs: characterEquipState.legs,
     color: characterEquipState.color,
     colorMix: characterEquipState.colorMix,
-    expression: 'idle',
+    expression,
     animation
   });
+}
 
-  setTimeout(() => {
-    renderCharacterSvg(characterSvgEl, {
-      head: characterEquipState.head,
-      body: characterEquipState.body,
-      legs: characterEquipState.legs,
-      color: characterEquipState.color,
-      colorMix: characterEquipState.colorMix,
-      expression: 'idle',
-      animation: 'idle'
-    });
-  }, duration);
+function playCharacterMotion(expression, animation, duration) {
+  renderCharacterState(expression, animation);
+  setTimeout(() => renderCharacterState('idle', 'idle'), duration);
 }
 
 /* ===========================
@@ -161,6 +159,7 @@ const currentItems = { back: null, mid: null, front: null };
 let queuePointer = 0;
 
 // front 슬롯의 현재 아이템을 화면에 반영 (갈림길이면 두 블록, 아니면 왼쪽 블록만)
+// 주의: style.display='' 로는 CSS의 #board-front-right{display:none}을 못 이기고 다시 숨겨짐 → 'flex'로 명시
 function renderFront() {
   const item = currentItems.front;
   if (!item) return;
@@ -169,7 +168,7 @@ function renderFront() {
     resolveChoiceSides(item);
     frontLeftEl.textContent  = item.leftText;
     frontRightEl.textContent = item.rightText;
-    frontRightEl.style.display = '';
+    frontRightEl.style.display = 'flex';
   } else {
     frontLeftEl.textContent = item.text;
     frontRightEl.style.display = 'none';
@@ -217,6 +216,13 @@ function advancePastFront() {
   }, FADE_OUT_DURATION);
 }
 
+// 정답/오답 0.6초 블록 플래시 (시계 게임의 정오답 표시 참고, 통일성 유지)
+function flashBlock(el, type) {
+  const cls = type === 'correct' ? 'block--flash-correct' : 'block--flash-wrong';
+  el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), FLASH_DURATION);
+}
+
 /* ===========================
    정답률 집계 (선택 지점 단위, 첫 시도만 기록)
 =========================== */
@@ -243,7 +249,7 @@ function updateHeartsDisplay() {
 }
 
 /* ===========================
-   학습 모달 (마당 시작 시 + 갈림길 오답 시 공통 노출)
+   학습 모달 (마당 시작 시 + 갈림길 오답 시 공통 노출). 아무 곳이나 탭하면 닫힘.
    콘텐츠는 주제별 문제은행 파일의 GUIDE 데이터(줄/세그먼트 배열)를 렌더링한다.
 =========================== */
 
@@ -282,14 +288,16 @@ learningModalEl.addEventListener('click', () => {
 });
 
 /* ===========================
-   마당 완료 / 실패 (Gold 보상 연동은 이후 단계에서 구현)
+   마당 완료 / 실패. 아무 곳이나 탭하면 닫힘 (Gold 보상 연동은 이후 단계에서 구현)
 =========================== */
 
 const stageResultEl = document.getElementById('stage-result');
 const stageResultTitleEl = document.getElementById('stage-result-title');
 const stageResultDetailEl = document.getElementById('stage-result-detail');
+const stageResultCharacterEl = document.getElementById('stage-result-character');
 
 let stageEnded = false;
+let stageFailed = false; // 탭으로 닫을 때 성공/실패에 따라 다음 동작을 구분하기 위함
 
 function calcStars(correctCount, total) {
   if (total === 0) return 0;
@@ -302,6 +310,7 @@ function calcStars(correctCount, total) {
 
 function finishStage() {
   stageEnded = true;
+  stageFailed = false;
   const correctCount = firstAttemptResults.filter(Boolean).length;
   const stars = calcStars(correctCount, TOTAL_CHOICE_POINTS);
 
@@ -310,29 +319,55 @@ function finishStage() {
     `${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}\n` +
     `선택 지점 ${correctCount} / ${TOTAL_CHOICE_POINTS} 정답\n` +
     `(Gold 보상 반영은 다음 단계에서 구현)`;
+  stageResultCharacterEl.innerHTML = ''; // 완료 모달은 캐릭터 표시 없음
   stageResultEl.classList.remove('stage-result--hidden');
 }
 
 function failStage() {
   stageEnded = true;
-  const correctCount = firstAttemptResults.filter(Boolean).length;
+  stageFailed = true;
 
-  stageResultTitleEl.textContent = '마당 실패';
-  stageResultDetailEl.textContent =
-    `목숨을 모두 잃었어요.\n` +
-    `선택 지점 ${correctCount} / ${TOTAL_CHOICE_POINTS} 정답\n` +
-    `보상은 지급되지 않습니다.`;
+  stageResultTitleEl.textContent = '다시 도전해요';
+  stageResultDetailEl.textContent = '신중하게 뛰어 봐요!';
+
+  // 실패 모달 전용 캐릭터 : 표정·움직임 모두 wrong 세트
+  stageResultCharacterEl.innerHTML = '';
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.classList.add('ingame-character');
+  svg.setAttribute('viewBox', '0 0 160 300');
+  stageResultCharacterEl.appendChild(svg);
+  if (characterEquipState) {
+    renderCharacterSvg(svg, {
+      head: characterEquipState.head,
+      body: characterEquipState.body,
+      legs: characterEquipState.legs,
+      color: characterEquipState.color,
+      colorMix: characterEquipState.colorMix,
+      expression: 'wrong',
+      animation: 'wrong'
+    });
+  }
+
   stageResultEl.classList.remove('stage-result--hidden');
 }
 
+stageResultEl.addEventListener('click', () => {
+  stageResultEl.classList.add('stage-result--hidden');
+  if (stageFailed) {
+    // TODO: select 화면 구현 후 이동 처리 연결
+    // 예정: window.location.href = '../select.html' 또는 라우팅 함수 호출
+  }
+});
+
 /* ===========================
-   좌/중앙/우 3칸 캐릭터 위치 + 점프
+   좌/중앙/우 3칸 캐릭터 위치 + 점프 / 추락 / 점멸
 =========================== */
 
 const xTrackEl = document.getElementById('character-x-track');
 const jumpEl   = document.getElementById('character-jump');
 
 let currentLane = 'center'; // 'left' | 'center' | 'right' (캐릭터가 현재 서 있는 칸)
+let isBusy = false; // 정오답/추락 연출이 재생되는 동안 입력 차단
 
 function applyLanePosition() {
   const offset = currentLane === 'left' ? -CHARACTER_X_OFFSET
@@ -345,22 +380,48 @@ function playJumpMotion() {
   jumpEl.classList.remove('is-jumping');
   void jumpEl.offsetWidth; // 리플로우로 애니메이션 재시작
   jumpEl.classList.add('is-jumping');
-  playCharacterMotion('correct', JUMP_ANIM_DURATION);
+  playCharacterMotion('idle', 'correct', JUMP_ANIM_DURATION);
+}
+
+// 빠른 점멸 후 자동으로 멈춤 (조작 실수 롤백 / 갈림길 오답 롤백 공통 사용)
+function triggerBlink(duration, onDone) {
+  jumpEl.classList.add('is-blinking');
+  setTimeout(() => {
+    jumpEl.classList.remove('is-blinking');
+    if (onDone) onDone();
+  }, duration);
 }
 
 /* ===========================
-   조작 실수 처리 (일반 블록에 좌우 입력 / 갈림길에 점프 입력 / 복귀 시 잘못된 방향키)
-   → 목숨 차감. 칸/큐 상태는 그대로 두고 재시도 가능하게 함.
+   조작 실수 처리 (갈림길에서 점프를 눌렀을 때만 발생 — 그 외 상황은 어떤 방향이든 진행됨)
+   → 목숨 차감. 캐릭터만 추락+회전 후, 원래 있던 칸으로 빠른 점멸과 함께 복귀.
 =========================== */
 
 function handleOperationMistake() {
   livesRemaining -= 1;
   updateHeartsDisplay();
-  playCharacterMotion('wrong', MISTAKE_ANIM_DURATION);
 
   if (livesRemaining <= 0) {
     failStage();
+    return; // 실패 화면으로 전환되므로 추락 연출은 생략
   }
+
+  isBusy = true;
+  // 눈·입은 wrong, 움직임(팔다리)은 correct 세트 조합
+  playCharacterMotion('wrong', 'correct', FALL_DURATION);
+
+  jumpEl.classList.remove('is-jumping');
+  void jumpEl.offsetWidth;
+  jumpEl.classList.add('is-falling');
+
+  setTimeout(() => {
+    jumpEl.classList.remove('is-falling');
+    // 추락 이전 칸(currentLane은 변경한 적 없으므로 그대로) 위치에서 빠른 점멸과 함께 재등장
+    applyLanePosition();
+    triggerBlink(BLINK_DURATION, () => {
+      isBusy = false;
+    });
+  }, FALL_DURATION);
 }
 
 /* ===========================
@@ -370,29 +431,21 @@ function handleOperationMistake() {
 =========================== */
 
 let phase = 'idle';
-let forkSide = null; // phase === 'onFork'일 때 현재 서 있는 쪽
 
 // action: 'left' | 'right' | 'jump'
 function handleInput(action) {
-  if (stageEnded) return;
+  if (stageEnded || isBusy) return;
 
   // 학습 모달이 열려있는 동안은 입력을 무시 (탭으로 먼저 닫아야 함)
   if (!learningModalEl.classList.contains('learning-modal--hidden')) return;
 
   if (phase === 'onFork') {
-    const returnKey = forkSide === 'left' ? 'right' : 'left';
-    if (action === returnKey) {
-      // 정상 복귀 : 중앙으로, 다음 블록으로 전진
-      currentLane = 'center';
-      applyLanePosition();
-      playJumpMotion();
-      phase = 'idle';
-      forkSide = null;
-      advancePastFront();
-    } else {
-      // 점프로 복귀하거나, 반대쪽이 아닌 다른 키를 누른 경우 → 조작 실수
-      handleOperationMistake();
-    }
+    // 어떤 방향(←/→/↓)을 입력해도 중앙으로 복귀하며 다음 블록으로 전진
+    currentLane = 'center';
+    applyLanePosition();
+    playJumpMotion();
+    phase = 'idle';
+    advancePastFront();
     return;
   }
 
@@ -410,26 +463,36 @@ function handleInput(action) {
     const chosenSide = action; // 'left' | 'right'
     const isCorrect = nextItem.correctSide === chosenSide;
     recordChoiceResult(nextItem, isCorrect);
+    const chosenEl = chosenSide === 'left' ? frontLeftEl : frontRightEl;
+
+    // 선택한 블록에 착지 (정답/오답 공통 연출)
+    currentLane = chosenSide;
+    applyLanePosition();
 
     if (isCorrect) {
-      currentLane = chosenSide;
-      applyLanePosition();
       playJumpMotion();
+      flashBlock(chosenEl, 'correct');
       phase = 'onFork';
-      forkSide = chosenSide;
     } else {
-      // 오답 : 목숨 차감 없음(일반 마당), 학습 모달(주제 가이드) 표시 후 같은 갈림길 재시도
-      showLearningModal();
+      // 오답 : 목숨 차감 없음(일반 마당). 0.6초간 빨강 플래시 + wrong 세트 + 빠른 점멸
+      isBusy = true;
+      flashBlock(chosenEl, 'wrong');
+      playCharacterMotion('wrong', 'wrong', FLASH_DURATION);
+      jumpEl.classList.add('is-blinking');
+
+      setTimeout(() => {
+        jumpEl.classList.remove('is-blinking');
+        // 롤백(중앙 복귀)과 동시에 학습 모달 표시
+        currentLane = 'center';
+        applyLanePosition();
+        isBusy = false;
+        showLearningModal();
+      }, FLASH_DURATION);
     }
     return;
   }
 
-  // 일반 블록 : 점프만 허용, 좌우는 조작 실수
-  if (action !== 'jump') {
-    handleOperationMistake();
-    return;
-  }
-
+  // 일반 블록 : 어떤 방향(←/→/↓)을 입력해도 전진
   currentLane = 'center';
   applyLanePosition();
   playJumpMotion();

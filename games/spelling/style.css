@@ -1,7 +1,5 @@
-/* v0.10.0
- Spelling Game - 블록을 좌우대칭 사다리꼴로 변경
- - clip-path로 윗변을 아랫변보다 1rem(양옆 8px씩) 좁게 잘라 사다리꼴 표현, 위=먼 곳 원근감 보강
- - 기존 ::after 두께 표현은 clip-path에 가려 사라지므로 배경 그라디언트 하단 띠로 교체 */
+/* v0.12.0
+ Spelling Game - 사다리꼴 모서리 둥글게(path() 기반), 실패 모달 캐릭터 5초 회전 추가 */
 
 /* ===========================
    0. 폰트 선언
@@ -128,23 +126,37 @@ body {
 
 /* 블록 공통 : 텍스트는 얇은 전용 폰트라 text-stroke로 두께 보정 */
 /* 좌우대칭 사다리꼴 : 윗변이 아랫변보다 1rem(양옆 각 8px=0.5rem씩) 좁음 → 위=먼 곳이라는 원근감 보강 */
-/* 측면 두께는 기존 ::after 방식 대신 배경 그라디언트 하단 띠로 표현 (::after는 clip-path에 잘려 안 보이게 됨) */
+/* 사다리꼴 테두리 표현 : clip-path만으로는 좌우 사선 변에 border가 그려지지 않아(위아래만 표시됨),
+   .block 배경을 테두리색으로 채우고 ::before(2px 안쪽)로 얼굴을 덮는 2겹 방식을 사용한다.
+   측면 두께(그라디언트 하단 띠)도 ::before 안에 포함시켰다.
+   기본 clip-path는 polygon(직각 모서리) fallback이며, 각 티어(back/mid/front)에서
+   path()로 둥근 모서리(반지름 4px) 버전으로 덮어쓴다(크기가 고정값이라 좌표를 직접 계산). */
 .block {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(to bottom,
-    var(--color-surface) 0%, var(--color-surface) 86%,
-    var(--color-primary-dark) 86%, var(--color-primary-dark) 100%);
-  border: 2px solid var(--color-primary);
+  position: relative;
+  z-index: 0; /* ::before의 z-index:-1이 다른 블록에 침범하지 않도록 새 스태킹 컨텍스트 생성 */
+  background: var(--color-primary); /* 사다리꼴 테두리색 (::before가 안쪽만 덮어 2px 두께로 남김) */
   border-radius: 0.25rem;
   font-family: 'HakgyoansimGeurimilgi', var(--font-base);
   color: var(--color-text);
   -webkit-text-stroke: 0.4px var(--color-text);
   text-shadow: 0.3px 0 currentColor, -0.3px 0 currentColor, 0 0.3px currentColor, 0 -0.3px currentColor;
-  position: relative;
-  transition: opacity 0.18s ease, transform 0.18s ease; /* 전진 시 페이드+스케일 전환용 */
+  transition: opacity 0.18s ease, transform 0.18s ease, background-color 0.15s ease; /* 전진 시 페이드+스케일, 정오답 플래시용 */
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%); /* fallback, 티어별 규칙에서 path()로 교체됨 */
+}
+
+.block::before {
+  content: '';
+  position: absolute;
+  inset: 2px; /* 테두리 두께 2px */
+  z-index: -1;
   clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%);
+  background: linear-gradient(to bottom,
+    var(--color-surface) 0%, var(--color-surface) 86%,
+    var(--color-primary-dark) 86%, var(--color-primary-dark) 100%);
+  transition: background 0.15s ease; /* 정오답 플래시용 */
 }
 
 /* 전진 중 : 페이드아웃 + 살짝 축소 → 텍스트 교체 후 클래스 제거로 자동 페이드인(트랜지션) */
@@ -154,12 +166,32 @@ body {
   transform: scale(0.94);
 }
 
+/* 정답/오답 0.6초 플래시 (시계 게임의 input-area--correct/wrong 배색 참고, 통일성 유지) */
+.block--flash-correct {
+  background: #4caf82 !important;
+}
+.block--flash-correct::before {
+  background: linear-gradient(to bottom, #eafaf3 0%, #eafaf3 86%, #3f9d70 86%, #3f9d70 100%) !important;
+}
+
+.block--flash-wrong {
+  background: #e05c5c !important;
+}
+.block--flash-wrong::before {
+  background: linear-gradient(to bottom, #fdeaea 0%, #fdeaea 86%, #c94848 86%, #c94848 100%) !important;
+}
+
 /* 이전(block--back) = 지나간 블록 "밥을" : 화면 가장 뒤쪽 → 가장 납작하고(높이 낮음) 옅게 */
 .block--back {
   width: 100px;
   height: 34px;
   font-size: 0.85rem;
   opacity: 0.7;
+  /* 둥근 사다리꼴 모서리(반지름 4px) : 크기가 고정값이라 티어별로 path() 좌표를 직접 계산해 둠 */
+  clip-path: path('M 12.00 0.00 L 88.00 0.00 Q 92.00 0.00 92.92 3.89 L 99.08 30.11 Q 100.00 34.00 96.00 34.00 L 4.00 34.00 Q 0.00 34.00 0.92 30.11 L 7.08 3.89 Q 8.00 0.00 12.00 0.00 Z');
+}
+.block--back::before {
+  clip-path: path('M 11.50 0.00 L 84.50 0.00 Q 88.00 0.00 88.90 3.38 L 95.10 26.62 Q 96.00 30.00 92.50 30.00 L 3.50 30.00 Q 0.00 30.00 0.90 26.62 L 7.10 3.38 Q 8.00 0.00 11.50 0.00 Z');
 }
 
 /* 현재(block--mid) = 지금 서 있는 블록 "먹지" : 중간 크기 */
@@ -168,6 +200,10 @@ body {
   height: 50px;
   font-size: 1.05rem;
   opacity: 0.9;
+  clip-path: path('M 12.00 0.00 L 118.00 0.00 Q 122.00 0.00 122.63 3.95 L 129.37 46.05 Q 130.00 50.00 126.00 50.00 L 4.00 50.00 Q 0.00 50.00 0.63 46.05 L 7.37 3.95 Q 8.00 0.00 12.00 0.00 Z');
+}
+.block--mid::before {
+  clip-path: path('M 11.50 0.00 L 114.50 0.00 Q 118.00 0.00 118.60 3.45 L 125.40 42.55 Q 126.00 46.00 122.50 46.00 L 3.50 46.00 Q 0.00 46.00 0.60 42.55 L 7.40 3.45 Q 8.00 0.00 11.50 0.00 Z');
 }
 
 /* 다음(block--front) = 다가올·갈림길 블록 : 화면 가장 앞쪽 → 가장 또렷함 */
@@ -181,7 +217,12 @@ body {
   height: 68px;
   font-size: 1.2rem;
   opacity: 1;
+  clip-path: path('M 12.00 0.00 L 158.00 0.00 Q 162.00 0.00 162.47 3.97 L 169.53 64.03 Q 170.00 68.00 166.00 68.00 L 4.00 68.00 Q 0.00 68.00 0.47 64.03 L 7.53 3.97 Q 8.00 0.00 12.00 0.00 Z');
 }
+.block--front::before {
+  clip-path: path('M 11.50 0.00 L 154.50 0.00 Q 158.00 0.00 158.43 3.47 L 165.57 60.53 Q 166.00 64.00 162.50 64.00 L 3.50 64.00 Q 0.00 64.00 0.43 60.53 L 7.57 3.47 Q 8.00 0.00 11.50 0.00 Z');
+}
+
 
 /* 일반 블록(다음이 갈림길이 아닐 때)은 오른쪽을 숨겨 단일 블록처럼 보이게 함. JS가 갈림길일 때만 보이게 전환 */
 #board-front-right {
@@ -198,7 +239,7 @@ body {
   pointer-events: none;
 }
 
-/* 좌우 이동 : JS가 translateX(±90px)를 부여, transition으로 부드럽게 이동 */
+/* 좌우 이동 : JS가 translateX(±125px)를 부여, transition으로 부드럽게 이동 */
 .character-x-track {
   transition: transform 0.26s ease-out;
 }
@@ -212,6 +253,30 @@ body {
   0%   { transform: translateY(0); }
   40%  { transform: translateY(-26px); }
   100% { transform: translateY(0); }
+}
+
+/* 조작 실수 : 블록을 밟지 못해 캐릭터만 추락 + 회전 (약 1.6초) */
+.character-jump.is-falling {
+  animation: character-fall 1.6s ease-in forwards;
+}
+
+@keyframes character-fall {
+  0%   { transform: translateY(0)    rotate(0deg); }
+  20%  { transform: translateY(10px) rotate(55deg); }
+  40%  { transform: translateY(45px) rotate(-60deg); }
+  60%  { transform: translateY(95px) rotate(55deg); }
+  80%  { transform: translateY(160px) rotate(-60deg); }
+  100% { transform: translateY(230px) rotate(50deg); opacity: 0; }
+}
+
+/* 추락 후 재등장 시 빠른 점멸 (조작 실수 롤백 / 갈림길 오답 시 공통 사용) */
+.character-jump.is-blinking {
+  animation: character-blink 0.14s steps(1, end) infinite;
+}
+
+@keyframes character-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
 }
 
 /* ===========================
@@ -347,6 +412,26 @@ body {
   font-size: 1rem;
   color: var(--color-text);
   white-space: pre-line;
+}
+
+/* 마당 실패 모달 전용 : wrong 캐릭터 표시 영역 (완료 모달에서는 비워둠) */
+/* 모달이 떠 있는 동안 계속 회전 (5초에 한 바퀴) */
+.stage-result__character {
+  align-self: center;
+  width: 80px;
+  height: 150px;
+  animation: stage-result-spin 5s linear infinite;
+}
+
+@keyframes stage-result-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.stage-result__character > svg.ingame-character {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 /* ===========================
