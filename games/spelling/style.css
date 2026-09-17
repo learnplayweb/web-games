@@ -1,5 +1,6 @@
-/* v0.13.0
- Spelling Game - 이전 블록 시작 시 숨김(block--hidden) + 갈림길 오답 블록 추락(block--collapse) 추가 */
+/* v0.15.0
+ Spelling Game - 마지막 글자 두꺼워지는 버그 수정(text-shadow 제거) + fork-row gap 3rem
+ + 이전 블록 레이아웃 공간 유지(visibility) + 마당 완료 카드를 시계 게임 result-card 레이아웃으로 교체 */
 
 /* ===========================
    0. 폰트 선언
@@ -141,8 +142,7 @@ body {
   border-radius: 0.25rem;
   font-family: 'HakgyoansimGeurimilgi', var(--font-base);
   color: var(--color-text);
-  -webkit-text-stroke: 0.4px var(--color-text);
-  text-shadow: 0.3px 0 currentColor, -0.3px 0 currentColor, 0 0.3px currentColor, 0 -0.3px currentColor;
+  -webkit-text-stroke: 0.55px var(--color-text);
   transition: opacity 0.18s ease, transform 0.18s ease, background-color 0.15s ease; /* 전진 시 페이드+스케일, 정오답 플래시용 */
   clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%); /* fallback, 티어별 규칙에서 path()로 교체됨 */
 }
@@ -181,12 +181,12 @@ body {
   background: linear-gradient(to bottom, #fdeaea 0%, #fdeaea 86%, #c94848 86%, #c94848 100%) !important;
 }
 
-/* 시작 시 / 아직 흘러온 적 없는 이전(back) 자리는 아예 표시하지 않음 */
+/* 시작 시 / 아직 흘러온 적 없는 이전(back) 자리는 안 보이지만, 레이아웃 공간은 3개 표시 때와 동일하게 유지 */
 .block--hidden {
-  display: none;
+  visibility: hidden;
 }
 
-/* 갈림길 오답 시 : 선택한(오답) 블록만 추락 + 페이드아웃 (정답 블록은 그대로 유지)
+/* 갈림길에서 오답인 블록은 정답을 골랐든 오답을 골랐든 항상 추락한다 (정답 블록은 유지)
    복습 마당에서는 블록+캐릭터가 함께, 더 빠르게 추락하는 변형으로 재활용 예정 */
 .block--collapse {
   animation: block-collapse 0.6s ease-in forwards;
@@ -225,7 +225,7 @@ body {
 /* 다음(block--front) = 다가올·갈림길 블록 : 화면 가장 앞쪽 → 가장 또렷함 */
 .fork-row {
   display: flex;
-  gap: 5rem;
+  gap: 3rem;
 }
 
 .block--front {
@@ -374,6 +374,30 @@ body {
 .stage-result--hidden {
   display: none;
 }
+
+/* 마당 완료 카드 : 시계 게임 result-card 레이아웃 그대로 재사용 (통일성 유지) */
+.result-card {
+  background: var(--color-surface);
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 32px rgba(91, 141, 238, 0.18);
+  padding: 2rem 1.75rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: min(320px, 88vw);
+}
+
+.result-level { font-size: 1.4rem; font-weight: 800; color: var(--color-primary); }
+.result-score { font-size: 2rem; font-weight: 800; color: var(--color-text); }
+.result-rate { font-size: 1rem; color: var(--color-text-muted); }
+.result-combo { font-size: 1rem; font-weight: 700; color: var(--color-primary-dark); }
+.result-stars { font-size: 1.75rem; letter-spacing: 0.1em; color: #d4a017; }
+.result-divider { border: none; border-top: 1px solid #e8edf5; margin: 0.25rem 0; }
+
+.result-gold-row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.9rem; color: var(--color-text-muted); text-align: left; }
+.result-gold-value { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.result-gold-total { display: flex; justify-content: space-between; gap: 1rem; font-size: 1rem; font-weight: 700; color: var(--color-primary-dark); margin-top: 0.25rem; text-align: left; }
 
 .learning-modal__card,
 .stage-result__card {

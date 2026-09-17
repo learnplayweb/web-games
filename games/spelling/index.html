@@ -1,7 +1,5 @@
-<!-- v0.8.0
- Spelling Game - 정오답 연출 + 마당 실패 모달 개편
- - 학습 모달/마당 실패 모달 모두 탭하면 닫힘
- - 마당 실패 모달 : 문구 변경("다시 도전해요"/"신중하게 뛰어 봐요!"), 정답률 등 통계 제거, wrong 캐릭터 표시 추가 -->
+<!-- v0.9.0
+ Spelling Game - 마당 완료 카드를 시계 게임 result-card 레이아웃으로 교체 (성공/실패 카드 분리, 모달 키보드 닫기 대응) -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -69,9 +67,25 @@
     </div>
   </div>
 
-  <!-- 마당 완료/실패 결과 화면. 아무 곳이나 탭하면 닫힘 (실패 시엔 select 화면으로 이동 예정 - select 구현 후 연결) -->
+  <!-- 마당 완료/실패 결과 화면. 아무 곳이나 탭 또는 방향키/스페이스바로 닫힘 (실패 시엔 select 화면으로 이동 예정 - select 구현 후 연결) -->
   <div id="stage-result" class="stage-result stage-result--hidden">
-    <div class="stage-result__card">
+
+    <!-- 완료(성공) 카드 : 시계 게임 result-card 레이아웃 재사용 (콤보/골드는 레이아웃만, 실제 집계는 다음 단계) -->
+    <div id="stage-result-success" class="result-card">
+      <h2 id="result-level" class="result-level">마당 완료!</h2>
+      <p id="result-stars" class="result-stars">★★★</p>
+      <p id="result-score" class="result-score">0 / 0</p>
+      <p id="result-rate" class="result-rate">정답률 0%</p>
+      <p id="result-combo" class="result-combo">최고 콤보 🔥 -</p>
+      <hr class="result-divider" />
+      <p class="result-gold-row"><span>문제 정답</span><span class="result-gold-value">💎 0</span></p>
+      <p class="result-gold-row"><span>콤보 보너스</span><span class="result-gold-value">💎 0</span></p>
+      <p class="result-gold-row"><span>별점 보너스</span><span class="result-gold-value">💎 0</span></p>
+      <p class="result-gold-total"><span>총 획득</span><span class="result-gold-value">💎 0</span></p>
+    </div>
+
+    <!-- 실패 카드 : 통계 없이 캐릭터 + 격려 문구만 -->
+    <div id="stage-result-failure" class="stage-result__card">
       <h2 id="stage-result-title" class="stage-result__title"></h2>
       <p id="stage-result-detail" class="stage-result__detail"></p>
       <div id="stage-result-character" class="stage-result__character"></div>

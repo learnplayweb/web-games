@@ -1,14 +1,13 @@
-// v0.11.0
-// Spelling Game - 갈림길 흐름 버그 수정 + 레인(좌/중/우) 상태 유지 + 초기 이전 블록 숨김
-// - 시작 시 이전(back) 블록은 숨김. 첫 전진이 일어나야 비로소 나타남
-// - 갈림길 정답 후 "흐름" 입력(어떤 방향이든 OK)은 캐릭터 레인을 표준 스텝 규칙으로 갱신(점프=유지, 반대방향=중앙 복귀, 같은방향=유지)
-//   하고 보드를 전진시킨다. 정답 블록이 그 레인(좌/우)을 유지한 채로 이전/현재 슬롯까지 따라 흐른다(스냅샷 __lane).
+// v0.12.0
+// Spelling Game - 갈림길 입력 즉시 진행(정오답 판정과 동시에 전진) + 오답 블록 상시 추락 + 모달 키보드 닫기
+// - 갈림길에서 좌/우 입력 시 그 자리에서 바로 판정+연출+보드 전진까지 한 번에 처리 ('onFork' 대기 단계 제거)
+//   정답 선택: 정답 블록 초록 플래시 + 오답 블록(반대쪽) 추락(빨강 플래시 없이) → 0.6초 후 자동 전진
+//   오답 선택: 선택한(오답) 블록 빨강 플래시+추락, 정답 블록도 초록 플래시 → 0.6초 후 중앙 롤백 + 학습 모달(전진 없음, 재시도)
+// - 시작 시 이전(back) 블록은 자리는 차지하되 안 보임(visibility:hidden, 레이아웃 유지). 첫 전진 후 보임.
 // - 일반 블록은 여전히 '중앙 도착'이 유일한 안전 조건. 표준 스텝 결과가 중앙이 아니면 조작 실수(추락+목숨차감).
-// - 갈림길 오답 : 선택한(오답) 블록만 추락 연출, 정답 블록은 그대로 유지 → 복습 마당에서 블록+캐릭터 동시 추락으로 재활용 예정
-// - front 슬롯이 갈림길(choice)이면 두 블록(fork-row)에 정답/오답을 배치, 일반(text)이면 단일 블록
-// - 좌우 착지 좌표: block--front 170px + fork-row gap 5rem(80px) → 170/2 + 80/2 = 125px
-// - 정답 : 블록 0.6초 초록 플래시 + 캐릭터 correct 세트
-// - 오답 : 목숨 차감 없음. 블록 0.6초 빨강 플래시 + 캐릭터 wrong 세트 + 빠른 점멸, 이후 중앙 롤백과 동시에 학습 모달
+// - 정답이 흘러온 블록은 자신이 답해진 레인(좌/우)을 유지한 채 이전/현재 슬롯까지 흐른다 (__lane 스냅샷).
+// - 학습 모달 / 마당 결과 모달 : 탭 또는 방향키·스페이스바로 닫힘 (PC에서 마우스 없이도 진행 가능)
+// - 좌우 착지 좌표: block--front 170px + fork-row gap 3rem(48px) → 170/2 + 48/2 = 109px
 // - 조작 실수 : 목숨 차감. 캐릭터만 추락+회전(1.6초) 후 빠른 점멸과 함께 원래 칸으로 복귀
 // - 정답률/보상 집계는 선택 지점(갈림길) 단위, 첫 시도 결과만 기록 (재시도는 집계에 영향 없음)
 // - 목숨 0 또는 문제은행 소진 시 마당 종료. Gold 보상 연동은 이후 단계에서 구현
@@ -25,10 +24,10 @@ import { STAGES, NORMAL_STAGE_QUESTION_COUNT, NORMAL_STAGE_LIVES } from './data/
    상수
 =========================== */
 
-const CHARACTER_X_OFFSET = 125; // 좌/우 갈림길 착지 좌표 (board-area 가로 중심 기준)
+const CHARACTER_X_OFFSET = 109; // 좌/우 갈림길 착지 좌표 (board-area 가로 중심 기준)
 const JUMP_ANIM_DURATION = 400;    // character-jump-arc(0.4s)와 동일하게 유지
 const FADE_OUT_DURATION = 180;     // .block--fade-out 트랜지션(0.18s)과 동일하게 유지
-const FLASH_DURATION = 600;        // 정오답 블록 플래시 (0.6초, 시계 게임 참고)
+const FLASH_DURATION = 600;        // 정오답 블록 플래시/추락 (0.6초, 시계 게임 참고)
 const FALL_DURATION = 1600;        // 조작 실수 캐릭터 추락(1.6초)
 const BLINK_DURATION = 500;        // 추락/오답 롤백 시 빠른 점멸 시간
 
@@ -257,15 +256,43 @@ function advancePastFront() {
   }, FADE_OUT_DURATION);
 }
 
-// 정답/오답 0.6초 블록 플래시 (시계 게임의 정오답 표시 참고, 통일성 유지)
-function flashBlock(el, type) {
-  const cls = type === 'correct' ? 'block--flash-correct' : 'block--flash-wrong';
-  el.classList.add(cls);
-  setTimeout(() => el.classList.remove(cls), FLASH_DURATION);
+// 갈림길에서 정답을 고른 경우 전용 전진 : 판정 연출(플래시/추락)과 보드 전진을 한 번에 처리한다.
+// (일반 advancePastFront와 달리 fork-row 두 블록은 fade-out 대신 flash+collapse로 스스로 연출을 갖는다)
+function advanceFromFork(correctEl, wrongEl) {
+  isBusy = true;
+  flashBlock(correctEl, 'correct');   // 정답 : 초록 플래시만 (빨강 없음)
+  collapseBlock(wrongEl);              // 오답 : 추락만 (정답을 골랐을 때는 빨강 플래시 없음)
+  backEl.classList.add('block--fade-out');
+  midEl.classList.add('block--fade-out');
+
+  setTimeout(() => {
+    currentItems.back = currentItems.mid;
+    currentItems.mid  = currentItems.front;
+    if (currentItems.mid) currentItems.mid.__lane = currentLane;
+
+    clearFlash(correctEl);
+    resetCollapsedBlock(wrongEl);
+
+    renderBack();
+    renderMid();
+    pullNextFront();
+
+    backEl.classList.remove('block--fade-out');
+    midEl.classList.remove('block--fade-out');
+    isBusy = false;
+  }, FLASH_DURATION);
 }
 
-// 갈림길 오답 시 : 선택한(오답) 블록만 추락. 정답 블록은 그대로 둔다.
-// 복습 마당에서는 블록+캐릭터가 함께, 더 빠르게 추락하도록 이 함수를 재활용할 예정.
+// 정답/오답 0.6초 블록 플래시 (시계 게임의 정오답 표시 참고, 통일성 유지)
+function flashBlock(el, type) {
+  el.classList.add(type === 'correct' ? 'block--flash-correct' : 'block--flash-wrong');
+}
+function clearFlash(el) {
+  el.classList.remove('block--flash-correct', 'block--flash-wrong');
+}
+
+// 오답 블록 추락 연출 : 정답/오답 선택 여부와 무관하게 "오답인 블록"에는 항상 적용된다.
+// 복습 마당에서는 블록+캐릭터가 함께, 더 빠르게 추락하는 변형으로 이 함수를 재활용할 예정.
 function collapseBlock(el) {
   el.classList.add('block--collapse');
 }
@@ -333,21 +360,34 @@ function showLearningModal() {
   learningModalEl.classList.remove('learning-modal--hidden');
 }
 
-learningModalEl.addEventListener('click', () => {
+function closeLearningModal() {
   learningModalEl.classList.add('learning-modal--hidden');
-});
+}
+
+learningModalEl.addEventListener('click', closeLearningModal);
 
 /* ===========================
-   마당 완료 / 실패. 아무 곳이나 탭하면 닫힘 (Gold 보상 연동은 이후 단계에서 구현)
+   마당 완료 / 실패. 아무 곳이나 탭 또는 방향키/스페이스바로 닫힘 (Gold 보상 연동은 이후 단계에서 구현)
 =========================== */
 
 const stageResultEl = document.getElementById('stage-result');
+const successCardEl = document.getElementById('stage-result-success');
+const failureCardEl = document.getElementById('stage-result-failure');
+
+// 완료 카드 (시계 게임 result-card 레이아웃)
+const resultLevelEl = document.getElementById('result-level');
+const resultStarsEl = document.getElementById('result-stars');
+const resultScoreEl = document.getElementById('result-score');
+const resultRateEl  = document.getElementById('result-rate');
+const resultComboEl = document.getElementById('result-combo');
+
+// 실패 카드
 const stageResultTitleEl = document.getElementById('stage-result-title');
 const stageResultDetailEl = document.getElementById('stage-result-detail');
 const stageResultCharacterEl = document.getElementById('stage-result-character');
 
 let stageEnded = false;
-let stageFailed = false; // 탭으로 닫을 때 성공/실패에 따라 다음 동작을 구분하기 위함
+let stageFailed = false; // 탭/키 입력으로 닫을 때 성공/실패에 따라 다음 동작을 구분하기 위함
 
 function calcStars(correctCount, total) {
   if (total === 0) return 0;
@@ -361,15 +401,20 @@ function calcStars(correctCount, total) {
 function finishStage() {
   stageEnded = true;
   stageFailed = false;
-  const correctCount = firstAttemptResults.filter(Boolean).length;
-  const stars = calcStars(correctCount, TOTAL_CHOICE_POINTS);
 
-  stageResultTitleEl.textContent = '마당 완료!';
-  stageResultDetailEl.textContent =
-    `${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}\n` +
-    `선택 지점 ${correctCount} / ${TOTAL_CHOICE_POINTS} 정답\n` +
-    `(Gold 보상 반영은 다음 단계에서 구현)`;
-  stageResultCharacterEl.innerHTML = ''; // 완료 모달은 캐릭터 표시 없음
+  const correctCount = firstAttemptResults.filter(Boolean).length;
+  const total = TOTAL_CHOICE_POINTS;
+  const stars = calcStars(correctCount, total);
+  const rate = total === 0 ? 0 : Math.round((correctCount / total) * 100);
+
+  resultLevelEl.textContent = '마당 완료!';
+  resultStarsEl.textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+  resultScoreEl.textContent = `${correctCount} / ${total}`;
+  resultRateEl.textContent = `정답률 ${rate}%`;
+  resultComboEl.textContent = '최고 콤보 🔥 -'; // 콤보 집계·Gold 보상 로직은 다음 단계에서 구현 (이번엔 레이아웃만)
+
+  successCardEl.style.display = 'flex';
+  failureCardEl.style.display = 'none';
   stageResultEl.classList.remove('stage-result--hidden');
 }
 
@@ -398,16 +443,21 @@ function failStage() {
     });
   }
 
+  successCardEl.style.display = 'none';
+  failureCardEl.style.display = 'flex';
   stageResultEl.classList.remove('stage-result--hidden');
 }
 
-stageResultEl.addEventListener('click', () => {
+
+function closeStageResult() {
   stageResultEl.classList.add('stage-result--hidden');
   if (stageFailed) {
     // TODO: select 화면 구현 후 이동 처리 연결
     // 예정: window.location.href = '../select.html' 또는 라우팅 함수 호출
   }
-});
+}
+
+stageResultEl.addEventListener('click', closeStageResult);
 
 /* ===========================
    좌/중앙/우 3칸 캐릭터 위치 + 점프 / 추락 / 점멸
@@ -472,37 +522,18 @@ function handleOperationMistake() {
 }
 
 /* ===========================
-   조작 판정 상태머신
-   phase: 'idle'    - 중앙에서 다음 블록(일반/갈림길) 대기
-          'onFork'  - 갈림길 정답을 맞혀 좌/우 블록에 착지, 다음 "흐름" 입력을 기다리는 중
+   조작 판정 : 입력이 들어오면 그 자리에서 바로 판정+연출+보드 전진까지 처리한다 (대기 단계 없음)
 =========================== */
-
-let phase = 'idle';
 
 // action: 'left' | 'right' | 'jump'
 function handleInput(action) {
   if (stageEnded || isBusy) return;
 
-  // 학습 모달이 열려있는 동안은 입력을 무시 (탭으로 먼저 닫아야 함)
-  if (!learningModalEl.classList.contains('learning-modal--hidden')) return;
-
-  if (phase === 'onFork') {
-    // 갈림길 정답을 밟은 뒤의 "흐름" 입력 : 어떤 방향이든 보드가 전진한다.
-    // 캐릭터 레인은 표준 스텝 규칙으로 갱신 (점프/같은방향=유지, 반대방향=중앙 복귀) — 조작 실수 판정의 기준이 되므로 중요.
-    currentLane = stepLane(currentLane, action);
-    applyLanePosition();
-    playJumpMotion();
-    phase = 'idle';
-    advancePastFront(); // mid로 승격되며 currentLane이 __lane으로 스냅샷됨
-    return;
-  }
-
-  // phase === 'idle'
   const nextItem = currentItems.front;
   if (!nextItem) return;
 
   if (nextItem.type === 'choice') {
-    // 갈림길의 최초 선택 : 좌/우만 허용(절대 위치 지정), 점프는 조작 실수
+    // 갈림길 : 좌/우만 허용(절대 위치 지정), 점프는 조작 실수
     if (action === 'jump') {
       handleOperationMistake();
       return;
@@ -511,28 +542,34 @@ function handleInput(action) {
     const chosenSide = action; // 'left' | 'right'
     const isCorrect = nextItem.correctSide === chosenSide;
     recordChoiceResult(nextItem, isCorrect);
-    const chosenEl = chosenSide === 'left' ? frontLeftEl : frontRightEl;
 
-    // 선택한 블록에 착지 (정답/오답 공통 연출)
-    currentLane = chosenSide;
+    const chosenEl = chosenSide === 'left' ? frontLeftEl : frontRightEl;
+    const otherEl  = chosenSide === 'left' ? frontRightEl : frontLeftEl;
+    const correctEl = isCorrect ? chosenEl : otherEl;
+    const wrongEl   = isCorrect ? otherEl  : chosenEl;
+
+    currentLane = chosenSide; // 고른 블록 쪽에 착지
     applyLanePosition();
 
     if (isCorrect) {
+      // 정답 : 판정+연출과 동시에 자동 전진 (추가 입력 불필요)
       playJumpMotion();
-      flashBlock(chosenEl, 'correct');
-      phase = 'onFork';
+      advanceFromFork(correctEl, wrongEl);
     } else {
-      // 오답 : 목숨 차감 없음(일반 마당). 0.6초간 빨강 플래시 + wrong 세트 + 빠른 점멸 + 오답 블록만 추락
+      // 오답 : 목숨 차감 없음(일반 마당). 고른(오답) 블록은 빨강 플래시+추락, 정답 블록은 초록 플래시.
+      // 전진하지 않고 0.6초 후 중앙 롤백 + 학습 모달(재시도).
       isBusy = true;
-      flashBlock(chosenEl, 'wrong');
-      collapseBlock(chosenEl); // 정답 블록(반대쪽)은 그대로 유지
+      flashBlock(wrongEl, 'wrong');
+      collapseBlock(wrongEl);
+      flashBlock(correctEl, 'correct');
       playCharacterMotion('wrong', 'wrong', FLASH_DURATION);
       jumpEl.classList.add('is-blinking');
 
       setTimeout(() => {
         jumpEl.classList.remove('is-blinking');
-        resetCollapsedBlock(chosenEl); // 재시도를 위해 원상 복구
-        // 롤백(중앙 복귀)과 동시에 학습 모달 표시
+        clearFlash(wrongEl);
+        clearFlash(correctEl);
+        resetCollapsedBlock(wrongEl); // 재시도를 위해 원상 복구
         currentLane = 'center';
         applyLanePosition();
         isBusy = false;
@@ -557,29 +594,41 @@ function handleInput(action) {
 
 /* ===========================
    조작 바인딩 : 키패드(모바일) / 키보드(PC)
+   모달이 열려있으면 입력은 모달을 닫는 데만 사용되고 게임 입력으로 전달되지 않는다.
 =========================== */
+
+function isAnyModalOpen() {
+  return !learningModalEl.classList.contains('learning-modal--hidden')
+      || !stageResultEl.classList.contains('stage-result--hidden');
+}
+
+function closeOpenModal() {
+  if (!learningModalEl.classList.contains('learning-modal--hidden')) {
+    closeLearningModal();
+  } else if (!stageResultEl.classList.contains('stage-result--hidden')) {
+    closeStageResult();
+  }
+}
 
 document.querySelector('.keypad-area').addEventListener('click', (e) => {
   const btn = e.target.closest('[data-key]');
   if (!btn) return;
+  if (isAnyModalOpen()) { closeOpenModal(); return; }
   handleInput(btn.dataset.key);
 });
 
 document.addEventListener('keydown', (e) => {
+  const isGameKey = e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ';
+  if (!isGameKey) return;
+  e.preventDefault();
+
+  if (isAnyModalOpen()) { closeOpenModal(); return; }
+
   switch (e.key) {
-    case 'ArrowLeft':
-      e.preventDefault();
-      handleInput('left');
-      break;
-    case 'ArrowRight':
-      e.preventDefault();
-      handleInput('right');
-      break;
+    case 'ArrowLeft':  handleInput('left');  break;
+    case 'ArrowRight': handleInput('right'); break;
     case 'ArrowDown':
-    case ' ': // Space
-      e.preventDefault();
-      handleInput('jump');
-      break;
+    case ' ':          handleInput('jump');  break;
   }
 });
 

@@ -153,6 +153,20 @@ export const DOE_DWAE_PROBLEMS = [
       { text: '틀리면' },
       { correct: '되겠어요?', wrong: '돼겠어요?', fixedSide: 'left' },
     ]
+  },{
+    id: 'doe-dwae-17',
+    tokens: [
+      { text: '일이' },
+      { text: '잘' },
+      { correct: '되어간다.', wrong: '돼어간다.', fixedSide: 'left' },
+    ]
+  },{
+    id: 'doe-dwae-18',
+    tokens: [
+      { text: '일이' },
+      { text: '잘' },
+      { correct: '돼간다.', wrong: '되간다.', fixedSide: 'right' },
+    ]
   },
 ];
 
