@@ -108,9 +108,7 @@ if (currentCombo >= 3 && currentCombo % 3 === 0) {
 
 클로
 
-시계 정오답 색 코드 제공.
-.fork-row gap: 3rem; 으로 수정함.
-doe-dwae.js 에 문항 추가함. (다른 파일 수정할 필요 없지?)
+
 
 
 챗

@@ -1,5 +1,5 @@
-/* v0.12.0
- Spelling Game - 사다리꼴 모서리 둥글게(path() 기반), 실패 모달 캐릭터 5초 회전 추가 */
+/* v0.13.0
+ Spelling Game - 이전 블록 시작 시 숨김(block--hidden) + 갈림길 오답 블록 추락(block--collapse) 추가 */
 
 /* ===========================
    0. 폰트 선언
@@ -181,6 +181,22 @@ body {
   background: linear-gradient(to bottom, #fdeaea 0%, #fdeaea 86%, #c94848 86%, #c94848 100%) !important;
 }
 
+/* 시작 시 / 아직 흘러온 적 없는 이전(back) 자리는 아예 표시하지 않음 */
+.block--hidden {
+  display: none;
+}
+
+/* 갈림길 오답 시 : 선택한(오답) 블록만 추락 + 페이드아웃 (정답 블록은 그대로 유지)
+   복습 마당에서는 블록+캐릭터가 함께, 더 빠르게 추락하는 변형으로 재활용 예정 */
+.block--collapse {
+  animation: block-collapse 0.6s ease-in forwards;
+}
+
+@keyframes block-collapse {
+  0%   { transform: translateY(0)    rotate(0deg);  opacity: 1; }
+  100% { transform: translateY(60px) rotate(14deg); opacity: 0; }
+}
+
 /* 이전(block--back) = 지나간 블록 "밥을" : 화면 가장 뒤쪽 → 가장 납작하고(높이 낮음) 옅게 */
 .block--back {
   width: 100px;
@@ -209,7 +225,7 @@ body {
 /* 다음(block--front) = 다가올·갈림길 블록 : 화면 가장 앞쪽 → 가장 또렷함 */
 .fork-row {
   display: flex;
-  gap: 3rem;
+  gap: 5rem;
 }
 
 .block--front {

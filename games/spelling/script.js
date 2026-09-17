@@ -1,7 +1,10 @@
-// v0.10.0
-// Spelling Game - 갈림길 표시 버그 수정 + 조작 규칙 완화 + 실패 모달 캐릭터 회전
-// - 갈림길 오른쪽 블록이 항상 숨겨지던 버그 수정 (style.display='' 대신 'flex'로 명시)
-// - 조작 실수는 갈림길에서 점프를 눌렀을 때만 발생. 일반 블록 전진/갈림길 복귀는 어떤 방향이든 진행됨
+// v0.11.0
+// Spelling Game - 갈림길 흐름 버그 수정 + 레인(좌/중/우) 상태 유지 + 초기 이전 블록 숨김
+// - 시작 시 이전(back) 블록은 숨김. 첫 전진이 일어나야 비로소 나타남
+// - 갈림길 정답 후 "흐름" 입력(어떤 방향이든 OK)은 캐릭터 레인을 표준 스텝 규칙으로 갱신(점프=유지, 반대방향=중앙 복귀, 같은방향=유지)
+//   하고 보드를 전진시킨다. 정답 블록이 그 레인(좌/우)을 유지한 채로 이전/현재 슬롯까지 따라 흐른다(스냅샷 __lane).
+// - 일반 블록은 여전히 '중앙 도착'이 유일한 안전 조건. 표준 스텝 결과가 중앙이 아니면 조작 실수(추락+목숨차감).
+// - 갈림길 오답 : 선택한(오답) 블록만 추락 연출, 정답 블록은 그대로 유지 → 복습 마당에서 블록+캐릭터 동시 추락으로 재활용 예정
 // - front 슬롯이 갈림길(choice)이면 두 블록(fork-row)에 정답/오답을 배치, 일반(text)이면 단일 블록
 // - 좌우 착지 좌표: block--front 170px + fork-row gap 5rem(80px) → 170/2 + 80/2 = 125px
 // - 정답 : 블록 0.6초 초록 플래시 + 캐릭터 correct 세트
@@ -52,13 +55,14 @@ function shuffleArray(arr) {
 
 // 문제은행에서 sentenceCount개 문장을 랜덤으로 뽑고, 각 문장의 토큰을 순서 그대로 펼쳐 블록 큐를 만든다.
 // 토큰이 { text }면 'text' 타입, { correct, wrong }이면 'choice' 타입 아이템으로 변환한다.
+// __lane : 이 아이템이 이전/현재 슬롯으로 흘러올 때의 좌/중/우 위치 스냅샷 (advancePastFront에서 갱신)
 function buildBlockQueue(problems, sentenceCount) {
   const picked = shuffleArray(problems).slice(0, sentenceCount);
   const queue = [];
   picked.forEach((problem) => {
     problem.tokens.forEach((token) => {
       if (token.text !== undefined) {
-        queue.push({ type: 'text', text: token.text });
+        queue.push({ type: 'text', text: token.text, __lane: 'center' });
       } else {
         queue.push({
           type: 'choice',
@@ -66,7 +70,8 @@ function buildBlockQueue(problems, sentenceCount) {
           wrong: token.wrong,
           fixedSide: token.fixedSide,
           _resolved: false,
-          _recorded: false
+          _recorded: false,
+          __lane: 'center'
         });
       }
     });
@@ -158,6 +163,18 @@ const frontRightEl = document.getElementById('board-front-right');
 const currentItems = { back: null, mid: null, front: null };
 let queuePointer = 0;
 
+// 레인('left'|'center'|'right') → x축 이동량(px). 캐릭터와 이전/현재 블록이 공통으로 사용.
+function laneOffsetPx(lane) {
+  return lane === 'left' ? -CHARACTER_X_OFFSET : lane === 'right' ? CHARACTER_X_OFFSET : 0;
+}
+
+// 표준 스텝 규칙 : 점프=유지, 반대쪽 방향=중앙 복귀, 같은 방향(또는 중앙에서 그 방향)=그대로 유지
+function stepLane(lane, action) {
+  if (action === 'left')  return lane === 'right' ? 'center' : 'left';
+  if (action === 'right') return lane === 'left'  ? 'center' : 'right';
+  return lane; // jump
+}
+
 // front 슬롯의 현재 아이템을 화면에 반영 (갈림길이면 두 블록, 아니면 왼쪽 블록만)
 // 주의: style.display='' 로는 CSS의 #board-front-right{display:none}을 못 이기고 다시 숨겨짐 → 'flex'로 명시
 function renderFront() {
@@ -175,6 +192,28 @@ function renderFront() {
   }
 }
 
+// 이전(back) 블록 반영. 아이템이 없으면(시작 시) 아예 숨김 — 흘러온 적 없는 자리이므로.
+function renderBack() {
+  if (currentItems.back) {
+    backEl.classList.remove('block--hidden');
+    backEl.textContent = displayText(currentItems.back);
+    backEl.style.transform = `translateX(${laneOffsetPx(currentItems.back.__lane)}px)`;
+  } else {
+    backEl.classList.add('block--hidden');
+    backEl.textContent = '';
+  }
+}
+
+// 현재(mid) 블록 반영. __lane 스냅샷에 따라 좌/우로 위치할 수 있음(갈림길 정답이 흘러온 경우).
+function renderMid() {
+  if (currentItems.mid) {
+    midEl.textContent = displayText(currentItems.mid);
+    midEl.style.transform = `translateX(${laneOffsetPx(currentItems.mid.__lane)}px)`;
+  } else {
+    midEl.textContent = '';
+  }
+}
+
 // 큐에서 다음 아이템을 front로 끌어옴. 큐가 비었으면 마당 완료 처리.
 function pullNextFront() {
   if (queuePointer >= BLOCK_QUEUE.length) {
@@ -187,18 +226,20 @@ function pullNextFront() {
   renderFront();
 }
 
-// 최초 화면 : 큐 앞 2개는 이미 지나온 것으로 가정해 이전/현재에 배치, 3번째를 다음(front)으로
+// 최초 화면 : 이전(back)은 아직 흘러온 것이 없으므로 숨김. 현재(mid)=큐[0], 다음(front)=큐[1].
 function initBoard() {
-  currentItems.back = BLOCK_QUEUE[0] ?? null;
-  currentItems.mid  = BLOCK_QUEUE[1] ?? null;
-  backEl.textContent = currentItems.back ? displayText(currentItems.back) : '';
-  midEl.textContent  = currentItems.mid  ? displayText(currentItems.mid)  : '';
+  currentItems.back = null;
+  currentItems.mid  = BLOCK_QUEUE[0] ?? null;
+  renderBack();
+  renderMid();
 
-  queuePointer = 2;
+  queuePointer = 1;
   pullNextFront();
 }
 
-// front를 통과했을 때(일반 블록 점프 성공, 또는 갈림길 정답 후 복귀 성공) 한 칸 전진
+// front를 통과했을 때(일반 블록 통과, 또는 갈림길 정답 후 흐름 입력) 한 칸 전진.
+// 이 시점의 currentLane을 mid로 승격되는 아이템에 스냅샷하여, 이후 캐릭터가 다른 레인으로 이동해도
+// 이미 지나간 이 블록은 자신이 답해진 레인을 그대로 유지한 채 흘러간다.
 function advancePastFront() {
   const boardFadeEls = [backEl, midEl, frontLeftEl, frontRightEl];
   boardFadeEls.forEach((el) => el.classList.add('block--fade-out'));
@@ -206,10 +247,10 @@ function advancePastFront() {
   setTimeout(() => {
     currentItems.back = currentItems.mid;
     currentItems.mid  = currentItems.front;
+    if (currentItems.mid) currentItems.mid.__lane = currentLane;
 
-    backEl.textContent = currentItems.back ? displayText(currentItems.back) : '';
-    midEl.textContent  = currentItems.mid  ? displayText(currentItems.mid)  : '';
-
+    renderBack();
+    renderMid();
     pullNextFront();
 
     boardFadeEls.forEach((el) => el.classList.remove('block--fade-out'));
@@ -221,6 +262,15 @@ function flashBlock(el, type) {
   const cls = type === 'correct' ? 'block--flash-correct' : 'block--flash-wrong';
   el.classList.add(cls);
   setTimeout(() => el.classList.remove(cls), FLASH_DURATION);
+}
+
+// 갈림길 오답 시 : 선택한(오답) 블록만 추락. 정답 블록은 그대로 둔다.
+// 복습 마당에서는 블록+캐릭터가 함께, 더 빠르게 추락하도록 이 함수를 재활용할 예정.
+function collapseBlock(el) {
+  el.classList.add('block--collapse');
+}
+function resetCollapsedBlock(el) {
+  el.classList.remove('block--collapse');
 }
 
 /* ===========================
@@ -370,10 +420,7 @@ let currentLane = 'center'; // 'left' | 'center' | 'right' (캐릭터가 현재 
 let isBusy = false; // 정오답/추락 연출이 재생되는 동안 입력 차단
 
 function applyLanePosition() {
-  const offset = currentLane === 'left' ? -CHARACTER_X_OFFSET
-               : currentLane === 'right' ? CHARACTER_X_OFFSET
-               : 0;
-  xTrackEl.style.transform = `translateX(${offset}px)`;
+  xTrackEl.style.transform = `translateX(${laneOffsetPx(currentLane)}px)`;
 }
 
 function playJumpMotion() {
@@ -427,7 +474,7 @@ function handleOperationMistake() {
 /* ===========================
    조작 판정 상태머신
    phase: 'idle'    - 중앙에서 다음 블록(일반/갈림길) 대기
-          'onFork'  - 갈림길 정답을 맞혀 좌/우 블록에 착지, 반대쪽 방향키로 복귀 대기
+          'onFork'  - 갈림길 정답을 맞혀 좌/우 블록에 착지, 다음 "흐름" 입력을 기다리는 중
 =========================== */
 
 let phase = 'idle';
@@ -440,12 +487,13 @@ function handleInput(action) {
   if (!learningModalEl.classList.contains('learning-modal--hidden')) return;
 
   if (phase === 'onFork') {
-    // 어떤 방향(←/→/↓)을 입력해도 중앙으로 복귀하며 다음 블록으로 전진
-    currentLane = 'center';
+    // 갈림길 정답을 밟은 뒤의 "흐름" 입력 : 어떤 방향이든 보드가 전진한다.
+    // 캐릭터 레인은 표준 스텝 규칙으로 갱신 (점프/같은방향=유지, 반대방향=중앙 복귀) — 조작 실수 판정의 기준이 되므로 중요.
+    currentLane = stepLane(currentLane, action);
     applyLanePosition();
     playJumpMotion();
     phase = 'idle';
-    advancePastFront();
+    advancePastFront(); // mid로 승격되며 currentLane이 __lane으로 스냅샷됨
     return;
   }
 
@@ -454,7 +502,7 @@ function handleInput(action) {
   if (!nextItem) return;
 
   if (nextItem.type === 'choice') {
-    // 갈림길 : 좌/우만 허용, 점프는 조작 실수
+    // 갈림길의 최초 선택 : 좌/우만 허용(절대 위치 지정), 점프는 조작 실수
     if (action === 'jump') {
       handleOperationMistake();
       return;
@@ -474,14 +522,16 @@ function handleInput(action) {
       flashBlock(chosenEl, 'correct');
       phase = 'onFork';
     } else {
-      // 오답 : 목숨 차감 없음(일반 마당). 0.6초간 빨강 플래시 + wrong 세트 + 빠른 점멸
+      // 오답 : 목숨 차감 없음(일반 마당). 0.6초간 빨강 플래시 + wrong 세트 + 빠른 점멸 + 오답 블록만 추락
       isBusy = true;
       flashBlock(chosenEl, 'wrong');
+      collapseBlock(chosenEl); // 정답 블록(반대쪽)은 그대로 유지
       playCharacterMotion('wrong', 'wrong', FLASH_DURATION);
       jumpEl.classList.add('is-blinking');
 
       setTimeout(() => {
         jumpEl.classList.remove('is-blinking');
+        resetCollapsedBlock(chosenEl); // 재시도를 위해 원상 복구
         // 롤백(중앙 복귀)과 동시에 학습 모달 표시
         currentLane = 'center';
         applyLanePosition();
@@ -492,7 +542,13 @@ function handleInput(action) {
     return;
   }
 
-  // 일반 블록 : 어떤 방향(←/→/↓)을 입력해도 전진
+  // 일반 블록 : 표준 스텝 결과가 반드시 '중앙'이어야 안전하게 통과. 아니면 조작 실수(추락+목숨차감).
+  const resultLane = stepLane(currentLane, action);
+  if (resultLane !== 'center') {
+    handleOperationMistake();
+    return;
+  }
+
   currentLane = 'center';
   applyLanePosition();
   playJumpMotion();
