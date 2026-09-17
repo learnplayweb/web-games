@@ -1,7 +1,9 @@
-// v0.12.0
-// Spelling Game - 갈림길 입력 즉시 진행(정오답 판정과 동시에 전진) + 오답 블록 상시 추락 + 모달 키보드 닫기
-// - 갈림길에서 좌/우 입력 시 그 자리에서 바로 판정+연출+보드 전진까지 한 번에 처리 ('onFork' 대기 단계 제거)
-//   정답 선택: 정답 블록 초록 플래시 + 오답 블록(반대쪽) 추락(빨강 플래시 없이) → 0.6초 후 자동 전진
+// v0.13.0
+// Spelling Game - 갈림길 정답 시 진행 타이밍을 일반 블록과 동일하게(180ms 즉시 전진) 수정
+// - 이전에는 0.6초 플래시/추락이 끝난 뒤에야 전진해서 일반 블록보다 느리게 느껴짐 → 전진(advancePastFront)을 먼저 걸고
+//   색상 플래시/추락 연출은 그 위에 얹기만 함(전진을 지연시키지 않음). 연출 클래스는 180ms 뒤 정리.
+// - 갈림길에서 좌/우 입력 시 그 자리에서 바로 판정+연출+보드 전진까지 한 번에 처리
+//   정답 선택: 정답 블록 초록 플래시 + 오답 블록(반대쪽) 추락(빨강 플래시 없이) → 즉시 전진
 //   오답 선택: 선택한(오답) 블록 빨강 플래시+추락, 정답 블록도 초록 플래시 → 0.6초 후 중앙 롤백 + 학습 모달(전진 없음, 재시도)
 // - 시작 시 이전(back) 블록은 자리는 차지하되 안 보임(visibility:hidden, 레이아웃 유지). 첫 전진 후 보임.
 // - 일반 블록은 여전히 '중앙 도착'이 유일한 안전 조건. 표준 스텝 결과가 중앙이 아니면 조작 실수(추락+목숨차감).
@@ -254,33 +256,6 @@ function advancePastFront() {
 
     boardFadeEls.forEach((el) => el.classList.remove('block--fade-out'));
   }, FADE_OUT_DURATION);
-}
-
-// 갈림길에서 정답을 고른 경우 전용 전진 : 판정 연출(플래시/추락)과 보드 전진을 한 번에 처리한다.
-// (일반 advancePastFront와 달리 fork-row 두 블록은 fade-out 대신 flash+collapse로 스스로 연출을 갖는다)
-function advanceFromFork(correctEl, wrongEl) {
-  isBusy = true;
-  flashBlock(correctEl, 'correct');   // 정답 : 초록 플래시만 (빨강 없음)
-  collapseBlock(wrongEl);              // 오답 : 추락만 (정답을 골랐을 때는 빨강 플래시 없음)
-  backEl.classList.add('block--fade-out');
-  midEl.classList.add('block--fade-out');
-
-  setTimeout(() => {
-    currentItems.back = currentItems.mid;
-    currentItems.mid  = currentItems.front;
-    if (currentItems.mid) currentItems.mid.__lane = currentLane;
-
-    clearFlash(correctEl);
-    resetCollapsedBlock(wrongEl);
-
-    renderBack();
-    renderMid();
-    pullNextFront();
-
-    backEl.classList.remove('block--fade-out');
-    midEl.classList.remove('block--fade-out');
-    isBusy = false;
-  }, FLASH_DURATION);
 }
 
 // 정답/오답 0.6초 블록 플래시 (시계 게임의 정오답 표시 참고, 통일성 유지)
@@ -552,9 +527,15 @@ function handleInput(action) {
     applyLanePosition();
 
     if (isCorrect) {
-      // 정답 : 판정+연출과 동시에 자동 전진 (추가 입력 불필요)
+      // 정답 : 일반 블록과 동일한 타이밍(180ms)으로 즉시 전진. 색상/추락 연출은 그 위에 얹을 뿐 전진을 지연시키지 않는다.
       playJumpMotion();
-      advanceFromFork(correctEl, wrongEl);
+      flashBlock(correctEl, 'correct');   // 초록 플래시만 (빨강 없음)
+      collapseBlock(wrongEl);             // 반대쪽(오답)은 추락
+      advancePastFront();
+      setTimeout(() => {
+        clearFlash(correctEl);
+        resetCollapsedBlock(wrongEl);
+      }, FADE_OUT_DURATION);
     } else {
       // 오답 : 목숨 차감 없음(일반 마당). 고른(오답) 블록은 빨강 플래시+추락, 정답 블록은 초록 플래시.
       // 전진하지 않고 0.6초 후 중앙 롤백 + 학습 모달(재시도).
