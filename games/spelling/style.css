@@ -1,6 +1,5 @@
-/* v0.15.0
- Spelling Game - 마지막 글자 두꺼워지는 버그 수정(text-shadow 제거) + fork-row gap 3rem
- + 이전 블록 레이아웃 공간 유지(visibility) + 마당 완료 카드를 시계 게임 result-card 레이아웃으로 교체 */
+/* v0.17.0
+ Spelling Game - 점프 아크 애니메이션 시간을 0.4s → 0.26s로 단축 (좌우 이동과 통일) */
 
 /* ===========================
    0. 폰트 선언
@@ -143,7 +142,7 @@ body {
   font-family: 'HakgyoansimGeurimilgi', var(--font-base);
   color: var(--color-text);
   -webkit-text-stroke: 0.55px var(--color-text);
-  transition: opacity 0.18s ease, transform 0.18s ease, background-color 0.15s ease; /* 전진 시 페이드+스케일, 정오답 플래시용 */
+  transition: opacity 0.18s ease, transform 1s ease, background-color 0.15s ease; /* 전진 시 페이드+스케일, 정오답 플래시용 */
   clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%); /* fallback, 티어별 규칙에서 path()로 교체됨 */
 }
 
@@ -159,11 +158,9 @@ body {
   transition: background 0.15s ease; /* 정오답 플래시용 */
 }
 
-/* 전진 중 : 페이드아웃 + 살짝 축소 → 텍스트 교체 후 클래스 제거로 자동 페이드인(트랜지션) */
-/* 스케일 없이 순수 페이드만 원하면 transform 줄만 지우면 됨 */
+/* 전진 중 : 페이드아웃(투명도만). 축소(scale)는 레인 오프셋과 합쳐 script.js가 인라인 transform으로 직접 적용 */
 .block--fade-out {
   opacity: 0;
-  transform: scale(0.94);
 }
 
 /* 정답/오답 0.6초 플래시 (시계 게임의 input-area--correct/wrong 배색 참고, 통일성 유지) */
@@ -257,7 +254,7 @@ body {
 
 /* 좌우 이동 : JS가 translateX(±125px)를 부여, transition으로 부드럽게 이동 */
 .character-x-track {
-  transition: transform 0.26s ease-out;
+  transition: transform 0.4s ease-out;
 }
 
 /* 점프 아크 : is-jumping 클래스가 붙는 동안만 위로 튀었다 착지하는 keyframe 실행 */

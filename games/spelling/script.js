@@ -1,7 +1,7 @@
-// v0.13.0
-// Spelling Game - 갈림길 정답 시 진행 타이밍을 일반 블록과 동일하게(180ms 즉시 전진) 수정
-// - 이전에는 0.6초 플래시/추락이 끝난 뒤에야 전진해서 일반 블록보다 느리게 느껴짐 → 전진(advancePastFront)을 먼저 걸고
-//   색상 플래시/추락 연출은 그 위에 얹기만 함(전진을 지연시키지 않음). 연출 클래스는 180ms 뒤 정리.
+// v0.17.0
+// Spelling Game - 블록 내용 교체 시 위치가 미끄러지듯 이동하던 어색함 수정
+// - 재사용되는 이전/현재 블록 DOM이 "옛 레인 위치 → 새 레인 위치"로 opacity와 함께 transform까지 트랜지션을 타서
+//   슬라이드하는 것처럼 보였음 → 콘텐츠 교체 순간 transition을 잠깐 꺼서 새 위치로 즉시 스냅시키고, opacity만 서서히 페이드인
 // - 갈림길에서 좌/우 입력 시 그 자리에서 바로 판정+연출+보드 전진까지 한 번에 처리
 //   정답 선택: 정답 블록 초록 플래시 + 오답 블록(반대쪽) 추락(빨강 플래시 없이) → 즉시 전진
 //   오답 선택: 선택한(오답) 블록 빨강 플래시+추락, 정답 블록도 초록 플래시 → 0.6초 후 중앙 롤백 + 학습 모달(전진 없음, 재시도)
@@ -27,7 +27,7 @@ import { STAGES, NORMAL_STAGE_QUESTION_COUNT, NORMAL_STAGE_LIVES } from './data/
 =========================== */
 
 const CHARACTER_X_OFFSET = 109; // 좌/우 갈림길 착지 좌표 (board-area 가로 중심 기준)
-const JUMP_ANIM_DURATION = 400;    // character-jump-arc(0.4s)와 동일하게 유지
+const JUMP_ANIM_DURATION = 260;    // character-jump-arc(0.26s)와 동일하게 유지 — 좌우 이동(0.26s)에 맞춤
 const FADE_OUT_DURATION = 180;     // .block--fade-out 트랜지션(0.18s)과 동일하게 유지
 const FLASH_DURATION = 600;        // 정오답 블록 플래시/추락 (0.6초, 시계 게임 참고)
 const FALL_DURATION = 1600;        // 조작 실수 캐릭터 추락(1.6초)
@@ -169,6 +169,14 @@ function laneOffsetPx(lane) {
   return lane === 'left' ? -CHARACTER_X_OFFSET : lane === 'right' ? CHARACTER_X_OFFSET : 0;
 }
 
+// 이전/현재/다음 블록은 레인 오프셋(+페이드아웃 축소)을 인라인 style.transform으로 직접 관리한다.
+// translateX(0px) ↔ translateX(0px) scale(0.94)처럼 transform 함수 개수 자체가 바뀌면
+// 브라우저가 보간(트랜지션) 없이 순간 전환해버릴 수 있어, 평소에도 scale(1)을 항상 포함시켜
+// transform 함수 구성을 항상 동일하게 유지한다 (스케일 값만 바뀌므로 확실히 보간됨).
+function setBlockTransform(el, lane, scaledDown) {
+  el.style.transform = `translateX(${laneOffsetPx(lane)}px) scale(${scaledDown ? 0.94 : 1})`;
+}
+
 // 표준 스텝 규칙 : 점프=유지, 반대쪽 방향=중앙 복귀, 같은 방향(또는 중앙에서 그 방향)=그대로 유지
 function stepLane(lane, action) {
   if (action === 'left')  return lane === 'right' ? 'center' : 'left';
@@ -198,7 +206,7 @@ function renderBack() {
   if (currentItems.back) {
     backEl.classList.remove('block--hidden');
     backEl.textContent = displayText(currentItems.back);
-    backEl.style.transform = `translateX(${laneOffsetPx(currentItems.back.__lane)}px)`;
+    setBlockTransform(backEl, currentItems.back.__lane, false);
   } else {
     backEl.classList.add('block--hidden');
     backEl.textContent = '';
@@ -209,7 +217,7 @@ function renderBack() {
 function renderMid() {
   if (currentItems.mid) {
     midEl.textContent = displayText(currentItems.mid);
-    midEl.style.transform = `translateX(${laneOffsetPx(currentItems.mid.__lane)}px)`;
+    setBlockTransform(midEl, currentItems.mid.__lane, false);
   } else {
     midEl.textContent = '';
   }
@@ -233,6 +241,8 @@ function initBoard() {
   currentItems.mid  = BLOCK_QUEUE[0] ?? null;
   renderBack();
   renderMid();
+  setBlockTransform(frontLeftEl,  'center', false);
+  setBlockTransform(frontRightEl, 'center', false);
 
   queuePointer = 1;
   pullNextFront();
@@ -242,18 +252,34 @@ function initBoard() {
 // 이 시점의 currentLane을 mid로 승격되는 아이템에 스냅샷하여, 이후 캐릭터가 다른 레인으로 이동해도
 // 이미 지나간 이 블록은 자신이 답해진 레인을 그대로 유지한 채 흘러간다.
 function advancePastFront() {
+  // 페이드아웃(트랜지션 있음) : 이전/현재 블록은 "현재 레인을 유지한 채" 살짝 축소
+  setBlockTransform(backEl, currentItems.back ? currentItems.back.__lane : 'center', true);
+  setBlockTransform(midEl,  currentItems.mid  ? currentItems.mid.__lane  : 'center', true);
+  setBlockTransform(frontLeftEl,  'center', true);
+  setBlockTransform(frontRightEl, 'center', true);
+
   const boardFadeEls = [backEl, midEl, frontLeftEl, frontRightEl];
-  boardFadeEls.forEach((el) => el.classList.add('block--fade-out'));
+  boardFadeEls.forEach((el) => el.classList.add('block--fade-out')); // opacity만 담당 (transform은 위에서 인라인으로 처리)
 
   setTimeout(() => {
     currentItems.back = currentItems.mid;
     currentItems.mid  = currentItems.front;
     if (currentItems.mid) currentItems.mid.__lane = currentLane;
 
+    // 콘텐츠 교체 시 새 레인 위치로 "트랜지션 없이" 즉시 스냅 (레인이 바뀌어도 미끄러지지 않도록)
+    // → 옛 위치에서 새 위치로 슬라이드하는 것처럼 보이던 어색함의 원인
+    boardFadeEls.forEach((el) => { el.style.transition = 'none'; });
+
     renderBack();
     renderMid();
     pullNextFront();
+    setBlockTransform(frontLeftEl,  'center', false);
+    setBlockTransform(frontRightEl, 'center', false);
 
+    void backEl.offsetWidth; // 강제 리플로우로 스냅을 확정(트랜지션 없이 적용)
+
+    // 트랜지션 복구 후 opacity만 서서히 페이드인 (transform은 이미 목표값이라 움직이지 않음)
+    boardFadeEls.forEach((el) => { el.style.transition = ''; });
     boardFadeEls.forEach((el) => el.classList.remove('block--fade-out'));
   }, FADE_OUT_DURATION);
 }
