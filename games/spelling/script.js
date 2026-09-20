@@ -19,7 +19,7 @@
 
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
 import { getEquippedParts } from '../../core/saveManager.js';
-import { DOE_DWAE_PROBLEMS, DOE_DWAE_GUIDE } from './data/problems/doe-dwae.js';
+import { DOE_DWAE_PROBLEMS, DOE_DWAE_GUIDE } from './data/problems/01-doe-dwae.js';
 import { STAGES, NORMAL_STAGE_QUESTION_COUNT, NORMAL_STAGE_LIVES } from './data/stages.js';
 
 /* ===========================
