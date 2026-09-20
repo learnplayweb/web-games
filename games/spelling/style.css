@@ -1,5 +1,5 @@
-/* v0.17.0
- Spelling Game - 점프 아크 애니메이션 시간을 0.4s → 0.26s로 단축 (좌우 이동과 통일) */
+/* v0.18.0
+ Spelling Game - 추락(block-collapse) 애니메이션을 0.6s ease-in → 0.4s ease-out으로 변경 (짧은 시간에도 낙하가 보이도록) */
 
 /* ===========================
    0. 폰트 선언
@@ -142,7 +142,7 @@ body {
   font-family: 'HakgyoansimGeurimilgi', var(--font-base);
   color: var(--color-text);
   -webkit-text-stroke: 0.55px var(--color-text);
-  transition: opacity 0.18s ease, transform 1s ease, background-color 0.15s ease; /* 전진 시 페이드+스케일, 정오답 플래시용 */
+  transition: opacity 0.18s ease, transform 0.18s ease, background-color 0.15s ease; /* 전진 시 페이드+스케일, 정오답 플래시용 */
   clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%); /* fallback, 티어별 규칙에서 path()로 교체됨 */
 }
 
@@ -184,9 +184,10 @@ body {
 }
 
 /* 갈림길에서 오답인 블록은 정답을 골랐든 오답을 골랐든 항상 추락한다 (정답 블록은 유지)
+   ease-out(시작부터 빠르게 움직임)으로 짧은 시간에도 낙하가 눈에 띄도록 함
    복습 마당에서는 블록+캐릭터가 함께, 더 빠르게 추락하는 변형으로 재활용 예정 */
 .block--collapse {
-  animation: block-collapse 0.6s ease-in forwards;
+  animation: block-collapse 0.4s ease-out forwards;
 }
 
 @keyframes block-collapse {
@@ -254,12 +255,12 @@ body {
 
 /* 좌우 이동 : JS가 translateX(±125px)를 부여, transition으로 부드럽게 이동 */
 .character-x-track {
-  transition: transform 0.4s ease-out;
+  transition: transform 0.26s ease-out;
 }
 
 /* 점프 아크 : is-jumping 클래스가 붙는 동안만 위로 튀었다 착지하는 keyframe 실행 */
 .character-jump.is-jumping {
-  animation: character-jump-arc 0.4s ease-out;
+  animation: character-jump-arc 0.26s ease-out;
 }
 
 @keyframes character-jump-arc {

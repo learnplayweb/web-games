@@ -1,7 +1,6 @@
-// v0.17.0
-// Spelling Game - 블록 내용 교체 시 위치가 미끄러지듯 이동하던 어색함 수정
-// - 재사용되는 이전/현재 블록 DOM이 "옛 레인 위치 → 새 레인 위치"로 opacity와 함께 transform까지 트랜지션을 타서
-//   슬라이드하는 것처럼 보였음 → 콘텐츠 교체 순간 transition을 잠깐 꺼서 새 위치로 즉시 스냅시키고, opacity만 서서히 페이드인
+// v0.18.0
+// Spelling Game - 축소 연출 재복구(위치 스냅과 스케일 복귀 분리) + 추락 애니메이션 단축(0.4s, ease-out)
+// - 문제 파일 01-doe-dwae.js로 경로 변경 반영, stages.js 5개 마당 주제 반영
 // - 갈림길에서 좌/우 입력 시 그 자리에서 바로 판정+연출+보드 전진까지 한 번에 처리
 //   정답 선택: 정답 블록 초록 플래시 + 오답 블록(반대쪽) 추락(빨강 플래시 없이) → 즉시 전진
 //   오답 선택: 선택한(오답) 블록 빨강 플래시+추락, 정답 블록도 초록 플래시 → 0.6초 후 중앙 롤백 + 학습 모달(전진 없음, 재시도)
@@ -29,7 +28,7 @@ import { STAGES, NORMAL_STAGE_QUESTION_COUNT, NORMAL_STAGE_LIVES } from './data/
 const CHARACTER_X_OFFSET = 109; // 좌/우 갈림길 착지 좌표 (board-area 가로 중심 기준)
 const JUMP_ANIM_DURATION = 260;    // character-jump-arc(0.26s)와 동일하게 유지 — 좌우 이동(0.26s)에 맞춤
 const FADE_OUT_DURATION = 180;     // .block--fade-out 트랜지션(0.18s)과 동일하게 유지
-const FLASH_DURATION = 600;        // 정오답 블록 플래시/추락 (0.6초, 시계 게임 참고)
+const FLASH_DURATION = 400;        // 정오답 블록 플래시/추락 (0.4초, block-collapse와 동일하게 맞춤)
 const FALL_DURATION = 1600;        // 조작 실수 캐릭터 추락(1.6초)
 const BLINK_DURATION = 500;        // 추락/오답 롤백 시 빠른 점멸 시간
 
@@ -202,11 +201,12 @@ function renderFront() {
 }
 
 // 이전(back) 블록 반영. 아이템이 없으면(시작 시) 아예 숨김 — 흘러온 적 없는 자리이므로.
-function renderBack() {
+// scaledDown: true면 축소(0.94) 상태를 유지한 채로 위치만 갱신 (콘텐츠 교체 스냅 단계에서 사용)
+function renderBack(scaledDown = false) {
   if (currentItems.back) {
     backEl.classList.remove('block--hidden');
     backEl.textContent = displayText(currentItems.back);
-    setBlockTransform(backEl, currentItems.back.__lane, false);
+    setBlockTransform(backEl, currentItems.back.__lane, scaledDown);
   } else {
     backEl.classList.add('block--hidden');
     backEl.textContent = '';
@@ -214,10 +214,10 @@ function renderBack() {
 }
 
 // 현재(mid) 블록 반영. __lane 스냅샷에 따라 좌/우로 위치할 수 있음(갈림길 정답이 흘러온 경우).
-function renderMid() {
+function renderMid(scaledDown = false) {
   if (currentItems.mid) {
     midEl.textContent = displayText(currentItems.mid);
-    setBlockTransform(midEl, currentItems.mid.__lane, false);
+    setBlockTransform(midEl, currentItems.mid.__lane, scaledDown);
   } else {
     midEl.textContent = '';
   }
@@ -266,20 +266,24 @@ function advancePastFront() {
     currentItems.mid  = currentItems.front;
     if (currentItems.mid) currentItems.mid.__lane = currentLane;
 
-    // 콘텐츠 교체 시 새 레인 위치로 "트랜지션 없이" 즉시 스냅 (레인이 바뀌어도 미끄러지지 않도록)
-    // → 옛 위치에서 새 위치로 슬라이드하는 것처럼 보이던 어색함의 원인
+    // 1) 콘텐츠 교체 + 새 레인 "위치"로 트랜지션 없이 즉시 스냅 (축소값 0.94는 그대로 유지한 채)
+    //    → 위치만 스냅하고 스케일은 다음 단계에서 애니메이션되므로, 슬라이드도 안 생기고 축소→원복 연출도 유지됨
     boardFadeEls.forEach((el) => { el.style.transition = 'none'; });
 
-    renderBack();
-    renderMid();
+    renderBack(true);
+    renderMid(true);
     pullNextFront();
-    setBlockTransform(frontLeftEl,  'center', false);
-    setBlockTransform(frontRightEl, 'center', false);
+    setBlockTransform(frontLeftEl,  'center', true);
+    setBlockTransform(frontRightEl, 'center', true);
 
     void backEl.offsetWidth; // 강제 리플로우로 스냅을 확정(트랜지션 없이 적용)
 
-    // 트랜지션 복구 후 opacity만 서서히 페이드인 (transform은 이미 목표값이라 움직이지 않음)
+    // 2) 트랜지션 복구 → 위치는 이미 목표값이라 안 움직이고, 스케일(0.94→1)과 opacity만 애니메이션
     boardFadeEls.forEach((el) => { el.style.transition = ''; });
+    renderBack(false);
+    renderMid(false);
+    setBlockTransform(frontLeftEl,  'center', false);
+    setBlockTransform(frontRightEl, 'center', false);
     boardFadeEls.forEach((el) => el.classList.remove('block--fade-out'));
   }, FADE_OUT_DURATION);
 }
