@@ -343,15 +343,10 @@ export const AN_ANH_GUIDE = {
   title: '안 / 않 구별법',
   lines: [
     [
-      { text: "'" }, { text: '안', emph: 'blue' }, { text: "'은 '" },
-      { text: '아니', emph: 'blue' }, { text: "'의 준말," }
-    ],
-    [
-      { text: "'" }, { text: '않', emph: 'red' }, { text: "'은 '" },
-      { text: '아니하~', emph: 'red' }, { text: "'의 준말" }
-    ],
-    [
       { text: '앞에 ' }, { text: '~지', emph: 'red' }, { text: "'가 있으면 " }, { text: '않', emph: 'red' }
-    ]
+    ],
+    [
+      { text: "없으면 " }, { text: "'" }, { text: '안', emph: 'blue' }, { text: "'" },
+    ],
   ]
 };

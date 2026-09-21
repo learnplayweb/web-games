@@ -1,6 +1,8 @@
-// v0.19.0
-// Spelling Game - 콤보 카운트 구현 (시계 게임 규칙과 동일: 정답 +1, 오답/조작실수 리셋, 3콤보마다 장착 이펙트 재생)
-// - effects.js/inventory.js 연동(playEventEffect는 시계 게임과 동일하게 로컬 정의), 완료 모달에 최고 콤보 실제값 반영
+// v0.20.0
+// Spelling Game - 결과 및 보상 시스템 구현 (기존 정리안 그대로: 선택지점/콤보/별점 보상)
+// - saveManager.js에 추가된 getSpellingBestStars/saveSpellingResult 연동. Gold는 Clock과 공용 지갑 사용.
+// - 진행 중엔 firstAttemptResults/maxCombo 등 메모리 변수로만 관리하다가, 마당을 정상 완료했을 때
+//   finishStage()에서 딱 한 번 저장 → 새로고침/이탈로는 보상이 저장되지 않음
 // - 갈림길에서 좌/우 입력 시 그 자리에서 바로 판정+연출+보드 전진까지 한 번에 처리
 //   정답 선택: 정답 블록 초록 플래시 + 오답 블록(반대쪽) 추락(빨강 플래시 없이) → 즉시 전진
 //   오답 선택: 선택한(오답) 블록 빨강 플래시+추락, 정답 블록도 초록 플래시 → 0.6초 후 중앙 롤백 + 학습 모달(전진 없음, 재시도)
@@ -17,7 +19,7 @@
 // - initCharacter()
 
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
-import { getEquippedParts } from '../../core/saveManager.js';
+import { getEquippedParts, getSpellingBestStars, saveSpellingResult } from '../../core/saveManager.js';
 import { spawnEffect } from '../../characters/assets/effects/effects.js';
 import { pickRandomEquippedEffect } from '../../characters/inventory.js';
 import { DOE_DWAE_PROBLEMS, DOE_DWAE_GUIDE } from './data/problems/01-doe-dwae.js';
@@ -104,6 +106,20 @@ const currentStage = STAGES.find((stage) => stage.level === 1);
 const BLOCK_QUEUE = buildBlockQueue(PROBLEM_BANKS[currentStage.topic], NORMAL_STAGE_QUESTION_COUNT);
 const TOTAL_CHOICE_POINTS = BLOCK_QUEUE.filter((item) => item.type === 'choice').length;
 const CURRENT_GUIDE = TOPIC_GUIDES[currentStage.topic];
+
+// 이번 판을 시작하기 "이전"의 최고 별점 (보상 계산 기준). 완료 후 갱신되므로 게임 시작 시점에 한 번만 읽는다.
+const PREV_BEST_STARS = getSpellingBestStars(currentStage.topic);
+
+/* ===========================
+   보상 테이블 (기존 정리안 그대로) : 상수로 관리해 밸런스 조정이 쉽도록 함
+=========================== */
+
+// 선택 지점당 Gold : 이전 최고 별점이 낮을수록(=처음 도전에 가까울수록) 더 많이 지급
+const CHOICE_GOLD_BY_STARS = { 0: 10, 1: 7, 2: 4, 3: 1 };
+// 콤보 보너스 배율 : 최장 콤보 × 배율. 이전 최고 별점이 낮을수록 배율이 큼
+const COMBO_MULTIPLIER_BY_STARS = { 0: 4, 1: 3, 2: 2, 3: 1 };
+// 별점 자체의 가치 (누적) : 별점 보상 = 새 최고 별 가치 − 이전 최고 별 가치
+const STAR_VALUE = { 0: 0, 1: 10, 2: 30, 3: 50 };
 
 /* ===========================
    캐릭터 초기화 (정면 idle) + 모션 재생 헬퍼
@@ -419,7 +435,8 @@ function closeLearningModal() {
 learningModalEl.addEventListener('click', closeLearningModal);
 
 /* ===========================
-   마당 완료 / 실패. 아무 곳이나 탭 또는 방향키/스페이스바로 닫힘 (Gold 보상 연동은 이후 단계에서 구현)
+   마당 완료 / 실패. 아무 곳이나 탭 또는 방향키/스페이스바로 닫힘
+   완료 시에만 별점·콤보·선택지점 보상을 계산해 saveSpellingResult()로 1회 저장
 =========================== */
 
 const stageResultEl = document.getElementById('stage-result');
@@ -432,6 +449,10 @@ const resultStarsEl = document.getElementById('result-stars');
 const resultScoreEl = document.getElementById('result-score');
 const resultRateEl  = document.getElementById('result-rate');
 const resultComboEl = document.getElementById('result-combo');
+const resultGoldQuizEl  = document.getElementById('result-gold-quiz');
+const resultGoldComboEl = document.getElementById('result-gold-combo');
+const resultGoldStarEl  = document.getElementById('result-gold-star');
+const resultGoldTotalEl = document.getElementById('result-gold-total');
 
 // 실패 카드
 const stageResultTitleEl = document.getElementById('stage-result-title');
@@ -450,6 +471,8 @@ function calcStars(correctCount, total) {
   return 0;
 }
 
+// 마당을 정상적으로 완료했을 때만 호출된다 (새로고침/이탈 시엔 이 함수 자체가 호출되지 않으므로
+// firstAttemptResults/maxCombo 같은 진행 중 임시 데이터가 저장으로 이어지지 않는다).
 function finishStage() {
   stageEnded = true;
   stageFailed = false;
@@ -459,11 +482,23 @@ function finishStage() {
   const stars = calcStars(correctCount, total);
   const rate = total === 0 ? 0 : Math.round((correctCount / total) * 100);
 
+  // 보상 계산 (이전 최고 별점 기준) — 게임 중엔 지급하지 않고 여기서 한 번에 계산+저장
+  const goldQuiz  = correctCount * (CHOICE_GOLD_BY_STARS[PREV_BEST_STARS] ?? CHOICE_GOLD_BY_STARS[0]);
+  const goldCombo = maxCombo * (COMBO_MULTIPLIER_BY_STARS[PREV_BEST_STARS] ?? COMBO_MULTIPLIER_BY_STARS[0]);
+  const goldStar  = Math.max(0, STAR_VALUE[stars] - STAR_VALUE[PREV_BEST_STARS]);
+  const goldTotal = goldQuiz + goldCombo + goldStar;
+
+  saveSpellingResult(currentStage.topic, stars, goldTotal);
+
   resultLevelEl.textContent = '마당 완료!';
   resultStarsEl.textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
   resultScoreEl.textContent = `${correctCount} / ${total}`;
   resultRateEl.textContent = `정답률 ${rate}%`;
-  resultComboEl.textContent = `최고 콤보 🔥 ${maxCombo}`; // Gold 보상 로직은 다음 단계에서 구현
+  resultComboEl.textContent = `최고 콤보 🔥 ${maxCombo}`;
+  resultGoldQuizEl.textContent  = `💎 ${goldQuiz}`;
+  resultGoldComboEl.textContent = `💎 ${goldCombo}`;
+  resultGoldStarEl.textContent  = `💎 ${goldStar}`;
+  resultGoldTotalEl.textContent = `💎 ${goldTotal}`;
 
   successCardEl.style.display = 'flex';
   failureCardEl.style.display = 'none';

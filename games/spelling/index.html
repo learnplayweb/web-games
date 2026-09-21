@@ -1,5 +1,5 @@
-<!-- v0.10.0
- Spelling Game - 콤보 이펙트 재생을 위해 effects.css 링크 추가 -->
+<!-- v0.11.0
+ Spelling Game - 완료 카드 골드 내역 3행+합계에 id 부여 (결과·보상 시스템에서 실제 값 채움) -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -79,10 +79,10 @@
       <p id="result-rate" class="result-rate">정답률 0%</p>
       <p id="result-combo" class="result-combo">최고 콤보 🔥 -</p>
       <hr class="result-divider" />
-      <p class="result-gold-row"><span>문제 정답</span><span class="result-gold-value">💎 0</span></p>
-      <p class="result-gold-row"><span>콤보 보너스</span><span class="result-gold-value">💎 0</span></p>
-      <p class="result-gold-row"><span>별점 보너스</span><span class="result-gold-value">💎 0</span></p>
-      <p class="result-gold-total"><span>총 획득</span><span class="result-gold-value">💎 0</span></p>
+      <p class="result-gold-row"><span>문제 정답</span><span id="result-gold-quiz" class="result-gold-value">💎 0</span></p>
+      <p class="result-gold-row"><span>콤보 보너스</span><span id="result-gold-combo" class="result-gold-value">💎 0</span></p>
+      <p class="result-gold-row"><span>별점 보너스</span><span id="result-gold-star" class="result-gold-value">💎 0</span></p>
+      <p class="result-gold-total"><span>총 획득</span><span id="result-gold-total" class="result-gold-value">💎 0</span></p>
     </div>
 
     <!-- 실패 카드 : 통계 없이 캐릭터 + 격려 문구만 -->

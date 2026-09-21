@@ -1,8 +1,11 @@
+// v0.2.0 : Add_맞춤법 게임(Spelling) 마당(주제)별 최고 별점 저장 + 결과 보상 저장 함수 추가
 // v0.1.11 : Add_효과(Effect) 인벤토리 및 장착 상태 슬롯 추가
 // 
 // Save Manager
-// - localStorage 접근을 이 파일로 단일화 (Clock 진행/골드, 캐릭터 인벤토리/적용/이름/색상)
-// - 저장 키: clockGame_save, character_save, character_equip_save, character_name_save, character_color_save, character_effect_save
+// - localStorage 접근을 이 파일로 단일화 (Clock 진행/골드, 캐릭터 인벤토리/적용/이름/색상, 맞춤법 게임 진행)
+// - 저장 키: clockGame_save, character_save, character_equip_save, character_name_save, character_color_save,
+//            character_effect_save, spellingGame_save
+// - Gold는 게임 공용 지갑(clockGame_save.gold)을 그대로 사용한다 (맞춤법 게임도 여기 적립/차감)
 // - 디버그용 초기화/설정 함수 포함 (resetSave, resetCharacterSave 등)
 // Public API (character_save 관련)
 // - getCharacterSave(): 캐릭터 저장 데이터 반환 (없으면 기본값)
@@ -24,6 +27,11 @@
 // - getCharacterEffectSave(): 효과 보유 상태 반환 (없으면 기본값)
 // - setCharacterEffectSave(saveData): 효과 보유 상태 통째로 덮어쓰기
 //
+// Public API (맞춤법 게임 관련)
+// - getSpellingBestStars(topic): 해당 주제(마당)의 최고 별점 반환 (없으면 0)
+// - saveSpellingResult(topic, stars, goldEarned): 마당 정상 완료 시 1회 호출.
+//   최고 별점 갱신 + Gold를 공용 지갑에 적립을 한 번에 처리 (게임 중간엔 호출하지 않음)
+//
 // Public API (디버그 전용)
 // - resetSave(): clockGame_save 전체 초기화 (골드 포함)
 // - resetClockProgress(): Clock 진행 상태만 초기화 (골드 유지, 신규)
@@ -43,6 +51,9 @@
 //
 // Save Structure (character_color_save)
 // { colors: { [hex]: number } }  // 색상 hex → 보유 수량
+//
+// Save Structure (spellingGame_save)
+// { bestStars: { [topic]: number } }  // 마당(주제) 문자열 → 최고 별점 (0~3)
 
   const SAVE_KEY = 'clockGame_save'; // localStorage 키 (기존 키 유지)
 
@@ -325,6 +336,54 @@ export function getClockSave() {
     return save;
   }
 
+  /* ===== Spelling Game(맞춤법 게임) 전용 =====
+     Gold는 별도 지갑을 두지 않고 Clock과 같은 공용 지갑(clockGame_save.gold)에 적립한다.
+     진행 중(문제 풀이 중) 임시 데이터는 script.js 안의 메모리 변수로만 관리되고,
+     이 저장 함수는 마당을 정상적으로 완료했을 때 finishStage()에서 딱 한 번만 호출된다.
+     → 새로고침/중도 이탈 시엔 이 함수가 호출된 적이 없으므로 보상이 저장되지 않는다. */
+
+  const SPELLING_SAVE_KEY = 'spellingGame_save';
+
+  function getDefaultSpellingSave() {
+    return { bestStars: {} }; // topic(주제 문자열) → 최고 별점(0~3)
+  }
+
+  function loadSpelling() {
+    try {
+      const raw = localStorage.getItem(SPELLING_SAVE_KEY);
+      return raw ? JSON.parse(raw) : getDefaultSpellingSave();
+    } catch {
+      return getDefaultSpellingSave();
+    }
+  }
+
+  function writeSpelling(saveData) {
+    try {
+      localStorage.setItem(SPELLING_SAVE_KEY, JSON.stringify(saveData));
+    } catch {
+      console.warn('저장 실패: localStorage를 사용할 수 없습니다.');
+    }
+  }
+
+  function getSpellingBestStars(topic) {
+    return loadSpelling().bestStars[topic] ?? 0;
+  }
+
+  // 마당(주제) 정상 완료 시 1회 호출 : 최고 별점 갱신 + Gold를 공용 지갑에 적립
+  function saveSpellingResult(topic, stars, goldEarned) {
+    const spellingSave = loadSpelling();
+    if (stars > (spellingSave.bestStars[topic] ?? 0)) {
+      spellingSave.bestStars[topic] = stars;
+    }
+    writeSpelling(spellingSave);
+
+    const commonSave = load();
+    commonSave.gold += goldEarned;
+    write(commonSave);
+
+    return { bestStars: spellingSave.bestStars[topic], gold: commonSave.gold };
+  }
+
   /* ===== 디버그 전용 (core/debug.js에서만 사용) ===== */
 
   function resetSave() {
@@ -377,4 +436,6 @@ export {
   setAllClockStars,
   getCharacterEffectSave, 
   setCharacterEffectSave,
+  getSpellingBestStars,
+  saveSpellingResult,
 };

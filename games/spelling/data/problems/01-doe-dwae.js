@@ -173,7 +173,7 @@ export const DOE_DWAE_PROBLEMS = [
     id: 'doe-dwae-19',
     tokens: [
       { text: '어른이' },
-      { correct: '되면.', wrong: '돼면', fixedSide: 'left' },
+      { correct: '되면', wrong: '돼면', fixedSide: 'left' },
       { text: '무엇이' },
       { correct: '될까?', wrong: '됄까?', fixedSide: 'left' },
     ]

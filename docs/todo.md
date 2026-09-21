@@ -106,7 +106,11 @@ if (currentCombo >= 3 && currentCombo % 3 === 0) {
 스튜
 
 
-클로
+클로ㅊ
+fixedSide가 없을 때만 랜덤 배치 (games\spelling\data\problems\03-gaj-gat-gass.js은 랜덤으로)
+ * fixedSide가 있으면 지정된 위치에 정답을 배치한다.
+ * fixedSide가 없으면 정답 위치를 랜덤으로 결정한다.
+
 셀렉트 화면
 복습마당 구현
 
