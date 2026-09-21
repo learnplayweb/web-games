@@ -310,7 +310,7 @@ Combo Bonus = maxCombo × COMBO_MULTIPLIER
 | ★★       |                2 |
 | ★★★      |                1 |
 
-COMBO_MULTIPLIER는 상수로 관리하며, 밸런스 테스트 결과에 따라 쉽게 조정할 수 있도록 구현한다.
+COMBO_MULTIPLIER는 밸런스 테스트 결과에 따라 쉽게 조정할 수 있도록 구현한다.
 
 
 ---

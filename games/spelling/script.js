@@ -1,6 +1,6 @@
-// v0.18.0
-// Spelling Game - 축소 연출 재복구(위치 스냅과 스케일 복귀 분리) + 추락 애니메이션 단축(0.4s, ease-out)
-// - 문제 파일 01-doe-dwae.js로 경로 변경 반영, stages.js 5개 마당 주제 반영
+// v0.19.0
+// Spelling Game - 콤보 카운트 구현 (시계 게임 규칙과 동일: 정답 +1, 오답/조작실수 리셋, 3콤보마다 장착 이펙트 재생)
+// - effects.js/inventory.js 연동(playEventEffect는 시계 게임과 동일하게 로컬 정의), 완료 모달에 최고 콤보 실제값 반영
 // - 갈림길에서 좌/우 입력 시 그 자리에서 바로 판정+연출+보드 전진까지 한 번에 처리
 //   정답 선택: 정답 블록 초록 플래시 + 오답 블록(반대쪽) 추락(빨강 플래시 없이) → 즉시 전진
 //   오답 선택: 선택한(오답) 블록 빨강 플래시+추락, 정답 블록도 초록 플래시 → 0.6초 후 중앙 롤백 + 학습 모달(전진 없음, 재시도)
@@ -18,6 +18,8 @@
 
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
 import { getEquippedParts } from '../../core/saveManager.js';
+import { spawnEffect } from '../../characters/assets/effects/effects.js';
+import { pickRandomEquippedEffect } from '../../characters/inventory.js';
 import { DOE_DWAE_PROBLEMS, DOE_DWAE_GUIDE } from './data/problems/01-doe-dwae.js';
 import { STAGES, NORMAL_STAGE_QUESTION_COUNT, NORMAL_STAGE_LIVES } from './data/stages.js';
 
@@ -318,6 +320,51 @@ function recordChoiceResult(item, isCorrect) {
 }
 
 /* ===========================
+   콤보 (연속 정답 카운트). 시계 게임과 동일한 규칙:
+   - 정답(선택 지점) 시 +1, 오답/조작 실수 시 0으로 리셋
+   - 3콤보마다(3, 6, 9 ...) 장착된 이펙트 재생
+=========================== */
+
+let currentCombo = 0;
+let maxCombo = 0;
+
+function updateComboDisplay() {
+  document.getElementById('display-combo').textContent = currentCombo;
+}
+
+function increaseCombo() {
+  currentCombo += 1;
+  if (currentCombo > maxCombo) maxCombo = currentCombo;
+  updateComboDisplay();
+
+  if (currentCombo >= 3 && currentCombo % 3 === 0) {
+    playEventEffect('combo', characterSvgEl);
+  }
+}
+
+function resetCombo() {
+  currentCombo = 0;
+  updateComboDisplay();
+}
+
+// 시계 게임의 playEventEffect와 동일 (장착된 이펙트를 캐릭터 위치에 재생)
+function playEventEffect(eventType, targetElement) {
+  try {
+    if (!targetElement || typeof spawnEffect !== 'function') return;
+
+    if (eventType === 'combo') {
+      const effectId = pickRandomEquippedEffect();
+      if (effectId) {
+        spawnEffect(targetElement, effectId);
+      }
+    }
+    // 추후 'correct', 'clear' 등 다른 이벤트 추가 가능
+  } catch (e) {
+    console.error('이벤트 효과 실행 중 에러 발생:', e);
+  }
+}
+
+/* ===========================
    목숨 (조작 실수에서만 차감 - 일반 마당 규칙)
 =========================== */
 
@@ -416,7 +463,7 @@ function finishStage() {
   resultStarsEl.textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
   resultScoreEl.textContent = `${correctCount} / ${total}`;
   resultRateEl.textContent = `정답률 ${rate}%`;
-  resultComboEl.textContent = '최고 콤보 🔥 -'; // 콤보 집계·Gold 보상 로직은 다음 단계에서 구현 (이번엔 레이아웃만)
+  resultComboEl.textContent = `최고 콤보 🔥 ${maxCombo}`; // Gold 보상 로직은 다음 단계에서 구현
 
   successCardEl.style.display = 'flex';
   failureCardEl.style.display = 'none';
@@ -500,6 +547,7 @@ function triggerBlink(duration, onDone) {
 =========================== */
 
 function handleOperationMistake() {
+  resetCombo();
   livesRemaining -= 1;
   updateHeartsDisplay();
 
@@ -547,6 +595,7 @@ function handleInput(action) {
     const chosenSide = action; // 'left' | 'right'
     const isCorrect = nextItem.correctSide === chosenSide;
     recordChoiceResult(nextItem, isCorrect);
+    if (isCorrect) increaseCombo(); else resetCombo();
 
     const chosenEl = chosenSide === 'left' ? frontLeftEl : frontRightEl;
     const otherEl  = chosenSide === 'left' ? frontRightEl : frontLeftEl;
@@ -650,4 +699,5 @@ document.addEventListener('keydown', (e) => {
 initCharacter();
 initBoard();
 updateHeartsDisplay();
+updateComboDisplay();
 showLearningModal(); // 마당 시작 시 주제 학습 가이드 먼저 안내

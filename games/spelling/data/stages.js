@@ -9,10 +9,10 @@
 export const STAGES = [
   { level: 1, type: 'normal', topic: 'doe-dwae' },
   { level: 2, type: 'normal', topic: 'an-anh' },
-  { level: 3, type: 'normal', topic: 'gat-gass' },
+  { level: 3, type: 'normal', topic: 'gaj-gat-gass' },
   { level: 4, type: 'normal', topic: 'deon-deun' },
   { level: 5, type: 'normal', topic: 'dae-de' },
-  { level: 6, type: 'review', topics: ['doe-dwae', 'an-anh', 'gat-gass', 'deon-deun', 'dae-de'] }
+  { level: 6, type: 'review', topics: ['doe-dwae', 'an-anh', 'gaj-gat-gass', 'deon-deun', 'dae-de'] }
 ];
 
 // 마당 기본 출제 문장 수 (문제은행 크기와 독립적으로 관리)

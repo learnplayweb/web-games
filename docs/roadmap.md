@@ -466,8 +466,7 @@
 
 `최장 콤보 × COMBO_MULTIPLIER`
 
-* `COMBO_MULTIPLIER = 4`
-* 상수로 관리
+별점따라 차등 적용
 
 ---
 
