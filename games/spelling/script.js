@@ -1,8 +1,5 @@
-// v0.20.0
-// Spelling Game - 결과 및 보상 시스템 구현 (기존 정리안 그대로: 선택지점/콤보/별점 보상)
-// - saveManager.js에 추가된 getSpellingBestStars/saveSpellingResult 연동. Gold는 Clock과 공용 지갑 사용.
-// - 진행 중엔 firstAttemptResults/maxCombo 등 메모리 변수로만 관리하다가, 마당을 정상 완료했을 때
-//   finishStage()에서 딱 한 번 저장 → 새로고침/이탈로는 보상이 저장되지 않음
+// v0.21.0
+// Spelling Game - 마당 선택 화면(select.html) 연동: URL ?level= 파라미터로 마당 결정 (시계 게임과 동일한 방식)
 // - 갈림길에서 좌/우 입력 시 그 자리에서 바로 판정+연출+보드 전진까지 한 번에 처리
 //   정답 선택: 정답 블록 초록 플래시 + 오답 블록(반대쪽) 추락(빨강 플래시 없이) → 즉시 전진
 //   오답 선택: 선택한(오답) 블록 빨강 플래시+추락, 정답 블록도 초록 플래시 → 0.6초 후 중앙 롤백 + 학습 모달(전진 없음, 재시도)
@@ -23,6 +20,10 @@ import { getEquippedParts, getSpellingBestStars, saveSpellingResult } from '../.
 import { spawnEffect } from '../../characters/assets/effects/effects.js';
 import { pickRandomEquippedEffect } from '../../characters/inventory.js';
 import { DOE_DWAE_PROBLEMS, DOE_DWAE_GUIDE } from './data/problems/01-doe-dwae.js';
+import { AN_ANH_PROBLEMS, AN_ANH_GUIDE } from './data/problems/02-an-anh.js';
+import { GAJ_GAT_GASS_PROBLEMS, GAJ_GAT_GASS_GUIDE } from './data/problems/03-gaj-gat-gass.js';
+import { DEON_DEUN_PROBLEMS, DEON_DEUN_GUIDE } from './data/problems/04-deon-deun.js';
+import { DAE_DE_PROBLEMS, DAE_DE_GUIDE } from './data/problems/05-dae-de.js';
 import { STAGES, NORMAL_STAGE_QUESTION_COUNT, NORMAL_STAGE_LIVES } from './data/stages.js';
 
 /* ===========================
@@ -42,11 +43,20 @@ const BLINK_DURATION = 500;        // 추락/오답 롤백 시 빠른 점멸 시
 
 // topic 문자열(stages.js) → 문제은행/학습 가이드 매핑. 주제가 추가되면 여기에도 등록.
 const PROBLEM_BANKS = {
-  'doe-dwae': DOE_DWAE_PROBLEMS
+  'doe-dwae':     DOE_DWAE_PROBLEMS,
+  'an-anh':       AN_ANH_PROBLEMS,
+  'gaj-gat-gass': GAJ_GAT_GASS_PROBLEMS,
+  'deon-deun':    DEON_DEUN_PROBLEMS,
+  'dae-de':       DAE_DE_PROBLEMS
 };
 const TOPIC_GUIDES = {
-  'doe-dwae': DOE_DWAE_GUIDE
+  'doe-dwae':     DOE_DWAE_GUIDE,
+  'an-anh':       AN_ANH_GUIDE,
+  'gaj-gat-gass': GAJ_GAT_GASS_GUIDE,
+  'deon-deun':    DEON_DEUN_GUIDE,
+  'dae-de':       DAE_DE_GUIDE
 };
+
 
 function shuffleArray(arr) {
   const copy = [...arr];
@@ -101,8 +111,10 @@ function resolveChoiceSides(item) {
   item._resolved = true;
 }
 
-// 현재 마당(stage) 1 = 되/돼 고정. 마당 선택 화면 연동은 이후 단계에서 구현.
-const currentStage = STAGES.find((stage) => stage.level === 1);
+// select.html에서 넘어온 마당(level)로 진입.
+// URL의 ?level= 파라미터로 마당을 선택 (시계 게임과 동일한 방식). 없거나 잘못되면 1번 마당으로 진입.
+const requestedLevel = parseInt(new URLSearchParams(location.search).get('level'), 10) || 1;
+const currentStage = STAGES.find((stage) => stage.level === requestedLevel) ?? STAGES[0];
 const BLOCK_QUEUE = buildBlockQueue(PROBLEM_BANKS[currentStage.topic], NORMAL_STAGE_QUESTION_COUNT);
 const TOTAL_CHOICE_POINTS = BLOCK_QUEUE.filter((item) => item.type === 'choice').length;
 const CURRENT_GUIDE = TOPIC_GUIDES[currentStage.topic];
@@ -539,8 +551,7 @@ function failStage() {
 function closeStageResult() {
   stageResultEl.classList.add('stage-result--hidden');
   if (stageFailed) {
-    // TODO: select 화면 구현 후 이동 처리 연결
-    // 예정: window.location.href = '../select.html' 또는 라우팅 함수 호출
+    location.href = 'select.html';
   }
 }
 
