@@ -178,6 +178,14 @@ export const DOE_DWAE_PROBLEMS = [
       { correct: '될까?', wrong: '됄까?', fixedSide: 'left' },
     ]
   },
+  {
+    id: 'doe-dwae-20',
+    tokens: [
+      { text: '놀부는' },
+      { text: '정말' },
+      { correct: '못됐어.', wrong: '못됬어.', fixedSide: 'right' },
+    ]
+  },
 ];
 
 // 학습 모달 콘텐츠 (마당 시작 시 + 오답 시 공통 노출, 주제마다 달라지므로 해당 주제 파일에 위치)

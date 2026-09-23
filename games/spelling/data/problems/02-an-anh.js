@@ -343,7 +343,7 @@ export const AN_ANH_GUIDE = {
   title: '안 / 않 구별법',
   lines: [
     [
-      { text: '앞에 ' }, { text: '~지', emph: 'red' }, { text: "'가 있으면 " }, { text: '않', emph: 'red' }
+      { text: "앞에 '" }, { text: '~지', emph: 'red' }, { text: "'가 있으면 '" }, { text: '않', emph: 'red' }, { text: "'" }
     ],
     [
       { text: "없으면 " }, { text: "'" }, { text: '안', emph: 'blue' }, { text: "'" },

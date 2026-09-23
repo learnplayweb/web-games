@@ -422,7 +422,7 @@ function renderGuideModal(guide) {
   guide.lines.forEach((line) => {
     const p = document.createElement('p');
     line.forEach((segment) => {
-      if (segment.emph === 'blue' || segment.emph === 'red') {
+      if (segment.emph === 'blue' || segment.emph === 'red' ) {
         const span = document.createElement('span');
         span.className = segment.emph === 'blue' ? 'emph-blue' : 'emph-red';
         span.textContent = segment.text;

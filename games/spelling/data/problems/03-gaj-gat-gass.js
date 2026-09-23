@@ -202,7 +202,6 @@ export const GAJ_GAT_GASS_PROBLEMS = [
   {
     id: 'gaj-gat-gass-20',
     tokens: [
-      { text: '아무래도' },
       { text: '이번' },
       { text: '시험은' },
       { text: '조금' },
@@ -216,8 +215,8 @@ export const GAJ_GAT_GASS_PROBLEMS = [
     tokens: [
       { text: '이런' },
       { text: '점수를' },
-      { text: '집에' },
       { correct: '갖고', wrong: '갔고' },
+      { text: '집에' },
       { correct: '갔다간', wrong: '갖다간' },
       { text: '분위기가' },
       { text: '심각할' },
@@ -257,8 +256,7 @@ export const GAJ_GAT_GASS_PROBLEMS = [
   {
     id: 'gaj-gat-gass-25',
     tokens: [
-      { text: '책상' },
-      { text: '위에' },
+      { text: '책상에' },
       { text: '연필을' },
       { correct: '갖다', wrong: '갔다'  },
       { text: '두었다.' }
@@ -283,17 +281,15 @@ export const GAJ_GAT_GASS_GUIDE = {
   title: '갔 / 갖 / 같 구별법',
   lines: [
     [
-      { text: "'" }, { text: '갔다', emph: 'blue' }, { text: "': 자리를 옮겨 '" },
-      { text: '움직', emph: 'blue' }, { text: "'일 때" }
+      { text: '갔다', emph: 'blue' }, { text: ': ' }, { text: '이동', emph: 'blue' }
     ],
     [
-      { text: "'" }, { text: '갖다', emph: 'red' }, { text: "': '" },
-      { text: '가지다', emph: 'red' }, { text: "'일 때" },
+      { text: '갖다', emph: 'red' }, { text: ": " }, { text: '가지다', emph: 'red' }
     ],
     [
-      { text: "'" }, { text: '같다', emph: 'green' }, { text: "': '" },
-      { text: '추측', emph: 'green' }, { text: "'과 서로 '" },
-      { text: '다르지 않다', emph: 'green' }, { text: "'일 때" }
+      { text: '같다', emph: 'green' }, { text: ": " },
+      { text: '추측', emph: 'green' }, { text: ", " },
+      { text: '다르지 않다', emph: 'green' }
     ]
     
   ]
