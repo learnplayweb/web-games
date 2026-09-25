@@ -1,10 +1,10 @@
-// v0.2.0
+// v0.3.0
 // Spelling Game - 마당 선택 화면 (시계 게임 select.js 구조 재사용)
 // - STAGES(data/stages.js)를 기준으로 카드를 렌더링. 일반 마당은 주제별 최고 별점(getSpellingBestStars) 표시
-// - 복습 마당(type: 'review')은 카드 표시명을 "달인 마당. 1~5"로 노출 (도전 의식 고취 목적). 최고 별점은 저장하지 않으므로 별 표시 없음
-// - 복습 마당 잠금(1~5마당 모두 별 3개 시 해금)은 아직 구현하지 않고, 코드만 준비해 주석 처리해 둠(현재는 항상 해금 상태)
+// - 달인 마당(복습, type: 'review')은 카드 표시명 "달인 마당. 1~5". 최고 별점은 저장 안 하고 최근 별점만 표시(getSpellingReviewRecentStars)
+// - 달인 마당 잠금(1~5마당 모두 별 3개 시 해금)은 아직 구현하지 않고, 코드만 준비해 주석 처리해 둠(현재는 항상 해금 상태)
 
-import { getGold, getSpellingBestStars } from '../../core/saveManager.js';
+import { getGold, getSpellingBestStars, getSpellingReviewRecentStars } from '../../core/saveManager.js';
 import { createHeader, updateHeaderGold } from '../../shared/header.js';
 import { STAGES } from './data/stages.js';
 
@@ -53,8 +53,10 @@ function renderStageCards() {
 
     const starsLabel = document.createElement('p');
     starsLabel.className = 'stage-card__stars';
-    // 복습 마당은 최고 별점을 저장하지 않으므로(매 플레이마다 새로 계산) 별 표시를 비워 둠
-    starsLabel.textContent = isReview ? '' : starsToString(getSpellingBestStars(stage.topic));
+    // 달인 마당은 최고 별점을 저장하지 않고, 가장 최근 플레이 별점만 표시한다.
+    starsLabel.textContent = isReview
+      ? starsToString(getSpellingReviewRecentStars())
+      : starsToString(getSpellingBestStars(stage.topic));
 
     card.append(levelLabel, starsLabel);
     if (isUnlocked) {

@@ -1,3 +1,4 @@
+// v0.3.0 : Add_맞춤법 게임 달인 마당(복습) 최근 별점 저장 함수 추가
 // v0.2.0 : Add_맞춤법 게임(Spelling) 마당(주제)별 최고 별점 저장 + 결과 보상 저장 함수 추가
 // v0.1.11 : Add_효과(Effect) 인벤토리 및 장착 상태 슬롯 추가
 // 
@@ -31,6 +32,9 @@
 // - getSpellingBestStars(topic): 해당 주제(마당)의 최고 별점 반환 (없으면 0)
 // - saveSpellingResult(topic, stars, goldEarned): 마당 정상 완료 시 1회 호출.
 //   최고 별점 갱신 + Gold를 공용 지갑에 적립을 한 번에 처리 (게임 중간엔 호출하지 않음)
+// - getSpellingReviewRecentStars(): 달인 마당(복습)의 최근 별점 반환 (최고값 아님, 없으면 0)
+// - saveSpellingReviewResult(stars, goldEarned): 달인 마당 정상 완료 시 1회 호출.
+//   최근 별점 덮어쓰기(비교 없음) + Gold를 공용 지갑에 적립
 //
 // Public API (디버그 전용)
 // - resetSave(): clockGame_save 전체 초기화 (골드 포함)
@@ -345,7 +349,7 @@ export function getClockSave() {
   const SPELLING_SAVE_KEY = 'spellingGame_save';
 
   function getDefaultSpellingSave() {
-    return { bestStars: {} }; // topic(주제 문자열) → 최고 별점(0~3)
+    return { bestStars: {}, reviewRecentStars: 0 }; // topic → 최고 별점(0~3), 달인 마당은 최근 별점만 저장
   }
 
   function loadSpelling() {
@@ -367,6 +371,24 @@ export function getClockSave() {
 
   function getSpellingBestStars(topic) {
     return loadSpelling().bestStars[topic] ?? 0;
+  }
+
+  // 달인 마당(복습) 전용 : 최고 별점을 저장하지 않고 "최근" 별점만 매번 덮어쓴다.
+  function getSpellingReviewRecentStars() {
+    return loadSpelling().reviewRecentStars ?? 0;
+  }
+
+  // 달인 마당 정상 완료 시 1회 호출 : 최근 별점 덮어쓰기(최고값 비교 없음) + Gold를 공용 지갑에 적립
+  function saveSpellingReviewResult(stars, goldEarned) {
+    const spellingSave = loadSpelling();
+    spellingSave.reviewRecentStars = stars;
+    writeSpelling(spellingSave);
+
+    const commonSave = load();
+    commonSave.gold += goldEarned;
+    write(commonSave);
+
+    return { recentStars: stars, gold: commonSave.gold };
   }
 
   // 마당(주제) 정상 완료 시 1회 호출 : 최고 별점 갱신 + Gold를 공용 지갑에 적립
@@ -438,4 +460,6 @@ export {
   setCharacterEffectSave,
   getSpellingBestStars,
   saveSpellingResult,
+  getSpellingReviewRecentStars,
+  saveSpellingReviewResult,
 };

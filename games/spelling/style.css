@@ -1,5 +1,5 @@
-/* v0.18.0
- Spelling Game - 추락(block-collapse) 애니메이션을 0.6s ease-in → 0.4s ease-out으로 변경 (짧은 시간에도 낙하가 보이도록) */
+/* v0.20.0
+ Spelling Game - 학습 모달 강조색에 초록(emph-green) 추가 */
 
 /* ===========================
    0. 폰트 선언
@@ -184,10 +184,14 @@ body {
 }
 
 /* 갈림길에서 오답인 블록은 정답을 골랐든 오답을 골랐든 항상 추락한다 (정답 블록은 유지)
-   ease-out(시작부터 빠르게 움직임)으로 짧은 시간에도 낙하가 눈에 띄도록 함
-   달인 마당에서는 블록+캐릭터가 함께, 더 빠르게 추락하는 변형으로 재활용 예정 */
+   ease-out(시작부터 빠르게 움직임)으로 짧은 시간에도 낙하가 눈에 띄도록 함 */
 .block--collapse {
   animation: block-collapse 0.4s ease-out forwards;
+}
+
+/* 달인 마당 전용 : 캐릭터와 함께 동시 추락하므로 더 빠르게(같은 키프레임, 시간만 단축) */
+.block--collapse-fast {
+  animation: block-collapse 0.25s ease-out forwards;
 }
 
 @keyframes block-collapse {
@@ -272,6 +276,11 @@ body {
 /* 조작 실수 : 블록을 밟지 못해 캐릭터만 추락 + 회전 (약 1.6초) */
 .character-jump.is-falling {
   animation: character-fall 1.6s ease-in forwards;
+}
+
+/* 달인 마당 오답 : 블록과 함께 동시에 추락하므로 블록 추락(0.25s)과 보조를 맞춰 더 짧게 */
+.character-jump.is-falling-fast {
+  animation: character-fall 0.5s ease-in forwards;
 }
 
 @keyframes character-fall {
@@ -425,15 +434,17 @@ body {
   color: var(--color-text);
 }
 
-/* 학습 모달 강조 텍스트 : '되/하' = 짙은 파랑, '돼/해' = 짙은 빨강, 둘 다 굵고 크게 */
+/* 학습 모달 강조 텍스트 : 파랑/빨강/초록, 모두 굵고 크게 */
 .emph-blue,
-.emph-red {
+.emph-red,
+.emph-green {
   font-weight: 900;
-  font-size: 1.3em;
+  font-size: 1.2em;
 }
 
-.emph-blue { color: #1e3a6e; }
-.emph-red  { color: #8f2323; }
+.emph-blue  { color: #1e3a6e; }
+.emph-red   { color: #8f2323; }
+.emph-green { color: #2e7d4f; }
 
 .learning-modal__hint {
   font-size: 0.85rem;

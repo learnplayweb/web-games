@@ -1,5 +1,5 @@
-<!-- v0.11.0
- Spelling Game - 완료 카드 골드 내역 3행+합계에 id 부여 (결과·보상 시스템에서 실제 값 채움) -->
+<!-- v0.12.0
+ Spelling Game - 달인 마당(목숨 5개) 대응: 하트 마크업을 JS가 동적 생성하도록 비움(기존 3개 고정 → 개수 가변) -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -21,11 +21,8 @@
         <span class="info-bar__icon">🔥</span>
         <span id="display-combo" class="info-bar__value">0</span>
       </span>
-      <span class="info-bar__item info-bar__hearts" id="display-hearts">
-        <span class="heart" data-index="1">❤️</span>
-        <span class="heart" data-index="2">❤️</span>
-        <span class="heart" data-index="3">❤️</span>
-      </span>
+      <!-- 하트는 목숨 개수(일반 3 / 달인 마당 5)에 맞춰 script.js가 동적으로 채움 -->
+      <span class="info-bar__item info-bar__hearts" id="display-hearts"></span>
     </header>
 
     <!-- 게임 진행 영역 : 이전(back)/현재(mid)/다음(front, 갈림길 포함) 블록 + 캐릭터(현재 블록과 겹쳐 배치) -->

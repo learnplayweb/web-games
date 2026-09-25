@@ -1,5 +1,5 @@
-// v0.21.0
-// Spelling Game - 마당 선택 화면(select.html) 연동: URL ?level= 파라미터로 마당 결정 (시계 게임과 동일한 방식)
+// v0.23.0
+// Spelling Game - 결과 모달(완료/실패 공통) 닫으면 마당 선택 화면으로 이동 + 학습 모달 강조색 초록(emph-green) 추가
 // - 갈림길에서 좌/우 입력 시 그 자리에서 바로 판정+연출+보드 전진까지 한 번에 처리
 //   정답 선택: 정답 블록 초록 플래시 + 오답 블록(반대쪽) 추락(빨강 플래시 없이) → 즉시 전진
 //   오답 선택: 선택한(오답) 블록 빨강 플래시+추락, 정답 블록도 초록 플래시 → 0.6초 후 중앙 롤백 + 학습 모달(전진 없음, 재시도)
@@ -16,7 +16,7 @@
 // - initCharacter()
 
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
-import { getEquippedParts, getSpellingBestStars, saveSpellingResult } from '../../core/saveManager.js';
+import { getEquippedParts, getSpellingBestStars, saveSpellingResult, saveSpellingReviewResult } from '../../core/saveManager.js';
 import { spawnEffect } from '../../characters/assets/effects/effects.js';
 import { pickRandomEquippedEffect } from '../../characters/inventory.js';
 import { DOE_DWAE_PROBLEMS, DOE_DWAE_GUIDE } from './data/problems/01-doe-dwae.js';
@@ -24,7 +24,7 @@ import { AN_ANH_PROBLEMS, AN_ANH_GUIDE } from './data/problems/02-an-anh.js';
 import { GAJ_GAT_GASS_PROBLEMS, GAJ_GAT_GASS_GUIDE } from './data/problems/03-gaj-gat-gass.js';
 import { DEON_DEUN_PROBLEMS, DEON_DEUN_GUIDE } from './data/problems/04-deon-deun.js';
 import { DAE_DE_PROBLEMS, DAE_DE_GUIDE } from './data/problems/05-dae-de.js';
-import { STAGES, NORMAL_STAGE_QUESTION_COUNT, NORMAL_STAGE_LIVES } from './data/stages.js';
+import { STAGES, NORMAL_STAGE_QUESTION_COUNT, NORMAL_STAGE_LIVES, REVIEW_STAGE_QUESTION_COUNT, REVIEW_STAGE_LIVES } from './data/stages.js';
 
 /* ===========================
    상수
@@ -36,6 +36,7 @@ const FADE_OUT_DURATION = 180;     // .block--fade-out 트랜지션(0.18s)과 �
 const FLASH_DURATION = 400;        // 정오답 블록 플래시/추락 (0.4초, block-collapse와 동일하게 맞춤)
 const FALL_DURATION = 1600;        // 조작 실수 캐릭터 추락(1.6초)
 const BLINK_DURATION = 500;        // 추락/오답 롤백 시 빠른 점멸 시간
+const REVIEW_WRONG_FALL_DURATION = 500; // 달인 마당 오답 시 블록+캐릭터 동시 추락 시간 (일반 마당보다 빠르게)
 
 /* ===========================
    문제은행 랜덤 출제 : 문장 단위로 뽑은 뒤 토큰을 순서대로 펼쳐 블록 큐 생성
@@ -115,12 +116,27 @@ function resolveChoiceSides(item) {
 // URL의 ?level= 파라미터로 마당을 선택 (시계 게임과 동일한 방식). 없거나 잘못되면 1번 마당으로 진입.
 const requestedLevel = parseInt(new URLSearchParams(location.search).get('level'), 10) || 1;
 const currentStage = STAGES.find((stage) => stage.level === requestedLevel) ?? STAGES[0];
-const BLOCK_QUEUE = buildBlockQueue(PROBLEM_BANKS[currentStage.topic], NORMAL_STAGE_QUESTION_COUNT);
+const IS_REVIEW_STAGE = currentStage.type === 'review';
+
+// 달인 마당(복습)은 topics(복수) 여러 주제의 문제은행을 하나로 합쳐 사용, 일반 마당은 topic(단수) 하나만 사용
+function getStageProblemPool(stage) {
+  if (stage.type === 'review') {
+    return stage.topics.flatMap((topic) => PROBLEM_BANKS[topic] ?? []);
+  }
+  return PROBLEM_BANKS[stage.topic] ?? [];
+}
+
+const STAGE_QUESTION_COUNT = IS_REVIEW_STAGE ? REVIEW_STAGE_QUESTION_COUNT : NORMAL_STAGE_QUESTION_COUNT;
+const STAGE_LIVES          = IS_REVIEW_STAGE ? REVIEW_STAGE_LIVES : NORMAL_STAGE_LIVES;
+
+const BLOCK_QUEUE = buildBlockQueue(getStageProblemPool(currentStage), STAGE_QUESTION_COUNT);
 const TOTAL_CHOICE_POINTS = BLOCK_QUEUE.filter((item) => item.type === 'choice').length;
-const CURRENT_GUIDE = TOPIC_GUIDES[currentStage.topic];
+// 달인 마당은 여러 주제를 섞어 다루므로 단일 학습 가이드가 맞지 않아 사용하지 않음(오답 모달 자체가 없기도 함)
+const CURRENT_GUIDE = IS_REVIEW_STAGE ? null : TOPIC_GUIDES[currentStage.topic];
 
 // 이번 판을 시작하기 "이전"의 최고 별점 (보상 계산 기준). 완료 후 갱신되므로 게임 시작 시점에 한 번만 읽는다.
-const PREV_BEST_STARS = getSpellingBestStars(currentStage.topic);
+// 달인 마당은 최고 별점을 저장하지 않고 "감소 규칙을 적용하지 않는다" → 항상 최고 등급(0)으로 계산한다.
+const PREV_BEST_STARS = IS_REVIEW_STAGE ? 0 : getSpellingBestStars(currentStage.topic);
 
 /* ===========================
    보상 테이블 (기존 정리안 그대로) : 상수로 관리해 밸런스 조정이 쉽도록 함
@@ -327,12 +343,12 @@ function clearFlash(el) {
 }
 
 // 오답 블록 추락 연출 : 정답/오답 선택 여부와 무관하게 "오답인 블록"에는 항상 적용된다.
-// 복습 마당에서는 블록+캐릭터가 함께, 더 빠르게 추락하는 변형으로 이 함수를 재활용할 예정.
-function collapseBlock(el) {
-  el.classList.add('block--collapse');
+// fast=true면 달인 마당 전용(더 빠른 추락, 블록+캐릭터 동시 추락에 사용)
+function collapseBlock(el, fast = false) {
+  el.classList.add(fast ? 'block--collapse-fast' : 'block--collapse');
 }
 function resetCollapsedBlock(el) {
-  el.classList.remove('block--collapse');
+  el.classList.remove('block--collapse', 'block--collapse-fast');
 }
 
 /* ===========================
@@ -396,7 +412,19 @@ function playEventEffect(eventType, targetElement) {
    목숨 (조작 실수에서만 차감 - 일반 마당 규칙)
 =========================== */
 
-let livesRemaining = NORMAL_STAGE_LIVES;
+let livesRemaining = STAGE_LIVES;
+
+// 목숨 개수(일반 3 / 달인 마당 5)만큼 하트 슬롯을 생성 (최초 1회)
+function renderHeartSlots() {
+  const container = document.getElementById('display-hearts');
+  container.innerHTML = '';
+  for (let i = 0; i < STAGE_LIVES; i++) {
+    const heart = document.createElement('span');
+    heart.className = 'heart';
+    heart.textContent = '❤️';
+    container.appendChild(heart);
+  }
+}
 
 function updateHeartsDisplay() {
   const heartEls = document.querySelectorAll('#display-hearts .heart');
@@ -419,12 +447,14 @@ function renderGuideModal(guide) {
   learningModalTitleEl.textContent = guide.title;
   learningModalTextEl.innerHTML = '';
 
+  const EMPH_CLASS = { blue: 'emph-blue', red: 'emph-red', green: 'emph-green' };
+
   guide.lines.forEach((line) => {
     const p = document.createElement('p');
     line.forEach((segment) => {
-      if (segment.emph === 'blue' || segment.emph === 'red' ) {
+      if (EMPH_CLASS[segment.emph]) {
         const span = document.createElement('span');
-        span.className = segment.emph === 'blue' ? 'emph-blue' : 'emph-red';
+        span.className = EMPH_CLASS[segment.emph];
         span.textContent = segment.text;
         p.appendChild(span);
       } else {
@@ -472,7 +502,7 @@ const stageResultDetailEl = document.getElementById('stage-result-detail');
 const stageResultCharacterEl = document.getElementById('stage-result-character');
 
 let stageEnded = false;
-let stageFailed = false; // 탭/키 입력으로 닫을 때 성공/실패에 따라 다음 동작을 구분하기 위함
+let stageFailed = false; // 완료/실패 카드 중 어떤 게 떠 있는지 추적용 (현재는 닫기 동작 분기엔 쓰지 않음)
 
 function calcStars(correctCount, total) {
   if (total === 0) return 0;
@@ -494,15 +524,22 @@ function finishStage() {
   const stars = calcStars(correctCount, total);
   const rate = total === 0 ? 0 : Math.round((correctCount / total) * 100);
 
-  // 보상 계산 (이전 최고 별점 기준) — 게임 중엔 지급하지 않고 여기서 한 번에 계산+저장
+  // 보상 계산 — 게임 중엔 지급하지 않고 여기서 한 번에 계산+저장
+  // 문제/콤보 보상은 PREV_BEST_STARS 기준(달인 마당은 항상 0 = 감소 규칙 미적용, 매번 최고 등급)
+  // 별점 보상도 동일한 델타 공식이지만, PREV_BEST_STARS가 0이면 STAR_VALUE[stars] - 0이 되어
+  // "매 플레이마다 별점 가치 전액 지급"이라는 달인 마당 규칙과 자연히 일치한다.
   const goldQuiz  = correctCount * (CHOICE_GOLD_BY_STARS[PREV_BEST_STARS] ?? CHOICE_GOLD_BY_STARS[0]);
   const goldCombo = maxCombo * (COMBO_MULTIPLIER_BY_STARS[PREV_BEST_STARS] ?? COMBO_MULTIPLIER_BY_STARS[0]);
   const goldStar  = Math.max(0, STAR_VALUE[stars] - STAR_VALUE[PREV_BEST_STARS]);
   const goldTotal = goldQuiz + goldCombo + goldStar;
 
-  saveSpellingResult(currentStage.topic, stars, goldTotal);
+  if (IS_REVIEW_STAGE) {
+    saveSpellingReviewResult(stars, goldTotal); // 최고값 비교 없이 항상 최근 별점으로 덮어씀
+  } else {
+    saveSpellingResult(currentStage.topic, stars, goldTotal);
+  }
 
-  resultLevelEl.textContent = '마당 완료!';
+  resultLevelEl.textContent = IS_REVIEW_STAGE ? '달인 마당 완료!' : '마당 완료!';
   resultStarsEl.textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
   resultScoreEl.textContent = `${correctCount} / ${total}`;
   resultRateEl.textContent = `정답률 ${rate}%`;
@@ -550,9 +587,7 @@ function failStage() {
 
 function closeStageResult() {
   stageResultEl.classList.add('stage-result--hidden');
-  if (stageFailed) {
-    location.href = 'select.html';
-  }
+  location.href = 'select.html'; // 완료/실패 관계없이 결과 확인 후엔 마당 선택 화면으로
 }
 
 stageResultEl.addEventListener('click', closeStageResult);
@@ -661,6 +696,39 @@ function handleInput(action) {
         clearFlash(correctEl);
         resetCollapsedBlock(wrongEl);
       }, FADE_OUT_DURATION);
+    } else if (IS_REVIEW_STAGE) {
+      // 달인 마당 오답 : 목숨 차감, 학습 모달 없음. 블록+캐릭터가 함께(더 빠르게) 추락 후 롤백.
+      isBusy = true;
+
+      livesRemaining -= 1;
+      updateHeartsDisplay();
+
+      flashBlock(wrongEl, 'wrong');
+      collapseBlock(wrongEl, true); // 더 빠른 추락
+      flashBlock(correctEl, 'correct');
+
+      // 캐릭터 : 눈·입은 wrong, 움직임은 correct 세트 + 추락하며 회전
+      playCharacterMotion('wrong', 'correct', REVIEW_WRONG_FALL_DURATION);
+      jumpEl.classList.remove('is-jumping');
+      void jumpEl.offsetWidth;
+      jumpEl.classList.add('is-falling-fast');
+
+      if (livesRemaining <= 0) {
+        setTimeout(() => failStage(), REVIEW_WRONG_FALL_DURATION);
+        return;
+      }
+
+      setTimeout(() => {
+        jumpEl.classList.remove('is-falling-fast');
+        clearFlash(wrongEl);
+        clearFlash(correctEl);
+        resetCollapsedBlock(wrongEl);
+        currentLane = 'center';
+        applyLanePosition();
+        triggerBlink(BLINK_DURATION, () => {
+          isBusy = false;
+        });
+      }, REVIEW_WRONG_FALL_DURATION);
     } else {
       // 오답 : 목숨 차감 없음(일반 마당). 고른(오답) 블록은 빨강 플래시+추락, 정답 블록은 초록 플래시.
       // 전진하지 않고 0.6초 후 중앙 롤백 + 학습 모달(재시도).
@@ -744,6 +812,9 @@ document.addEventListener('keydown', (e) => {
 
 initCharacter();
 initBoard();
+renderHeartSlots();
 updateHeartsDisplay();
 updateComboDisplay();
-showLearningModal(); // 마당 시작 시 주제 학습 가이드 먼저 안내
+if (!IS_REVIEW_STAGE) {
+  showLearningModal(); // 마당 시작 시 주제 학습 가이드 먼저 안내 (달인 마당은 여러 주제가 섞여 있어 생략)
+}
