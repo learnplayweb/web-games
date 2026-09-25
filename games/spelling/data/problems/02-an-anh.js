@@ -11,7 +11,6 @@ export const AN_ANH_PROBLEMS = [
   {
     id: 'an-anh-02',
     tokens: [
-      { text: '아무리' },
       { text: '기다려도' },
       { text: '버스가' },
       { correct: '안', wrong: '않', fixedSide: 'left' },
@@ -59,16 +58,14 @@ export const AN_ANH_PROBLEMS = [
       { text: '잠그지' },
       { correct: '않고', wrong: '안고', fixedSide: 'right' },
       { text: '나와서' },
-      { text: '마음이' },
       { text: '불안하다.' }
     ]
   },
   {
     id: 'an-anh-07',
     tokens: [
-      { text: '오늘은' },
-      { text: '숙제를' },
-      { text: '하고' },
+      { text: '꾸중을' },
+      { text: '듣고' },
       { text: '싶지' },
       { correct: '않다.', wrong: '안다.', fixedSide: 'right' }
     ]
@@ -76,8 +73,7 @@ export const AN_ANH_PROBLEMS = [
   {
     id: 'an-anh-08',
     tokens: [
-      { text: '신발' },
-      { text: '끈이' },
+      { text: '신발끈이' },
       { text: '풀리지' },
       { correct: '않게', wrong: '안게', fixedSide: 'right' },
       { text: '꽉' },
@@ -87,12 +83,10 @@ export const AN_ANH_PROBLEMS = [
   {
     id: 'an-anh-09',
     tokens: [
-      { text: '비가' },
-      { text: '올' },
-      { text: '줄' },
-      { text: '알고' },
       { text: '우산을' },
-      { text: '가져왔지만' },
+      { correct: '안', wrong: '않', fixedSide: 'left' },
+      { text: '가져왔는데' },
+      { text: '비가' },
       { text: '오지' },
       { correct: '않았다.', wrong: '안았다.', fixedSide: 'right' }
     ]
@@ -100,11 +94,7 @@ export const AN_ANH_PROBLEMS = [
   {
     id: 'an-anh-10',
     tokens: [
-      { text: '그' },
-      { text: '말을' },
-      { text: '들으니' },
       { text: '기분이' },
-      { text: '그리' },
       { text: '좋지' },
       { correct: '않다.', wrong: '안다.', fixedSide: 'right' }
     ]
@@ -113,17 +103,14 @@ export const AN_ANH_PROBLEMS = [
     id: 'an-anh-11',
     tokens: [
       { text: '아무도' },
-      { text: '그' },
       { text: '문제를' },
-      { text: '해결하지' },
+      { text: '일으키지' },
       { correct: '않았다.', wrong: '안았다.', fixedSide: 'right' }
     ]
   },
   {
     id: 'an-anh-12',
     tokens: [
-      { text: '조금' },
-      { text: '더' },
       { text: '참고' },
       { text: '기다리지' },
       { correct: '않으면', wrong: '안으면', fixedSide: 'right' },
@@ -155,10 +142,8 @@ export const AN_ANH_PROBLEMS = [
     id: 'an-anh-15',
     tokens: [
       { text: '오늘은' },
-      { text: '컨디션이' },
-      { text: '별로' },
-      { text: '좋지' },
-      { correct: '않다.', wrong: '안다.', fixedSide: 'right' }
+      { text: '지지' },
+      { correct: '않는다!', wrong: '안는다!', fixedSide: 'right' }
     ]
   },
   {
@@ -166,7 +151,6 @@ export const AN_ANH_PROBLEMS = [
     tokens: [
       { text: '아무리' },
       { text: '불러도' },
-      { text: '뒤를' },
       { text: '돌아보지' },
       { correct: '않았다.', wrong: '안았다.', fixedSide: 'right' }
     ]
@@ -174,7 +158,6 @@ export const AN_ANH_PROBLEMS = [
   {
     id: 'an-anh-17',
     tokens: [
-      { text: '어제는' },
       { text: '피곤해서' },
       { text: '운동을' },
       { correct: '안', wrong: '않', fixedSide: 'left' },
@@ -207,10 +190,9 @@ export const AN_ANH_PROBLEMS = [
     tokens: [
       { text: '그' },
       { text: '사람은' },
-      { text: '자기' },
       { text: '뜻을' },
       { text: '굽히지' },
-      { correct: '않는다.', wrong: '안는다.', fixedSide: 'right' }
+      { correct: '않았다.', wrong: '안았다.', fixedSide: 'right' }
     ]
   },
   {
@@ -249,21 +231,18 @@ export const AN_ANH_PROBLEMS = [
   {
     id: 'an-anh-24',
     tokens: [
-      { text: '음식이' },
-      { text: '입에' },
-      { text: '맞지' },
-      { correct: '않아', wrong: '안아', fixedSide: 'right' },
+      { text: '급식을' },
       { text: '거의' },
-      { text: '남겼다.' }
+      { text: '남기지' },
+      { correct: '않았어.', wrong: '안았어.', fixedSide: 'right' }
     ]
   },
   {
     id: 'an-anh-25',
     tokens: [
       { text: '다행히' },
-      { text: '비가' },
       { text: '많이' },
-      { text: '오지' },
+      { text: '덥지' },
       { correct: '않았다.', wrong: '안았다.', fixedSide: 'right' }
     ]
   },

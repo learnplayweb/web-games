@@ -539,7 +539,7 @@ function finishStage() {
     saveSpellingResult(currentStage.topic, stars, goldTotal);
   }
 
-  resultLevelEl.textContent = IS_REVIEW_STAGE ? '달인 마당 완료!' : '마당 완료!';
+  resultLevelEl.textContent = IS_REVIEW_STAGE ? '달인 마당 성공!' : '마당 완료!';
   resultStarsEl.textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
   resultScoreEl.textContent = `${correctCount} / ${total}`;
   resultRateEl.textContent = `정답률 ${rate}%`;

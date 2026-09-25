@@ -42,7 +42,6 @@ export const DAE_DE_PROBLEMS = [
   {
     id: 'dae-de-05',
     tokens: [
-      { text: '어제' },
       { text: '내가' },
       { text: '먹은' },
       { text: '떡볶이는' },
@@ -125,7 +124,7 @@ export const DAE_DE_PROBLEMS = [
   {
     id: 'dae-de-13',
     tokens: [
-      { text: '이번' },
+      { text: '나' },
       { text: '시험이' },
       { text: '생각보다' },
       { correct: '쉽데.', wrong: '쉽대.', fixedSide: 'right' }
@@ -148,7 +147,6 @@ export const DAE_DE_PROBLEMS = [
       { text: '오늘' },
       { text: '학원' },
       { text: '숙제가' },
-      { text: '아주' },
       { correct: '많대.', wrong: '많데.', fixedSide: 'left' }
     ]
   },
@@ -157,7 +155,6 @@ export const DAE_DE_PROBLEMS = [
     tokens: [
       { text: '친구가' },
       { text: '자기' },
-      { text: '집' },
       { text: '개는' },
       { text: '엄청' },
       { correct: '똑똑하대.', wrong: '똑똑하데.', fixedSide: 'left' }
@@ -167,11 +164,9 @@ export const DAE_DE_PROBLEMS = [
     id: 'dae-de-17',
     tokens: [
       { text: '내가' },
-      { text: '그' },
-      { text: '식당에' },
-      { text: '가' },
+      { text: '그걸' },
+      { text: '먹어' },
       { text: '보니' },
-      { text: '음식이' },
       { text: '참' },
       { correct: '맛있데.', wrong: '맛있대.', fixedSide: 'right' }
     ]
@@ -190,8 +185,6 @@ export const DAE_DE_PROBLEMS = [
     id: 'dae-de-19',
     tokens: [
       { text: '내가' },
-      { text: '지난' },
-      { text: '주에' },
       { text: '간' },
       { text: '공원은' },
       { text: '정말' },
@@ -202,7 +195,7 @@ export const DAE_DE_PROBLEMS = [
     id: 'dae-de-20',
     tokens: [
       { text: '엄마가' },
-      { text: '친구' },
+      { text: '네' },
       { text: '성격' },
       { correct: '괜찮대.', wrong: '괜찮데.', fixedSide: 'left' }
     ]
@@ -267,7 +260,6 @@ export const DAE_DE_PROBLEMS = [
       { text: '그러는데' },
       { text: '어머니께서' },
       { text: '곧' },
-      { text: '집에' },
       { correct: '오신대.', wrong: '오신데.', fixedSide: 'left' }
     ]
   },
@@ -277,7 +269,7 @@ export const DAE_DE_PROBLEMS = [
       { text: '내가' },
       { text: '그' },
       { text: '영화를' },
-      { text: '보니' },
+      { text: '봤는데' },
       { text: '정말' },
       { correct: '감동적이데.', wrong: '감동적이대.', fixedSide: 'right' }
     ]
@@ -343,8 +335,7 @@ export const DAE_DE_PROBLEMS = [
     id: 'dae-de-34',
     tokens: [
       { text: '삼촌이' },
-      { text: '새로' },
-      { text: '이사한' },
+      { text: '자기' },
       { text: '집이' },
       { text: '아주' },
       { correct: '좋대.', wrong: '좋데.', fixedSide: 'left' }
