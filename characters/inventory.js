@@ -1,4 +1,4 @@
-// v0.1.21 : Add_효과 랜덤 선택 및 중복 방지 시스템 분리 
+// v0.1.22 : Add_applyPenaltyLoss (게임 페널티용 캐릭터 손실 처리, 상점 해체와 달리 인벤토리로 돌아가지 않고 소실)
 // 
 // Inventory
 // - Feat: 색 섞기/다시 섞기 시 패턴 및 그래디언트를 아우르는 통합 추첨(pickRandomMixStyle) 연동
@@ -399,6 +399,37 @@ export function dismantleCharacter() {
     remainingGold: getGold(),
     remainingQuantity: getPartQuantity(id),
   };
+}
+
+/**
+ * 게임 페널티로 캐릭터 손실을 적용한다 (다른 게임에서도 재사용 가능한 공용 로직).
+ * 상점 해체(dismantleCharacter)와 달리 제거된 파츠/색상이 보유 인벤토리로 돌아가지 않고 그대로 사라진다.
+ *
+ * - 조합 파츠(다리/몸)가 있으면: 마지막 조합 파츠 하나만 적용 해제(소실). 보유 수량은 변하지 않는다.
+ * - 조합 파츠가 없으면(머리만 있으면): 머리 포함 전체(색상/색 섞기도)를 적용 해제(소실)하고
+ *   등록된 이름도 함께 삭제한다 — 캐릭터가 아예 미등록 상태로 돌아가기 때문.
+ *   이 경우에도 보유 파츠/보유 색상 수량은 변하지 않으며, 장착된 효과(effect)는 그대로 유지한다.
+ */
+export function applyPenaltyLoss() {
+  const category = getLastCombinedCategory();
+  const equipped = getEquippedParts();
+
+  if (category) {
+    // 분기 1 : 마지막 조합 파츠 하나만 적용 해제 (grantPart 호출 없음 = 보유로 돌아가지 않고 소실)
+    equipped[category] = null;
+    setEquippedParts(equipped);
+    return { tier: 'part', category };
+  }
+
+  // 분기 2 : 머리만 있던 상태 → 머리·색상까지 전부 적용 해제(소실) + 이름 삭제. effect는 유지.
+  equipped.head = null;
+  equipped.body = null;
+  equipped.legs = null;
+  equipped.color = null;
+  equipped.colorMix = null;
+  setEquippedParts(equipped);
+  setCharacterName(null);
+  return { tier: 'full' };
 }
 
 /** 캐릭터 저장 버튼 활성화 조건: 머리 파츠 적용 + 이름 저장이 모두 끝났는지 확인한다. */

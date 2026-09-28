@@ -1,5 +1,8 @@
-// v0.23.0
-// Spelling Game - 결과 모달(완료/실패 공통) 닫으면 마당 선택 화면으로 이동 + 학습 모달 강조색 초록(emph-green) 추가
+// v0.25.0
+// Spelling Game - 실패 페널티를 inventory.js의 applyPenaltyLoss()로 이관 (다른 게임에서도 재사용 가능한 공용 로직)
+// - 파츠는 상점 해체와 달리 보유 인벤토리로 돌아가지 않고 소실. 머리만 있던 경우 머리·색상까지 전부 소실 + 이름 삭제
+// - 달인 마당 주제별 균등 출제(4문장×5주제, 전체 재셔플)
+// - 문제 선택(buildNormalBlockQueue/buildReviewBlockQueue)과 토큰 펼치기(flattenProblemsToQueue) 로직 분리
 // - 갈림길에서 좌/우 입력 시 그 자리에서 바로 판정+연출+보드 전진까지 한 번에 처리
 //   정답 선택: 정답 블록 초록 플래시 + 오답 블록(반대쪽) 추락(빨강 플래시 없이) → 즉시 전진
 //   오답 선택: 선택한(오답) 블록 빨강 플래시+추락, 정답 블록도 초록 플래시 → 0.6초 후 중앙 롤백 + 학습 모달(전진 없음, 재시도)
@@ -18,7 +21,7 @@
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
 import { getEquippedParts, getSpellingBestStars, saveSpellingResult, saveSpellingReviewResult } from '../../core/saveManager.js';
 import { spawnEffect } from '../../characters/assets/effects/effects.js';
-import { pickRandomEquippedEffect } from '../../characters/inventory.js';
+import { pickRandomEquippedEffect, applyPenaltyLoss } from '../../characters/inventory.js';
 import { DOE_DWAE_PROBLEMS, DOE_DWAE_GUIDE } from './data/problems/01-doe-dwae.js';
 import { AN_ANH_PROBLEMS, AN_ANH_GUIDE } from './data/problems/02-an-anh.js';
 import { GAJ_GAT_GASS_PROBLEMS, GAJ_GAT_GASS_GUIDE } from './data/problems/03-gaj-gat-gass.js';
@@ -68,13 +71,12 @@ function shuffleArray(arr) {
   return copy;
 }
 
-// 문제은행에서 sentenceCount개 문장을 랜덤으로 뽑고, 각 문장의 토큰을 순서 그대로 펼쳐 블록 큐를 만든다.
+// 문장 배열을 받아 각 문장의 토큰을 순서 그대로 펼쳐 블록 큐로 만든다 (문장 선택 로직과 분리).
 // 토큰이 { text }면 'text' 타입, { correct, wrong }이면 'choice' 타입 아이템으로 변환한다.
 // __lane : 이 아이템이 이전/현재 슬롯으로 흘러올 때의 좌/중/우 위치 스냅샷 (advancePastFront에서 갱신)
-function buildBlockQueue(problems, sentenceCount) {
-  const picked = shuffleArray(problems).slice(0, sentenceCount);
+function flattenProblemsToQueue(problems) {
   const queue = [];
-  picked.forEach((problem) => {
+  problems.forEach((problem) => {
     problem.tokens.forEach((token) => {
       if (token.text !== undefined) {
         queue.push({ type: 'text', text: token.text, __lane: 'center' });
@@ -92,6 +94,20 @@ function buildBlockQueue(problems, sentenceCount) {
     });
   });
   return queue;
+}
+
+// 일반 마당 : 한 주제의 문제은행에서 무작위로 sentenceCount개 문장을 뽑는다.
+function buildNormalBlockQueue(problems, sentenceCount) {
+  const picked = shuffleArray(problems).slice(0, sentenceCount);
+  return flattenProblemsToQueue(picked);
+}
+
+// 달인 마당 : 5개 주제에서 "균등하게" (totalCount / 주제 수)개씩 뽑은 뒤,
+// 주제별로 뭉치지 않고 고르게 섞이도록 전체를 다시 한 번 셔플한다.
+function buildReviewBlockQueue(stage, totalCount) {
+  const perTopicCount = Math.floor(totalCount / stage.topics.length);
+  const picked = stage.topics.flatMap((topic) => shuffleArray(PROBLEM_BANKS[topic] ?? []).slice(0, perTopicCount));
+  return flattenProblemsToQueue(shuffleArray(picked));
 }
 
 // 아이템의 표시 텍스트 (back/mid처럼 이미 지나간 자리는 항상 정답으로 통과했다고 가정)
@@ -118,18 +134,12 @@ const requestedLevel = parseInt(new URLSearchParams(location.search).get('level'
 const currentStage = STAGES.find((stage) => stage.level === requestedLevel) ?? STAGES[0];
 const IS_REVIEW_STAGE = currentStage.type === 'review';
 
-// 달인 마당(복습)은 topics(복수) 여러 주제의 문제은행을 하나로 합쳐 사용, 일반 마당은 topic(단수) 하나만 사용
-function getStageProblemPool(stage) {
-  if (stage.type === 'review') {
-    return stage.topics.flatMap((topic) => PROBLEM_BANKS[topic] ?? []);
-  }
-  return PROBLEM_BANKS[stage.topic] ?? [];
-}
-
 const STAGE_QUESTION_COUNT = IS_REVIEW_STAGE ? REVIEW_STAGE_QUESTION_COUNT : NORMAL_STAGE_QUESTION_COUNT;
 const STAGE_LIVES          = IS_REVIEW_STAGE ? REVIEW_STAGE_LIVES : NORMAL_STAGE_LIVES;
 
-const BLOCK_QUEUE = buildBlockQueue(getStageProblemPool(currentStage), STAGE_QUESTION_COUNT);
+const BLOCK_QUEUE = IS_REVIEW_STAGE
+  ? buildReviewBlockQueue(currentStage, STAGE_QUESTION_COUNT)
+  : buildNormalBlockQueue(PROBLEM_BANKS[currentStage.topic] ?? [], STAGE_QUESTION_COUNT);
 const TOTAL_CHOICE_POINTS = BLOCK_QUEUE.filter((item) => item.type === 'choice').length;
 // 달인 마당은 여러 주제를 섞어 다루므로 단일 학습 가이드가 맞지 않아 사용하지 않음(오답 모달 자체가 없기도 함)
 const CURRENT_GUIDE = IS_REVIEW_STAGE ? null : TOPIC_GUIDES[currentStage.topic];
@@ -558,6 +568,14 @@ function failStage() {
   stageEnded = true;
   stageFailed = true;
 
+  // 달인 마당 실패 페널티 : 몸/다리 있으면 마지막 조합 파츠 하나 소실(보유로 안 돌아감),
+  // 머리만 있었으면 머리·색상까지 전부 소실 + 이름 말소. 보유 파츠/색상/효과는 그대로 유지.
+  let previewEquip = characterEquipState;
+  if (IS_REVIEW_STAGE) {
+    applyPenaltyLoss();
+    previewEquip = getEquippedParts(); // 페널티가 반영된 최신 상태로 미리보기에 사용
+  }
+
   stageResultTitleEl.textContent = '다시 도전해요';
   stageResultDetailEl.textContent = '신중하게 뛰어 봐요!';
 
@@ -567,13 +585,13 @@ function failStage() {
   svg.classList.add('ingame-character');
   svg.setAttribute('viewBox', '0 0 160 300');
   stageResultCharacterEl.appendChild(svg);
-  if (characterEquipState) {
+  if (previewEquip) {
     renderCharacterSvg(svg, {
-      head: characterEquipState.head,
-      body: characterEquipState.body,
-      legs: characterEquipState.legs,
-      color: characterEquipState.color,
-      colorMix: characterEquipState.colorMix,
+      head: previewEquip.head,
+      body: previewEquip.body,
+      legs: previewEquip.legs,
+      color: previewEquip.color,
+      colorMix: previewEquip.colorMix,
       expression: 'wrong',
       animation: 'wrong'
     });
