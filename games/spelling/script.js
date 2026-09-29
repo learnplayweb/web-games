@@ -1,5 +1,6 @@
-// v0.25.0
-// Spelling Game - 실패 페널티를 inventory.js의 applyPenaltyLoss()로 이관 (다른 게임에서도 재사용 가능한 공용 로직)
+// v0.26.0
+// Spelling Game - 달인 마당 실패 모달 문구 변경("더 공부하거라!" + 캐릭터 이름/조사 표시) + 전용 폰트 클래스 토글
+// - 실패 페널티를 inventory.js의 applyPenaltyLoss()로 이관 (다른 게임에서도 재사용 가능한 공용 로직)
 // - 파츠는 상점 해체와 달리 보유 인벤토리로 돌아가지 않고 소실. 머리만 있던 경우 머리·색상까지 전부 소실 + 이름 삭제
 // - 달인 마당 주제별 균등 출제(4문장×5주제, 전체 재셔플)
 // - 문제 선택(buildNormalBlockQueue/buildReviewBlockQueue)과 토큰 펼치기(flattenProblemsToQueue) 로직 분리
@@ -19,7 +20,7 @@
 // - initCharacter()
 
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
-import { getEquippedParts, getSpellingBestStars, saveSpellingResult, saveSpellingReviewResult } from '../../core/saveManager.js';
+import { getEquippedParts, getCharacterName, getSpellingBestStars, saveSpellingResult, saveSpellingReviewResult } from '../../core/saveManager.js';
 import { spawnEffect } from '../../characters/assets/effects/effects.js';
 import { pickRandomEquippedEffect, applyPenaltyLoss } from '../../characters/inventory.js';
 import { DOE_DWAE_PROBLEMS, DOE_DWAE_GUIDE } from './data/problems/01-doe-dwae.js';
@@ -564,9 +565,30 @@ function finishStage() {
   stageResultEl.classList.remove('stage-result--hidden');
 }
 
+// 이름 뒤에 붙일 주제 조사('은'/'는') 판별
+// 1) 마지막 글자가 한글이면 받침 유무로 판별
+// 2) 끝이 특수문자면 그것들을 제거하고 그 앞 글자부터 판별
+// 3) 그 외(숫자·영어·판별 불가 등)는 기본값 '는'
+function getTopicParticle(name) {
+  const chars = [...name];
+  while (chars.length > 0 && /[\p{P}\p{S}\p{Z}]/u.test(chars[chars.length - 1])) chars.pop();
+
+  const last = chars[chars.length - 1];
+  if (last && /[가-힣]/.test(last)) {
+    const hasBatchim = (last.charCodeAt(0) - 0xAC00) % 28 !== 0;
+    return hasBatchim ? '은' : '는';
+  }
+  return '는';
+}
+
+const DEFAULT_CHARACTER_NAME = '꼬무리'; // 등록된 이름이 없을 때 표시할 기본 이름
+
 function failStage() {
   stageEnded = true;
   stageFailed = true;
+
+  // 이름은 페널티(머리만 있으면 이름 삭제)가 적용되기 전에 먼저 읽어 둔다
+  const characterName = getCharacterName() || DEFAULT_CHARACTER_NAME;
 
   // 달인 마당 실패 페널티 : 몸/다리 있으면 마지막 조합 파츠 하나 소실(보유로 안 돌아감),
   // 머리만 있었으면 머리·색상까지 전부 소실 + 이름 말소. 보유 파츠/색상/효과는 그대로 유지.
@@ -576,8 +598,14 @@ function failStage() {
     previewEquip = getEquippedParts(); // 페널티가 반영된 최신 상태로 미리보기에 사용
   }
 
-  stageResultTitleEl.textContent = '다시 도전해요';
-  stageResultDetailEl.textContent = '신중하게 뛰어 봐요!';
+  if (IS_REVIEW_STAGE) {
+    stageResultTitleEl.textContent = '더 공부하거라!';
+    stageResultDetailEl.textContent = `${characterName}${getTopicParticle(characterName)}\n조각을 잃고 말았다…`;
+  } else {
+    stageResultTitleEl.textContent = '다시 도전해요';
+    stageResultDetailEl.textContent = '신중하게 뛰어 봐요!';
+  }
+  failureCardEl.classList.toggle('stage-result__card--master', IS_REVIEW_STAGE); // 달인 마당 전용 폰트 적용
 
   // 실패 모달 전용 캐릭터 : 표정·움직임 모두 wrong 세트
   stageResultCharacterEl.innerHTML = '';

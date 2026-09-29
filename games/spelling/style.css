@@ -1,5 +1,5 @@
-/* v0.20.0
- Spelling Game - 학습 모달 강조색에 초록(emph-green) 추가 */
+/* v0.21.0
+ Spelling Game - 달인 마당 실패 모달 전용 폰트(HakgyoansimGeurimilgi, stage-result__card--master) 추가 */
 
 /* ===========================
    0. 폰트 선언
@@ -439,7 +439,7 @@ body {
 .emph-red,
 .emph-green {
   font-weight: 900;
-  font-size: 1.2em;
+  font-size: 1.2rem;
 }
 
 .emph-blue  { color: #1e3a6e; }
@@ -461,6 +461,13 @@ body {
   font-size: 1rem;
   color: var(--color-text);
   white-space: pre-line;
+}
+
+/* 달인 마당 실패 모달 : 그림일기 폰트 (획이 가늘어 text-stroke로 두께 보정) */
+.stage-result__card--master .stage-result__title,
+.stage-result__card--master .stage-result__detail {
+  font-family: 'HakgyoansimGeurimilgi', var(--font-base);
+  -webkit-text-stroke: 0.55px currentColor;
 }
 
 /* 마당 실패 모달 전용 : wrong 캐릭터 표시 영역 (완료 모달에서는 비워둠) */
