@@ -17,6 +17,11 @@ const STAGE_LABELS = {
   'gaj-gat-gass':  '마당3. 갔 / 갖 / 같',
   'deon-deun':     '마당4. 던 / 든',
   'dae-de':        '마당5. 대 / 데',
+  'chae-che':      '마당6. 채 / 체',
+  'matchu-machi':  '마당7. 맞추다 / 맞히다',
+  'daero-dero':    '마당8. 대로 / 데로',
+  'mae-me':        '마당9. 매다 / 메다',
+  'bud-bus':       '마당10. 붇다 / 붓다',
 };
 
 function starsToString(stars) {

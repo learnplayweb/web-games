@@ -12,7 +12,13 @@ export const STAGES = [
   { level: 3, type: 'normal', topic: 'gaj-gat-gass' },
   { level: 4, type: 'normal', topic: 'deon-deun' },
   { level: 5, type: 'normal', topic: 'dae-de' },
-  { level: 6, type: 'review', topics: ['doe-dwae', 'an-anh', 'gaj-gat-gass', 'deon-deun', 'dae-de'] }
+  { level: 6, type: 'review', topics: ['doe-dwae', 'an-anh', 'gaj-gat-gass', 'deon-deun', 'dae-de'] },
+  { level: 7, type: 'normal', topic: 'chae-che' },
+  { level: 8, type: 'normal', topic: 'matchu-machi' },
+  { level: 9, type: 'normal', topic: 'daero-dero' },
+  { level: 10, type: 'normal', topic: 'mae-me' },
+  { level: 11, type: 'normal', topic: 'bud-bus' },
+  { level: 12, type: 'review', topics: ['chae-che', 'matchu-machi', 'daero-dero', 'mae-me', 'bud-bus'] },
 ];
 
 // 마당 기본 출제 문장 수 (문제은행 크기와 독립적으로 관리)
