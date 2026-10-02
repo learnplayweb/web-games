@@ -1,5 +1,5 @@
-<!-- v0.12.0
- Spelling Game - 달인 마당(목숨 5개) 대응: 하트 마크업을 JS가 동적 생성하도록 비움(기존 3개 고정 → 개수 가변) -->
+<!-- v0.13.0
+ Spelling Game - 달인 마당 안내 모달(1~5단계) 마크업 추가 -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -87,6 +87,19 @@
       <h2 id="stage-result-title" class="stage-result__title"></h2>
       <p id="stage-result-detail" class="stage-result__detail"></p>
       <div id="stage-result-character" class="stage-result__character"></div>
+    </div>
+  </div>
+
+  <!-- 달인 마당 안내 모달 : 시작 시 1~5단계로 진행. 1~4는 아무 데나 탭하면 다음으로,
+       5는 선택 버튼(추후 구현: 게임 시작/마당 선택 이동)으로만 진행 -->
+  <div id="review-intro-modal" class="review-intro review-intro--hidden">
+    <div class="review-intro__card">
+      <div id="review-intro-text" class="review-intro__text"></div>
+      <div id="review-intro-arrow" class="review-intro__arrow">▽</div>
+      <div id="review-intro-choices" class="review-intro__choices" style="display:none;">
+        <button type="button" class="review-intro__choice-btn" data-choice="start">물론,<br>준비는<br>완벽해! 🔥</button>
+        <button type="button" class="review-intro__choice-btn" data-choice="later">다음에<br>다시<br>올게요...💦</button>
+      </div>
     </div>
   </div>
 

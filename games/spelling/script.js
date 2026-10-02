@@ -1,5 +1,6 @@
-// v0.26.0
-// Spelling Game - 달인 마당 실패 모달 문구 변경("더 공부하거라!" + 캐릭터 이름/조사 표시) + 전용 폰트 클래스 토글
+// v0.27.0
+// Spelling Game - 달인 마당 안내 모달(1~5단계) 추가. EMPH_CLASS/renderSegmentLine을 공용 헬퍼로 분리.
+// 실패 모달 폰트를 연천-미수체로 교체(이전: 그림일기체)
 // - 실패 페널티를 inventory.js의 applyPenaltyLoss()로 이관 (다른 게임에서도 재사용 가능한 공용 로직)
 // - 파츠는 상점 해체와 달리 보유 인벤토리로 돌아가지 않고 소실. 머리만 있던 경우 머리·색상까지 전부 소실 + 이름 삭제
 // - 달인 마당 주제별 균등 출제(4문장×5주제, 전체 재셔플)
@@ -29,6 +30,11 @@ import { GAJ_GAT_GASS_PROBLEMS, GAJ_GAT_GASS_GUIDE } from './data/problems/03-ga
 import { DEON_DEUN_PROBLEMS, DEON_DEUN_GUIDE } from './data/problems/04-deon-deun.js';
 import { DAE_DE_PROBLEMS, DAE_DE_GUIDE } from './data/problems/05-dae-de.js';
 import { STAGES, NORMAL_STAGE_QUESTION_COUNT, NORMAL_STAGE_LIVES, REVIEW_STAGE_QUESTION_COUNT, REVIEW_STAGE_LIVES } from './data/stages.js';
+import { CHAE_CHE_PROBLEMS, CHAE_CHE_GUIDE } from './data/problems/06-chae-che.js';
+import { MATCHU_MACHI_GUIDE, MATCHU_MACHI_PROBLEMS } from './data/problems/07-matchu-machi.js';
+import { DAERO_DERO_PROBLEMS, DAERO_DERO_GUIDE } from './data/problems/08-daero-dero.js';
+import { MAE_ME_PROBLEMS, MAE_ME_GUIDE } from './data/problems/09-mae-me.js';
+import { BUD_BUS_GUIDE, BUD_BUS_PROBLEMS } from './data/problems/10-bud-bus.js';
 
 /* ===========================
    상수
@@ -38,7 +44,7 @@ const CHARACTER_X_OFFSET = 109; // 좌/우 갈림길 착지 좌표 (board-area �
 const JUMP_ANIM_DURATION = 260;    // character-jump-arc(0.26s)와 동일하게 유지 — 좌우 이동(0.26s)에 맞춤
 const FADE_OUT_DURATION = 180;     // .block--fade-out 트랜지션(0.18s)과 동일하게 유지
 const FLASH_DURATION = 400;        // 정오답 블록 플래시/추락 (0.4초, block-collapse와 동일하게 맞춤)
-const FALL_DURATION = 1600;        // 조작 실수 캐릭터 추락(1.6초)
+const FALL_DURATION = 600;        // 조작 실수 캐릭터 추락(0.6초)
 const BLINK_DURATION = 500;        // 추락/오답 롤백 시 빠른 점멸 시간
 const REVIEW_WRONG_FALL_DURATION = 500; // 달인 마당 오답 시 블록+캐릭터 동시 추락 시간 (일반 마당보다 빠르게)
 
@@ -52,14 +58,24 @@ const PROBLEM_BANKS = {
   'an-anh':       AN_ANH_PROBLEMS,
   'gaj-gat-gass': GAJ_GAT_GASS_PROBLEMS,
   'deon-deun':    DEON_DEUN_PROBLEMS,
-  'dae-de':       DAE_DE_PROBLEMS
+  'dae-de':       DAE_DE_PROBLEMS,
+  'chae-che':     CHAE_CHE_PROBLEMS,
+  'matchu-machi': MATCHU_MACHI_PROBLEMS,
+  'daero-dero':   DAERO_DERO_PROBLEMS,
+  'mae-me':       MAE_ME_PROBLEMS,
+  'bud-bus':      BUD_BUS_PROBLEMS,
 };
 const TOPIC_GUIDES = {
   'doe-dwae':     DOE_DWAE_GUIDE,
   'an-anh':       AN_ANH_GUIDE,
   'gaj-gat-gass': GAJ_GAT_GASS_GUIDE,
   'deon-deun':    DEON_DEUN_GUIDE,
-  'dae-de':       DAE_DE_GUIDE
+  'dae-de':       DAE_DE_GUIDE,
+  'chae-che':     CHAE_CHE_GUIDE,
+  'matchu-machi': MATCHU_MACHI_GUIDE,
+  'daero-dero':   DAERO_DERO_GUIDE,
+  'mae-me':       MAE_ME_GUIDE,
+  'bud-bus':      BUD_BUS_GUIDE,
 };
 
 
@@ -453,27 +469,30 @@ const learningModalEl = document.getElementById('learning-modal');
 const learningModalTitleEl = document.getElementById('learning-modal-title');
 const learningModalTextEl = document.getElementById('learning-modal-text');
 
-// guide.lines: 줄 배열, 각 줄은 세그먼트 배열. { text, emph? } — emph: 'blue' | 'red'
+// emph 세그먼트 공통 클래스 매핑 (학습 모달 / 달인 마당 안내 모달 공용)
+const EMPH_CLASS = { blue: 'emph-blue', red: 'emph-red', green: 'emph-green' };
+
+// 세그먼트 배열( { text, emph? } )을 하나의 <p>로 렌더링해 container에 추가하는 공용 헬퍼
+function renderSegmentLine(container, segments) {
+  const p = document.createElement('p');
+  segments.forEach((segment) => {
+    if (EMPH_CLASS[segment.emph]) {
+      const span = document.createElement('span');
+      span.className = EMPH_CLASS[segment.emph];
+      span.textContent = segment.text;
+      p.appendChild(span);
+    } else {
+      p.appendChild(document.createTextNode(segment.text));
+    }
+  });
+  container.appendChild(p);
+}
+
+// guide.lines: 줄 배열, 각 줄은 세그먼트 배열. { text, emph? } — emph: 'blue' | 'red' | 'green'
 function renderGuideModal(guide) {
   learningModalTitleEl.textContent = guide.title;
   learningModalTextEl.innerHTML = '';
-
-  const EMPH_CLASS = { blue: 'emph-blue', red: 'emph-red', green: 'emph-green' };
-
-  guide.lines.forEach((line) => {
-    const p = document.createElement('p');
-    line.forEach((segment) => {
-      if (EMPH_CLASS[segment.emph]) {
-        const span = document.createElement('span');
-        span.className = EMPH_CLASS[segment.emph];
-        span.textContent = segment.text;
-        p.appendChild(span);
-      } else {
-        p.appendChild(document.createTextNode(segment.text));
-      }
-    });
-    learningModalTextEl.appendChild(p);
-  });
+  guide.lines.forEach((line) => renderSegmentLine(learningModalTextEl, line));
 }
 
 function showLearningModal() {
@@ -486,6 +505,90 @@ function closeLearningModal() {
 }
 
 learningModalEl.addEventListener('click', closeLearningModal);
+
+/* ===========================
+   달인 마당 안내 모달 (시작 시 1~5단계로 진행)
+   1~4단계는 아무 곳이나 탭하면 다음으로, 5단계는 선택 버튼으로만 진행(버튼 동작은 추후 구현)
+   캐릭터 이름 표시가 필요한 줄은 { dynamic: 'nameParticle' }로 표시해 렌더링 시점에 치환한다.
+=========================== */
+
+const REVIEW_INTRO_SCREENS = [
+  { lines: [
+      [{ text: '이곳은' }],
+      [{ text: '달인 마당!', emph: 'red' }],
+      [{ text: '준비된 자만' }],
+      [{ text: '올 수 있지.' }],
+  ] },
+  { lines: [
+      [{ text: '목숨은 5개뿐!' }],
+      [{ text: "'" }, { text: '틀린 답', emph: 'blue' }, { text: "'을 골라도" }],
+      [{ text: "'" }, { text: '방향', emph: 'blue' }, { text: "'을 잘못 눌러도" }],
+      [{ text: '목숨이 줄어든다.' }],
+  ] },
+  { lines: [
+      [{ text: '목숨이 다하면' }],
+      [{ text: '마당은 닫히고' }],
+      [{ dynamic: 'nameParticle' }],
+      [{ text: '몸의 한 조각을 잃는다!', emph: 'red' }],
+  ] },
+  { lines: [
+      [{ text: '머리만 있는 상태라면' }],
+      [{ dynamic: 'nameParticle' }],
+      [{ text: '사라진다.' }],
+      [{ text: '영원히!', emph: 'red' }],
+  ] },
+  { lines: [
+      [{ text: '달인에' }],
+      [{ text: '도전하겠는가?' }],
+  ], isLast: true },
+];
+
+const reviewIntroModalEl   = document.getElementById('review-intro-modal');
+const reviewIntroTextEl    = document.getElementById('review-intro-text');
+const reviewIntroArrowEl   = document.getElementById('review-intro-arrow');
+const reviewIntroChoicesEl = document.getElementById('review-intro-choices');
+
+let reviewIntroIndex = 0;
+
+function renderReviewIntroScreen(index) {
+  const screen = REVIEW_INTRO_SCREENS[index];
+  reviewIntroTextEl.innerHTML = '';
+
+  screen.lines.forEach((line) => {
+    if (line.length === 1 && line[0].dynamic === 'nameParticle') {
+      const name = getCharacterName() || DEFAULT_CHARACTER_NAME;
+      renderSegmentLine(reviewIntroTextEl, [{ text: `${name}${getTopicParticle(name)}` }]);
+    } else {
+      renderSegmentLine(reviewIntroTextEl, line);
+    }
+  });
+
+  reviewIntroArrowEl.style.display   = screen.isLast ? 'none' : '';
+  reviewIntroChoicesEl.style.display = screen.isLast ? 'flex' : 'none';
+}
+
+function showReviewIntroModal() {
+  reviewIntroIndex = 0;
+  renderReviewIntroScreen(reviewIntroIndex);
+  reviewIntroModalEl.classList.remove('review-intro--hidden');
+}
+
+// 마지막(5단계) 화면에서는 탭으로 넘어가지 않고 버튼으로만 진행 (버튼 동작은 추후 구현)
+function advanceReviewIntro() {
+  if (reviewIntroIndex >= REVIEW_INTRO_SCREENS.length - 1) return;
+  reviewIntroIndex += 1;
+  renderReviewIntroScreen(reviewIntroIndex);
+}
+
+reviewIntroModalEl.addEventListener('click', (e) => {
+  if (e.target.closest('[data-choice]')) return; // 선택 버튼은 별도 처리
+  advanceReviewIntro();
+});
+
+// TODO(추후 구현) : 'start' → 모달 닫고 게임 시작 / 'later' → select.html로 이동
+reviewIntroChoicesEl.querySelectorAll('[data-choice]').forEach((btn) => {
+  btn.addEventListener('click', () => {});
+});
 
 /* ===========================
    마당 완료 / 실패. 아무 곳이나 탭 또는 방향키/스페이스바로 닫힘
@@ -581,7 +684,9 @@ function getTopicParticle(name) {
   return '는';
 }
 
-const DEFAULT_CHARACTER_NAME = '꼬무리'; // 등록된 이름이 없을 때 표시할 기본 이름
+// 등록된 이름이 없을 때 표시할 기본 이름. 원칙적으로는 캐릭터(이름) 미등록 시 플레이 자체를
+// 막아야 하지만(추후 구현 예정), 그 전까지는 이 기본값으로 대체 표시한다.
+const DEFAULT_CHARACTER_NAME = '꼬무리';
 
 function failStage() {
   stageEnded = true;
@@ -819,7 +924,8 @@ function handleInput(action) {
 
 function isAnyModalOpen() {
   return !learningModalEl.classList.contains('learning-modal--hidden')
-      || !stageResultEl.classList.contains('stage-result--hidden');
+      || !stageResultEl.classList.contains('stage-result--hidden')
+      || !reviewIntroModalEl.classList.contains('review-intro--hidden');
 }
 
 function closeOpenModal() {
@@ -827,6 +933,8 @@ function closeOpenModal() {
     closeLearningModal();
   } else if (!stageResultEl.classList.contains('stage-result--hidden')) {
     closeStageResult();
+  } else if (!reviewIntroModalEl.classList.contains('review-intro--hidden')) {
+    advanceReviewIntro(); // 방향키/스페이스바로도 다음 화면 진행 가능
   }
 }
 
@@ -861,6 +969,8 @@ initBoard();
 renderHeartSlots();
 updateHeartsDisplay();
 updateComboDisplay();
-if (!IS_REVIEW_STAGE) {
-  showLearningModal(); // 마당 시작 시 주제 학습 가이드 먼저 안내 (달인 마당은 여러 주제가 섞여 있어 생략)
+if (IS_REVIEW_STAGE) {
+  showReviewIntroModal(); // 달인 마당 시작 시 1~5단계 안내 모달 (여러 주제가 섞여 있어 기존 학습 가이드는 생략)
+} else {
+  showLearningModal(); // 마당 시작 시 주제 학습 가이드 먼저 안내
 }

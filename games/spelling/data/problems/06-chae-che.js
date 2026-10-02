@@ -2,7 +2,6 @@ export const CHAE_CHE_PROBLEMS = [
   {
     id: 'chae-che-01',
     tokens: [
-      { text: '동생은' },
       { text: '옷을' },
       { text: '입은' },
       { correct: '채', wrong: '체', fixedSide: 'left' },
@@ -13,7 +12,6 @@ export const CHAE_CHE_PROBLEMS = [
   {
     id: 'chae-che-02',
     tokens: [
-      { text: '그는' },
       { text: '정답을' },
       { text: '알면서도' },
       { text: '모르는' },
@@ -27,7 +25,7 @@ export const CHAE_CHE_PROBLEMS = [
       { text: '신발을' },
       { text: '신은' },
       { correct: '채', wrong: '체', fixedSide: 'left' },
-      { text: '방에' },
+      { text: '집에' },
       { text: '들어갔다.' }
     ]
   },
@@ -215,6 +213,9 @@ export const CHAE_CHE_GUIDE = {
     ],
     [
       { text: '체', emph: 'red' }, { text: ": " },  { text: '거짓', emph: 'red' }, { text: "으로 꾸미는 태도" }
+    ],
+    [
+      { text: "(" }, { text: '척', emph: 'red' }, { text: "으로 바꿔 보기)" }
     ]
   ]
 };

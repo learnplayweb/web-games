@@ -1,5 +1,5 @@
-/* v0.21.0
- Spelling Game - 달인 마당 실패 모달 전용 폰트(HakgyoansimGeurimilgi, stage-result__card--master) 추가 */
+/* v0.22.0
+ Spelling Game - 달인 마당 안내 모달(1~5단계) 추가, 실패 모달 폰트를 연천-미수체로 교체 */
 
 /* ===========================
    0. 폰트 선언
@@ -15,6 +15,15 @@
 @font-face {
   font-family: 'HakgyoansimGeurimilgi';
   src: url('../../assets/fonts/HakgyoansimGeurimilgi.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ※ 파일명 추정: assets/fonts/yeoncheon-misu.woff2. 실제 파일명이 다르면 이 src 경로만 맞춰 고치면 됨 */
+@font-face {
+  font-family: 'YeoncheonMisu';
+  src: url('../../assets/fonts/yeoncheon-misu.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -463,10 +472,10 @@ body {
   white-space: pre-line;
 }
 
-/* 달인 마당 실패 모달 : 그림일기 폰트 (획이 가늘어 text-stroke로 두께 보정) */
+/* 달인 마당 실패 모달 : 연천-미수체 (획이 가늘면 text-stroke로 두께 보정) */
 .stage-result__card--master .stage-result__title,
 .stage-result__card--master .stage-result__detail {
-  font-family: 'HakgyoansimGeurimilgi', var(--font-base);
+  font-family: 'YeoncheonMisu', var(--font-base);
   -webkit-text-stroke: 0.55px currentColor;
 }
 
@@ -488,6 +497,91 @@ body {
   width: 100%;
   height: 100%;
   display: block;
+}
+
+/* ===========================
+   7-1. 달인 마당 안내 모달 (시작 시 1~5단계로 진행)
+   본문은 연천-미수체, 선택 버튼만 게임 블록과 동일한 그림일기체+두께 보정
+=========================== */
+.review-intro {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(45, 58, 74, 0.55);
+  z-index: 210;
+  cursor: pointer;
+}
+
+.review-intro--hidden {
+  display: none;
+}
+
+.review-intro__card {
+  background: var(--color-surface);
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 32px rgba(91, 141, 238, 0.18);
+  padding: 2.25rem 1.75rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  width: min(300px, 85vw);
+}
+
+.review-intro__text {
+  font-family: 'YeoncheonMisu', var(--font-base);
+  text-align: center;
+}
+
+.review-intro__text p {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+/* 다음 화면이 더 있음을 알리는 옅은 회색 역삼각형 : 1초 주기로 둥둥 떠다니는 느낌 */
+.review-intro__arrow {
+  margin-top: 1rem;
+  font-size: 1.3rem;
+  color: #c7cfd9;
+  animation: review-intro-bob 1s ease-in-out infinite alternate;
+}
+
+@keyframes review-intro-bob {
+  from { transform: translateY(0); }
+  to   { transform: translateY(8px); }
+}
+
+.review-intro__choices {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+.review-intro__choice-btn {
+  flex: 1;
+  max-width: 130px;
+  padding: 1rem 0.5rem;
+  border: none;
+  border-radius: 0.75rem;
+  background: var(--color-keypad-bg);
+  color: var(--color-text);
+  font-family: 'HakgyoansimGeurimilgi', var(--font-base);
+  -webkit-text-stroke: 0.55px var(--color-text); /* 게임 블록과 동일한 두께 보정 */
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.review-intro__choice-btn:active {
+  background: var(--color-keypad-active);
 }
 
 /* ===========================
