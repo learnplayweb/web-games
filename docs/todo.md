@@ -97,26 +97,13 @@ if (currentCombo >= 3 && currentCombo % 3 === 0) {
 
 
 클로
-1. 문제 추가하고 select.js에 아래와 같이 반영했음.
-const STAGE_LABELS = {
-  'doe-dwae':      '마당1. 되 / 돼',
-  'an-anh':        '마당2. 안 / 않',
-  'gaj-gat-gass':  '마당3. 갔 / 갖 / 같',
-  'deon-deun':     '마당4. 던 / 든',
-  'dae-de':        '마당5. 대 / 데',
+달인 마당 안내 모달 선택 버튼 활성화
+
   'chae-che':      '마당6. 채 / 체',
   'matchu-machi':  '마당7. 맞추다 / 맞히다',
   'daero-dero':    '마당8. 대로 / 데로',
   'mae-me':        '마당9. 매다 / 메다',
   'bud-bus':       '마당10. 붇다 / 붓다',
-};
-2. script.js에 import, 문제은행/학습 가이드 매핑에도 추가함.
-
-문제 추가 시 수정 매뉴얼 작성 바람. (달인 마당 포함)
-1. 문제 파일 추가
-2. stages.js > ~~ 추가
-3. 무슨 파일 > 뭐뭐 추가 수정
-
 
 
 ----
