@@ -220,7 +220,23 @@ export const MATCHU_MACHI_PROBLEMS = [
       { text: '말을' },
       { correct: '맞췄다.', wrong: '맞혔다.', fixedSide: 'left' }
     ]
-  }
+  },
+  {
+    id: 'matchu-machi-25',
+    tokens: [
+      { text: '누가' },
+      { text: '문제를' },
+      { correct: '맞힐까?', wrong: '맞출까?', fixedSide: 'right' }
+    ]
+  },
+  {
+    id: 'matchu-machi-26',
+    tokens: [
+      { text: '누가' },
+      { text: '블록을' },
+      { correct: '맞출까?', wrong: '맞힐까?', fixedSide: 'left' }
+    ]
+  },
 ];
 
 // 학습 모달 콘텐츠 (마당 시작 시 + 오답 시 공통 노출, 주제마다 달라지므로 해당 주제 파일에 위치)

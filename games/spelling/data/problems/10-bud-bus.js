@@ -129,7 +129,7 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-20',
+    id: 'bud-bus-16',
     tokens: [
       { text: '몸무게가' },
       { text: '예전보다' },
@@ -138,7 +138,7 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-21',
+    id: 'bud-bus-17',
     tokens: [
       { text: '손의' },
       { correct: '붓기가', wrong: '붇기가', fixedSide: 'right' },
@@ -147,7 +147,7 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-23',
+    id: 'bud-bus-18',
     tokens: [
       { text: '물을' },
       { text: '많이' },
@@ -156,14 +156,14 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-28',
+    id: 'bud-bus-19',
     tokens: [
       { text: '간이' },
       { correct: '부었구나!', wrong: '불었구나!', fixedSide: 'left' },
     ]
   },
   {
-    id: 'bud-bus-33',
+    id: 'bud-bus-20',
     tokens: [
       { text: '모기에' },
       { text: '물려서' },
@@ -171,16 +171,7 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-44',
-    tokens: [
-      { text: '주전자에' },
-      { text: '물을' },
-      { correct: '붓고', wrong: '붓고', fixedSide: 'left' },
-      { text: '끓였다.' }
-    ]
-  },
-  {
-    id: 'bud-bus-51',
+    id: 'bud-bus-21',
     tokens: [
       { text: '라면이' },
       { correct: '불으면', wrong: '부으면', fixedSide: 'left' },
@@ -188,7 +179,7 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-52',
+    id: 'bud-bus-22',
     tokens: [
       { text: '얼굴의' },
       { correct: '붓기가', wrong: '붇기가', fixedSide: 'right' },
@@ -196,7 +187,7 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-54',
+    id: 'bud-bus-23',
     tokens: [
       { text: '강물이' },
       { correct: '불어', wrong: '부어', fixedSide: 'right' },
@@ -205,7 +196,7 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-64',
+    id: 'bud-bus-24',
     tokens: [
       { text: '재산이' },
       { text: '차츰' },
@@ -215,7 +206,7 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-65',
+    id: 'bud-bus-25',
     tokens: [
       { text: '밑' },
       { text: '빠진' },
@@ -225,7 +216,7 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-66',
+    id: 'bud-bus-26',
     tokens: [
       { text: '오래' },
       { text: '걸었더니' },
@@ -234,7 +225,7 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-67',
+    id: 'bud-bus-27',
     tokens: [
       { text: '미역을' },
       { text: '물에' },
@@ -243,7 +234,7 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-68',
+    id: 'bud-bus-28',
     tokens: [
       { text: '벌에' },
       { text: '쏘여서' },
@@ -252,16 +243,7 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-69',
-    tokens: [
-      { text: '주전자에' },
-      { text: '물을' },
-      { correct: '붓고', wrong: '붇고', fixedSide: 'right' },
-      { text: '끓였다.' }
-    ]
-  },
-  {
-    id: 'bud-bus-70',
+    id: 'bud-bus-29',
     tokens: [
       { text: '체중이' },
       { text: '예전보다' },
@@ -269,7 +251,7 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-72',
+    id: 'bud-bus-30',
     tokens: [
       { text: '저수지의' },
       { text: '물이' },
@@ -278,7 +260,7 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-73',
+    id: 'bud-bus-31',
     tokens: [
       { text: '기름을' },
       { correct: '붓지', wrong: '붇지', fixedSide: 'right' },
@@ -286,7 +268,7 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-74',
+    id: 'bud-bus-32',
     tokens: [
       { text: '짜게' },
       { text: '먹으면' },
@@ -295,7 +277,7 @@ export const BUD_BUS_PROBLEMS = [
     ]
   },
   {
-    id: 'bud-bus-75',
+    id: 'bud-bus-33',
     tokens: [
       { text: '학생' },
       { text: '수가' },
