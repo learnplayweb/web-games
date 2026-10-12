@@ -1,38 +1,45 @@
-// v0.3.0
+// v0.5.0
 // Spelling Game - 마당 선택 화면 (시계 게임 select.js 구조 재사용)
-// - STAGES(data/stages.js)를 기준으로 카드를 렌더링. 일반 마당은 주제별 최고 별점(getSpellingBestStars) 표시
-// - 달인 마당(복습, type: 'review')은 카드 표시명 "달인 마당. 1~5". 최고 별점은 저장 안 하고 최근 별점만 표시(getSpellingReviewRecentStars)
-// - 달인 마당 잠금(1~5마당 모두 별 3개 시 해금)은 아직 구현하지 않고, 코드만 준비해 주석 처리해 둠(현재는 항상 해금 상태)
+// - 하드코딩된 라벨 표 제거: 주제 이름/순서는 topics.js의 TOPICS 배열에서 가져오고,
+//   "마당N" 번호는 STAGES 안에서 normal 타입의 순서를 세어 자동 계산한다. (topics.js만 고치면 여기는 안 건드려도 됨)
+// - 일반 마당은 주제별 최고 별점(getSpellingBestStars) 표시
+// - 달인 마당(복습, type: 'review')은 카드 표시명 "달인 마당. N~M"(그 묶음의 마당 번호 범위, 자동 계산).
+//   달인 마당이 여러 개(1~5, 6~10 ...)로 늘어나도 자동 대응됨. 최고 별점은 저장 안 하고 level별 최근 별점만 표시
+// - 달인 마당 잠금(해당 5마당 모두 별 3개 시 해금)은 아직 구현하지 않고, 코드만 준비해 주석 처리해 둠(현재는 항상 해금 상태)
 
 import { getGold, getSpellingBestStars, getSpellingReviewRecentStars } from '../../core/saveManager.js';
 import { createHeader, updateHeaderGold } from '../../shared/header.js';
 import { STAGES } from './data/stages.js';
-
-// topic 문자열 → 카드에 표시할 이름
-// ※ 마당3(gaj-gat-gass)은 실제 stages.js에서 사용자가 직접 고친 topic 문자열을 기준으로 매핑함.
-//    이 파일에서 보고 있는 stages.js와 실제 배포본의 topic 문자열이 다르면 이 표의 키도 맞춰서 고칠 것.
-const STAGE_LABELS = {
-  'doe-dwae':      '마당1. 되 / 돼',
-  'an-anh':        '마당2. 안 / 않',
-  'gaj-gat-gass':  '마당3. 갔 / 갖 / 같',
-  'deon-deun':     '마당4. 던 / 든',
-  'dae-de':        '마당5. 대 / 데',
-  'chae-che':      '마당6. 채 / 체',
-  'matchu-machi':  '마당7. 맞추다 / 맞히다',
-  'daero-dero':    '마당8. 대로 / 데로',
-  'mae-me':        '마당9. 매다 / 메다',
-  'bud-bus':       '마당10. 붇다 / 붓다',
-};
+import { TOPICS } from './data/topics.js';
 
 function starsToString(stars) {
   return '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
 }
 
+// topic id → topics.js의 label
+function topicLabel(topicId) {
+  return TOPICS.find((topic) => topic.id === topicId)?.label ?? topicId;
+}
+
+// 해당 stage가 STAGES 안에서 몇 번째 "일반" 마당인지 (1부터 시작) → 화면에 보이는 "마당N" 번호
+function normalStageNumber(stage) {
+  return STAGES.filter((s) => s.type === 'normal').findIndex((s) => s.level === stage.level) + 1;
+}
+
+// topic id → 그 topic이 몇 번째 "일반" 마당인지 (마당N 번호와 동일한 기준)
+function normalStageNumberByTopic(topicId) {
+  return STAGES.filter((s) => s.type === 'normal').findIndex((s) => s.topic === topicId) + 1;
+}
+
+// 달인 마당(review) 하나가 묶고 있는 주제들의 "N~M" 범위 (예: 1~5, 6~10 ...) — 묶음이 늘어나도 자동 계산됨
+function reviewRangeLabel(stage) {
+  const numbers = stage.topics.map(normalStageNumberByTopic);
+  return `${Math.min(...numbers)}~${Math.max(...numbers)}`;
+}
+
 // 복습 마당 해금 조건(이후 구현 예정) : 일반 마당 전체가 최고 별점 3개일 때만 해금
-// function isReviewUnlocked() {
-//   return STAGES
-//     .filter((stage) => stage.type === 'normal')
-//     .every((stage) => getSpellingBestStars(stage.topic) === 3);
+// function isReviewUnlocked(stage) {
+//   return stage.topics.every((topicId) => getSpellingBestStars(topicId) === 3);
 // }
 
 function renderStageCards() {
@@ -43,14 +50,16 @@ function renderStageCards() {
     const isReview = stage.type === 'review';
 
     // 잠금 로직 자리 (현재는 항상 해금) : 준비되면 아래 주석으로 교체
-    // const isUnlocked = isReview ? isReviewUnlocked() : true;
+    // const isUnlocked = isReview ? isReviewUnlocked(stage) : true;
     const isUnlocked = true;
 
     const card = document.createElement('div');
     card.className = `stage-card ${isUnlocked ? 'stage-card--unlocked' : 'stage-card--locked'}`;
     if (isReview) card.classList.add('stage-card--review');
 
-    const name = isReview ? '달인 마당. 1~5' : (STAGE_LABELS[stage.topic] ?? stage.topic);
+    const name = isReview
+      ? `달인 마당. ${reviewRangeLabel(stage)}`
+      : `마당${normalStageNumber(stage)}. ${topicLabel(stage.topic)}`;
 
     const levelLabel = document.createElement('p');
     levelLabel.className = 'stage-card__level';
@@ -60,7 +69,7 @@ function renderStageCards() {
     starsLabel.className = 'stage-card__stars';
     // 달인 마당은 최고 별점을 저장하지 않고, 가장 최근 플레이 별점만 표시한다.
     starsLabel.textContent = isReview
-      ? starsToString(getSpellingReviewRecentStars())
+      ? starsToString(getSpellingReviewRecentStars(stage.level))
       : starsToString(getSpellingBestStars(stage.topic));
 
     card.append(levelLabel, starsLabel);

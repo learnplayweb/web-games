@@ -1,3 +1,4 @@
+// v0.4.0 : Fix_달인 마당 최근 별점을 level별로 구분 저장 (1~5, 6~10 등 여러 개가 생겨도 안 섞이도록)
 // v0.3.0 : Add_맞춤법 게임 달인 마당(복습) 최근 별점 저장 함수 추가
 // v0.2.0 : Add_맞춤법 게임(Spelling) 마당(주제)별 최고 별점 저장 + 결과 보상 저장 함수 추가
 // v0.1.11 : Add_효과(Effect) 인벤토리 및 장착 상태 슬롯 추가
@@ -32,9 +33,9 @@
 // - getSpellingBestStars(topic): 해당 주제(마당)의 최고 별점 반환 (없으면 0)
 // - saveSpellingResult(topic, stars, goldEarned): 마당 정상 완료 시 1회 호출.
 //   최고 별점 갱신 + Gold를 공용 지갑에 적립을 한 번에 처리 (게임 중간엔 호출하지 않음)
-// - getSpellingReviewRecentStars(): 달인 마당(복습)의 최근 별점 반환 (최고값 아님, 없으면 0)
-// - saveSpellingReviewResult(stars, goldEarned): 달인 마당 정상 완료 시 1회 호출.
-//   최근 별점 덮어쓰기(비교 없음) + Gold를 공용 지갑에 적립
+// - getSpellingReviewRecentStars(level): 해당 달인 마당(level)의 최근 별점 반환 (최고값 아님, 없으면 0)
+// - saveSpellingReviewResult(level, stars, goldEarned): 달인 마당 정상 완료 시 1회 호출.
+//   해당 level의 최근 별점 덮어쓰기(비교 없음) + Gold를 공용 지갑에 적립
 //
 // Public API (디버그 전용)
 // - resetSave(): clockGame_save 전체 초기화 (골드 포함)
@@ -349,7 +350,7 @@ export function getClockSave() {
   const SPELLING_SAVE_KEY = 'spellingGame_save';
 
   function getDefaultSpellingSave() {
-    return { bestStars: {}, reviewRecentStars: 0 }; // topic → 최고 별점(0~3), 달인 마당은 최근 별점만 저장
+    return { bestStars: {}, reviewRecentStars: {} }; // topic → 최고 별점(0~3). 달인 마당은 level → 최근 별점(복수 가능)
   }
 
   function loadSpelling() {
@@ -374,14 +375,15 @@ export function getClockSave() {
   }
 
   // 달인 마당(복습) 전용 : 최고 별점을 저장하지 않고 "최근" 별점만 매번 덮어쓴다.
-  function getSpellingReviewRecentStars() {
-    return loadSpelling().reviewRecentStars ?? 0;
+  // level로 구분해서 저장하므로 달인 마당이 여러 개(1~5, 6~10, 11~15 ...)로 늘어나도 서로 섞이지 않는다.
+  function getSpellingReviewRecentStars(level) {
+    return loadSpelling().reviewRecentStars[level] ?? 0;
   }
 
-  // 달인 마당 정상 완료 시 1회 호출 : 최근 별점 덮어쓰기(최고값 비교 없음) + Gold를 공용 지갑에 적립
-  function saveSpellingReviewResult(stars, goldEarned) {
+  // 달인 마당 정상 완료 시 1회 호출 : 해당 level의 최근 별점 덮어쓰기(최고값 비교 없음) + Gold를 공용 지갑에 적립
+  function saveSpellingReviewResult(level, stars, goldEarned) {
     const spellingSave = loadSpelling();
-    spellingSave.reviewRecentStars = stars;
+    spellingSave.reviewRecentStars[level] = stars;
     writeSpelling(spellingSave);
 
     const commonSave = load();

@@ -573,7 +573,6 @@ body {
   background: var(--color-keypad-bg);
   color: var(--color-text);
   font-family: 'HakgyoansimGeurimilgi', var(--font-base);
-  -webkit-text-stroke: 0.55px var(--color-text); /* 게임 블록과 동일한 두께 보정 */
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.4;

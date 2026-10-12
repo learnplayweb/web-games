@@ -60,17 +60,13 @@ export const MAE_ME_PROBLEMS = [
       { text: '산책' },
       { text: '갈까?' }
     ]
-  },
+  },  
   {
     id: 'mae-me-08',
     tokens: [
-      { text: '슬픈' },
-      { text: '소식에' },
-      { text: '목이' },
-      { correct: '메어', wrong: '매어', fixedSide: 'right' },
-      { text: '말을' },
-      { text: '잇지' },
-      { text: '못했다.' }
+      { text: '줄을' },
+      { text: '나무에' },
+      { correct: '매었다.', wrong: '메었다.', fixedSide: 'left' }
     ]
   },
   {
@@ -102,25 +98,6 @@ export const MAE_ME_PROBLEMS = [
   {
     id: 'mae-me-12',
     tokens: [
-      { text: '감격해서' },
-      { text: '목이' },
-      { correct: '메인', wrong: '매인', fixedSide: 'right' },
-      { text: '채' },
-      { text: '인사를' },
-      { text: '했다.' }
-    ]
-  },
-  {
-    id: 'mae-me-13',
-    tokens: [
-      { text: '줄을' },
-      { text: '나무에' },
-      { correct: '매었다.', wrong: '메었다.', fixedSide: 'left' }
-    ]
-  },
-  {
-    id: 'mae-me-14',
-    tokens: [
       { text: '짐을' },
       { text: '어깨에' },
       { correct: '메고', wrong: '매고', fixedSide: 'right' },
@@ -129,17 +106,7 @@ export const MAE_ME_PROBLEMS = [
     ]
   },
   {
-    id: 'mae-me-15',
-    tokens: [
-      { text: '슬픔에' },
-      { text: '목이' },
-      { correct: '메는', wrong: '매는', fixedSide: 'right' },
-      { text: '것을' },
-      { text: '참았다.' }
-    ]
-  },
-  {
-    id: 'mae-me-16',
+    id: 'mae-me-13',
     tokens: [
       { text: '목도리를' },
       { text: '목에' },
@@ -148,7 +115,7 @@ export const MAE_ME_PROBLEMS = [
     ]
   },
   {
-    id: 'mae-me-17',
+    id: 'mae-me-14',
     tokens: [
       { text: '카메라를' },
       { text: '어깨에' },
@@ -157,7 +124,7 @@ export const MAE_ME_PROBLEMS = [
     ]
   },
   {
-    id: 'mae-me-18',
+    id: 'mae-me-15',
     tokens: [
       { text: '밧줄로' },
       { text: '배를' },
@@ -166,7 +133,7 @@ export const MAE_ME_PROBLEMS = [
     ]
   },
   {
-    id: 'mae-me-19',
+    id: 'mae-me-16',
     tokens: [
       { text: '서러움에' },
       { text: '목이' },

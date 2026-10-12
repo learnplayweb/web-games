@@ -16,17 +16,17 @@ export const DAE_DE_PROBLEMS = [
       { text: '알림장에서' },
       { text: '내일은' },
       { text: '준비물이' },
-      { correct: '없대.', wrong: '없데.', fixedSide: 'left' }
+      { correct: '없대요.', wrong: '없데요.', fixedSide: 'left' }
     ]
   },
   {
     id: 'dae-de-03',
     tokens: [
-      { text: '알림장을' },
-      { text: '보니' },
-      { text: '내일은' },
-      { text: '준비물이' },
-      { correct: '없데.', wrong: '없대.', fixedSide: 'right' }
+      { text: '삼촌이' },
+      { text: '자기' },
+      { text: '집이' },
+      { text: '아주' },
+      { correct: '좋대.', wrong: '좋데.', fixedSide: 'left' }
     ]
   },
   {
@@ -42,11 +42,11 @@ export const DAE_DE_PROBLEMS = [
   {
     id: 'dae-de-05',
     tokens: [
-      { text: '내가' },
+      { text: '제가' },
       { text: '먹은' },
       { text: '떡볶이는' },
       { text: '생각보다' },
-      { correct: '맵데.', wrong: '맵대.', fixedSide: 'right' }
+      { correct: '맵데요.', wrong: '맵대요.', fixedSide: 'right' }
     ]
   },
   {
@@ -77,7 +77,7 @@ export const DAE_DE_PROBLEMS = [
       { text: '전국에' },
       { text: '눈이' },
       { text: '많이' },
-      { correct: '왔대.', wrong: '왔데.', fixedSide: 'left' }
+      { correct: '왔대요.', wrong: '왔데요.', fixedSide: 'left' }
     ]
   },
   {
@@ -104,11 +104,10 @@ export const DAE_DE_PROBLEMS = [
   {
     id: 'dae-de-11',
     tokens: [
-      { text: '아까' },
-      { text: '내가' },
+      { text: '제가' },
       { text: '먹은' },
       { text: '과자가' },
-      { correct: '맛있데.', wrong: '맛있대.', fixedSide: 'right' }
+      { correct: '맛있데요.', wrong: '맛있대요.', fixedSide: 'right' }
     ]
   },
   {
@@ -118,7 +117,7 @@ export const DAE_DE_PROBLEMS = [
       { text: '그' },
       { text: '선수가' },
       { text: '금메달을' },
-      { correct: '땄대.', wrong: '땄데.', fixedSide: 'left' }
+      { correct: '땄대요.', wrong: '땄데요.', fixedSide: 'left' }
     ]
   },
   {
@@ -184,11 +183,11 @@ export const DAE_DE_PROBLEMS = [
   {
     id: 'dae-de-19',
     tokens: [
-      { text: '내가' },
+      { text: '제가' },
       { text: '간' },
       { text: '공원은' },
       { text: '정말' },
-      { correct: '넓데.', wrong: '넓대.', fixedSide: 'right' }
+      { correct: '넓데요.', wrong: '넓대요.', fixedSide: 'right' }
     ]
   },
   {
@@ -235,12 +234,10 @@ export const DAE_DE_PROBLEMS = [
   {
     id: 'dae-de-24',
     tokens: [
-      { text: '기사에서' },
-      { text: '그' },
-      { text: '선수가' },
-      { text: '이번에' },
-      { text: '금메달을' },
-      { correct: '땄대.', wrong: '땄데.', fixedSide: 'left' }
+      { text: '내가' },
+      { text: '읽은' },
+      { text: '책이' },
+      { correct: '재미있데.', wrong: '재미있대.', fixedSide: 'right' }
     ]
   },
   {
@@ -281,7 +278,7 @@ export const DAE_DE_PROBLEMS = [
       { text: '내일' },
       { text: '오후부터' },
       { text: '비가' },
-      { correct: '온대.', wrong: '온데.', fixedSide: 'left' }
+      { correct: '온대요.', wrong: '온데요.', fixedSide: 'left' }
     ]
   },
   {
@@ -292,7 +289,7 @@ export const DAE_DE_PROBLEMS = [
       { text: '나가니' },
       { text: '바람이' },
       { text: '많이' },
-      { correct: '불데.', wrong: '불대.', fixedSide: 'right' }
+      { correct: '불데요.', wrong: '불대요.', fixedSide: 'right' }
     ]
   },
   {
@@ -331,25 +328,6 @@ export const DAE_DE_PROBLEMS = [
       { correct: '따뜻하데.', wrong: '따뜻하대.', fixedSide: 'right' }
     ]
   },
-  {
-    id: 'dae-de-34',
-    tokens: [
-      { text: '삼촌이' },
-      { text: '자기' },
-      { text: '집이' },
-      { text: '아주' },
-      { correct: '좋대.', wrong: '좋데.', fixedSide: 'left' }
-    ]
-  },
-  {
-    id: 'dae-de-35',
-    tokens: [
-      { text: '내가' },
-      { text: '읽은' },
-      { text: '책이' },
-      { correct: '재미있데.', wrong: '재미있대.', fixedSide: 'right' }
-    ]
-  }
 ];
 
 // 학습 모달 콘텐츠 (마당 시작 시 + 오답 시 공통 노출, 주제마다 달라지므로 해당 주제 파일에 위치)

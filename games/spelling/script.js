@@ -1,21 +1,5 @@
-// v0.27.0
-// Spelling Game - 달인 마당 안내 모달(1~5단계) 추가. EMPH_CLASS/renderSegmentLine을 공용 헬퍼로 분리.
-// 실패 모달 폰트를 연천-미수체로 교체(이전: 그림일기체)
-// - 실패 페널티를 inventory.js의 applyPenaltyLoss()로 이관 (다른 게임에서도 재사용 가능한 공용 로직)
-// - 파츠는 상점 해체와 달리 보유 인벤토리로 돌아가지 않고 소실. 머리만 있던 경우 머리·색상까지 전부 소실 + 이름 삭제
-// - 달인 마당 주제별 균등 출제(4문장×5주제, 전체 재셔플)
-// - 문제 선택(buildNormalBlockQueue/buildReviewBlockQueue)과 토큰 펼치기(flattenProblemsToQueue) 로직 분리
-// - 갈림길에서 좌/우 입력 시 그 자리에서 바로 판정+연출+보드 전진까지 한 번에 처리
-//   정답 선택: 정답 블록 초록 플래시 + 오답 블록(반대쪽) 추락(빨강 플래시 없이) → 즉시 전진
-//   오답 선택: 선택한(오답) 블록 빨강 플래시+추락, 정답 블록도 초록 플래시 → 0.6초 후 중앙 롤백 + 학습 모달(전진 없음, 재시도)
-// - 시작 시 이전(back) 블록은 자리는 차지하되 안 보임(visibility:hidden, 레이아웃 유지). 첫 전진 후 보임.
-// - 일반 블록은 여전히 '중앙 도착'이 유일한 안전 조건. 표준 스텝 결과가 중앙이 아니면 조작 실수(추락+목숨차감).
-// - 정답이 흘러온 블록은 자신이 답해진 레인(좌/우)을 유지한 채 이전/현재 슬롯까지 흐른다 (__lane 스냅샷).
-// - 학습 모달 / 마당 결과 모달 : 탭 또는 방향키·스페이스바로 닫힘 (PC에서 마우스 없이도 진행 가능)
-// - 좌우 착지 좌표: block--front 170px + fork-row gap 3rem(48px) → 170/2 + 48/2 = 109px
-// - 조작 실수 : 목숨 차감. 캐릭터만 추락+회전(1.6초) 후 빠른 점멸과 함께 원래 칸으로 복귀
-// - 정답률/보상 집계는 선택 지점(갈림길) 단위, 첫 시도 결과만 기록 (재시도는 집계에 영향 없음)
-// - 목숨 0 또는 문제은행 소진 시 마당 종료. Gold 보상 연동은 이후 단계에서 구현
+// v0.29.0
+// Spelling Game - 달인 마당 안내 모달 5단계 선택지 연결 (준비 완벽=게임 시작, 다음에=마당 선택 이동)
 //
 // Public API
 // - initCharacter()
@@ -24,17 +8,8 @@ import { renderCharacterSvg } from '../../characters/characterRenderer.js';
 import { getEquippedParts, getCharacterName, getSpellingBestStars, saveSpellingResult, saveSpellingReviewResult } from '../../core/saveManager.js';
 import { spawnEffect } from '../../characters/assets/effects/effects.js';
 import { pickRandomEquippedEffect, applyPenaltyLoss } from '../../characters/inventory.js';
-import { DOE_DWAE_PROBLEMS, DOE_DWAE_GUIDE } from './data/problems/01-doe-dwae.js';
-import { AN_ANH_PROBLEMS, AN_ANH_GUIDE } from './data/problems/02-an-anh.js';
-import { GAJ_GAT_GASS_PROBLEMS, GAJ_GAT_GASS_GUIDE } from './data/problems/03-gaj-gat-gass.js';
-import { DEON_DEUN_PROBLEMS, DEON_DEUN_GUIDE } from './data/problems/04-deon-deun.js';
-import { DAE_DE_PROBLEMS, DAE_DE_GUIDE } from './data/problems/05-dae-de.js';
+import { TOPICS } from './data/topics.js';
 import { STAGES, NORMAL_STAGE_QUESTION_COUNT, NORMAL_STAGE_LIVES, REVIEW_STAGE_QUESTION_COUNT, REVIEW_STAGE_LIVES } from './data/stages.js';
-import { CHAE_CHE_PROBLEMS, CHAE_CHE_GUIDE } from './data/problems/06-chae-che.js';
-import { MATCHU_MACHI_GUIDE, MATCHU_MACHI_PROBLEMS } from './data/problems/07-matchu-machi.js';
-import { DAERO_DERO_PROBLEMS, DAERO_DERO_GUIDE } from './data/problems/08-daero-dero.js';
-import { MAE_ME_PROBLEMS, MAE_ME_GUIDE } from './data/problems/09-mae-me.js';
-import { BUD_BUS_GUIDE, BUD_BUS_PROBLEMS } from './data/problems/10-bud-bus.js';
 
 /* ===========================
    상수
@@ -44,7 +19,7 @@ const CHARACTER_X_OFFSET = 109; // 좌/우 갈림길 착지 좌표 (board-area �
 const JUMP_ANIM_DURATION = 260;    // character-jump-arc(0.26s)와 동일하게 유지 — 좌우 이동(0.26s)에 맞춤
 const FADE_OUT_DURATION = 180;     // .block--fade-out 트랜지션(0.18s)과 동일하게 유지
 const FLASH_DURATION = 400;        // 정오답 블록 플래시/추락 (0.4초, block-collapse와 동일하게 맞춤)
-const FALL_DURATION = 600;        // 조작 실수 캐릭터 추락(0.6초)
+const FALL_DURATION = 1600;        // 조작 실수 캐릭터 추락(1.6초)
 const BLINK_DURATION = 500;        // 추락/오답 롤백 시 빠른 점멸 시간
 const REVIEW_WRONG_FALL_DURATION = 500; // 달인 마당 오답 시 블록+캐릭터 동시 추락 시간 (일반 마당보다 빠르게)
 
@@ -52,31 +27,10 @@ const REVIEW_WRONG_FALL_DURATION = 500; // 달인 마당 오답 시 블록+캐�
    문제은행 랜덤 출제 : 문장 단위로 뽑은 뒤 토큰을 순서대로 펼쳐 블록 큐 생성
 =========================== */
 
-// topic 문자열(stages.js) → 문제은행/학습 가이드 매핑. 주제가 추가되면 여기에도 등록.
-const PROBLEM_BANKS = {
-  'doe-dwae':     DOE_DWAE_PROBLEMS,
-  'an-anh':       AN_ANH_PROBLEMS,
-  'gaj-gat-gass': GAJ_GAT_GASS_PROBLEMS,
-  'deon-deun':    DEON_DEUN_PROBLEMS,
-  'dae-de':       DAE_DE_PROBLEMS,
-  'chae-che':     CHAE_CHE_PROBLEMS,
-  'matchu-machi': MATCHU_MACHI_PROBLEMS,
-  'daero-dero':   DAERO_DERO_PROBLEMS,
-  'mae-me':       MAE_ME_PROBLEMS,
-  'bud-bus':      BUD_BUS_PROBLEMS,
-};
-const TOPIC_GUIDES = {
-  'doe-dwae':     DOE_DWAE_GUIDE,
-  'an-anh':       AN_ANH_GUIDE,
-  'gaj-gat-gass': GAJ_GAT_GASS_GUIDE,
-  'deon-deun':    DEON_DEUN_GUIDE,
-  'dae-de':       DAE_DE_GUIDE,
-  'chae-che':     CHAE_CHE_GUIDE,
-  'matchu-machi': MATCHU_MACHI_GUIDE,
-  'daero-dero':   DAERO_DERO_GUIDE,
-  'mae-me':       MAE_ME_GUIDE,
-  'bud-bus':      BUD_BUS_GUIDE,
-};
+// topic 문자열 → 문제은행/학습 가이드 매핑. topics.js의 TOPICS 배열에서 자동 생성되므로
+// 새 주제를 추가해도 이 파일은 건드릴 필요 없음 (topics.js에만 등록하면 됨).
+const PROBLEM_BANKS = Object.fromEntries(TOPICS.map((topic) => [topic.id, topic.problems]));
+const TOPIC_GUIDES  = Object.fromEntries(TOPICS.map((topic) => [topic.id, topic.guide]));
 
 
 function shuffleArray(arr) {
@@ -585,9 +539,16 @@ reviewIntroModalEl.addEventListener('click', (e) => {
   advanceReviewIntro();
 });
 
-// TODO(추후 구현) : 'start' → 모달 닫고 게임 시작 / 'later' → select.html로 이동
+// '준비는 완벽해!' → 모달만 닫으면 게임은 이미 초기화돼 있어 바로 진행됨
+// '다음에 다시 올게요...' → 마당 선택 화면으로 이동
 reviewIntroChoicesEl.querySelectorAll('[data-choice]').forEach((btn) => {
-  btn.addEventListener('click', () => {});
+  btn.addEventListener('click', () => {
+    if (btn.dataset.choice === 'start') {
+      reviewIntroModalEl.classList.add('review-intro--hidden');
+    } else {
+      location.href = 'select.html';
+    }
+  });
 });
 
 /* ===========================
@@ -648,7 +609,7 @@ function finishStage() {
   const goldTotal = goldQuiz + goldCombo + goldStar;
 
   if (IS_REVIEW_STAGE) {
-    saveSpellingReviewResult(stars, goldTotal); // 최고값 비교 없이 항상 최근 별점으로 덮어씀
+    saveSpellingReviewResult(currentStage.level, stars, goldTotal); // level별로 구분 저장, 최고값 비교 없이 매번 덮어씀
   } else {
     saveSpellingResult(currentStage.topic, stars, goldTotal);
   }
