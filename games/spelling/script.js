@@ -1,5 +1,5 @@
-// v0.29.0
-// Spelling Game - 달인 마당 안내 모달 5단계 선택지 연결 (준비 완벽=게임 시작, 다음에=마당 선택 이동)
+// v0.30.0
+// Spelling Game - 달인 마당 안내 모달 더블탭/더블클릭 시 5단계 선택지로 바로 이동
 //
 // Public API
 // - initCharacter()
@@ -534,9 +534,30 @@ function advanceReviewIntro() {
   renderReviewIntroScreen(reviewIntroIndex);
 }
 
+// 빠르게 두 번 탭(클릭/키 입력)하면 마지막(5단계) 선택지 화면으로 바로 이동
+const REVIEW_INTRO_DOUBLE_TAP_MS = 300;
+let lastReviewIntroTapTime = 0;
+
+function jumpToLastReviewIntro() {
+  reviewIntroIndex = REVIEW_INTRO_SCREENS.length - 1;
+  renderReviewIntroScreen(reviewIntroIndex);
+}
+
+// 탭/키 입력 공통 처리 : 간격이 짧으면 5단계로 스킵, 아니면 한 장씩 진행
+function handleReviewIntroTap() {
+  const now = Date.now();
+  if (now - lastReviewIntroTapTime < REVIEW_INTRO_DOUBLE_TAP_MS) {
+    lastReviewIntroTapTime = 0;
+    jumpToLastReviewIntro();
+    return;
+  }
+  lastReviewIntroTapTime = now;
+  advanceReviewIntro();
+}
+
 reviewIntroModalEl.addEventListener('click', (e) => {
   if (e.target.closest('[data-choice]')) return; // 선택 버튼은 별도 처리
-  advanceReviewIntro();
+  handleReviewIntroTap();
 });
 
 // '준비는 완벽해!' → 모달만 닫으면 게임은 이미 초기화돼 있어 바로 진행됨
@@ -895,7 +916,7 @@ function closeOpenModal() {
   } else if (!stageResultEl.classList.contains('stage-result--hidden')) {
     closeStageResult();
   } else if (!reviewIntroModalEl.classList.contains('review-intro--hidden')) {
-    advanceReviewIntro(); // 방향키/스페이스바로도 다음 화면 진행 가능
+    handleReviewIntroTap(); // 방향키/스페이스바로도 진행(빠르게 두 번이면 5단계로 스킵)
   }
 }
 

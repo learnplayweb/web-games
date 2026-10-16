@@ -39,7 +39,7 @@ import { BUD_BUS_PROBLEMS, BUD_BUS_GUIDE } from './problems/10-bud-bus.js';
 import { BUCHI_BUTI_PROBLEMS, BUCHI_BUTI_GUIDE } from './problems/11-buchi-buti.js';
 import { TTUI_TTI_PROBLEMS, TTUI_TTI_GUIDE } from './problems/12-ttui-tti.js';
 import { BUSU_BUSI_PROBLEMS, BUSU_BUSI_GUIDE } from './problems/13-busu-busi.js';
-import { DAY_COL_LOCK_PROBLEMS, DAY_COL_LOCK_GUIDE } from './problems/14-day-col-lock.js';
+import { CM01_PROBLEMS, CM01_GUIDE } from './problems/14-day-col-lock.js';
 import { JOT_JJOT_PROBLEMS, JOT_JJOT_GUIDE } from './problems/15-jot-jjot.js';
 
 export const TOPICS = [
@@ -56,6 +56,6 @@ export const TOPICS = [
   { id: 'buchi-buti',    label: '부치다 / 붙이다',  problems: BUCHI_BUTI_PROBLEMS,    guide: BUCHI_BUTI_GUIDE },
   { id: 'ttui-tti',      label: '뛰다 / 띄다',      problems: TTUI_TTI_PROBLEMS,      guide: TTUI_TTI_GUIDE },
   { id: 'busu-busi',     label: '부수다 / 부시다',  problems: BUSU_BUSI_PROBLEMS,     guide: BUSU_BUSI_GUIDE },
-  { id: 'day-col-lock',  label: '며칠 / 색 / 잠그다', problems: DAY_COL_LOCK_PROBLEMS,  guide: DAY_COL_LOCK_GUIDE }, // TODO: 라벨 확인 필요(추정 불가)
+  { id: 'day-col-lock',  label: '며칠 / 색 / 잠그다', problems: CM01_PROBLEMS,        guide: CM01_GUIDE }, // common-mistakes 틀리기 쉬운 말
   { id: 'jot-jjot',      label: '좇다 / 쫓다',      problems: JOT_JJOT_PROBLEMS,      guide: JOT_JJOT_GUIDE },
 ];
