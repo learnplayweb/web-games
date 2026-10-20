@@ -1,11 +1,11 @@
-// v0.30.0
-// Spelling Game - 달인 마당 안내 모달 더블탭/더블클릭 시 5단계 선택지로 바로 이동
+// v0.31.0
+// Spelling Game - 달인 마당 보상을 일반 마당과 동일 규칙(최고 별점 저장, 단가 감소)으로 변경, 결과 저장 예외 방어
 //
 // Public API
 // - initCharacter()
 
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
-import { getEquippedParts, getCharacterName, getSpellingBestStars, saveSpellingResult, saveSpellingReviewResult } from '../../core/saveManager.js';
+import { getEquippedParts, getCharacterName, getSpellingBestStars, getSpellingReviewBestStars, saveSpellingResult, saveSpellingReviewResult } from '../../core/saveManager.js';
 import { spawnEffect } from '../../characters/assets/effects/effects.js';
 import { pickRandomEquippedEffect, applyPenaltyLoss } from '../../characters/inventory.js';
 import { TOPICS } from './data/topics.js';
@@ -116,8 +116,10 @@ const TOTAL_CHOICE_POINTS = BLOCK_QUEUE.filter((item) => item.type === 'choice')
 const CURRENT_GUIDE = IS_REVIEW_STAGE ? null : TOPIC_GUIDES[currentStage.topic];
 
 // 이번 판을 시작하기 "이전"의 최고 별점 (보상 계산 기준). 완료 후 갱신되므로 게임 시작 시점에 한 번만 읽는다.
-// 달인 마당은 최고 별점을 저장하지 않고 "감소 규칙을 적용하지 않는다" → 항상 최고 등급(0)으로 계산한다.
-const PREV_BEST_STARS = IS_REVIEW_STAGE ? 0 : getSpellingBestStars(currentStage.topic);
+// 달인 마당은 level별 최고 별점(매달 1일 자동 초기화)을 기준으로 한다.
+const PREV_BEST_STARS = IS_REVIEW_STAGE
+  ? getSpellingReviewBestStars(currentStage.level)
+  : getSpellingBestStars(currentStage.topic);
 
 /* ===========================
    보상 테이블 (기존 정리안 그대로) : 상수로 관리해 밸런스 조정이 쉽도록 함
@@ -621,18 +623,21 @@ function finishStage() {
   const rate = total === 0 ? 0 : Math.round((correctCount / total) * 100);
 
   // 보상 계산 — 게임 중엔 지급하지 않고 여기서 한 번에 계산+저장
-  // 문제/콤보 보상은 PREV_BEST_STARS 기준(달인 마당은 항상 0 = 감소 규칙 미적용, 매번 최고 등급)
-  // 별점 보상도 동일한 델타 공식이지만, PREV_BEST_STARS가 0이면 STAR_VALUE[stars] - 0이 되어
-  // "매 플레이마다 별점 가치 전액 지급"이라는 달인 마당 규칙과 자연히 일치한다.
+  // 일반/달인 마당 동일 규칙: 문제·콤보 단가는 이전 최고 별점이 높을수록 줄고, 별점 보상은 최고 별점 갱신 시 차액만 지급
   const goldQuiz  = correctCount * (CHOICE_GOLD_BY_STARS[PREV_BEST_STARS] ?? CHOICE_GOLD_BY_STARS[0]);
   const goldCombo = maxCombo * (COMBO_MULTIPLIER_BY_STARS[PREV_BEST_STARS] ?? COMBO_MULTIPLIER_BY_STARS[0]);
   const goldStar  = Math.max(0, STAR_VALUE[stars] - STAR_VALUE[PREV_BEST_STARS]);
   const goldTotal = goldQuiz + goldCombo + goldStar;
 
-  if (IS_REVIEW_STAGE) {
-    saveSpellingReviewResult(currentStage.level, stars, goldTotal); // level별로 구분 저장, 최고값 비교 없이 매번 덮어씀
-  } else {
-    saveSpellingResult(currentStage.topic, stars, goldTotal);
+  // 저장 중 예외가 나도 결과 모달은 반드시 표시되도록 보호
+  try {
+    if (IS_REVIEW_STAGE) {
+      saveSpellingReviewResult(currentStage.level, stars, goldTotal); // level별 최고 별점 갱신
+    } else {
+      saveSpellingResult(currentStage.topic, stars, goldTotal);
+    }
+  } catch (e) {
+    console.error('결과 저장 중 오류:', e);
   }
 
   resultLevelEl.textContent = IS_REVIEW_STAGE ? '달인 마당 성공!' : '마당 완료!';

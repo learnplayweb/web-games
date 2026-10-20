@@ -1,13 +1,7 @@
-// v0.5.0
-// Spelling Game - 마당 선택 화면 (시계 게임 select.js 구조 재사용)
-// - 하드코딩된 라벨 표 제거: 주제 이름/순서는 topics.js의 TOPICS 배열에서 가져오고,
-//   "마당N" 번호는 STAGES 안에서 normal 타입의 순서를 세어 자동 계산한다. (topics.js만 고치면 여기는 안 건드려도 됨)
-// - 일반 마당은 주제별 최고 별점(getSpellingBestStars) 표시
-// - 달인 마당(복습, type: 'review')은 카드 표시명 "달인 마당. N~M"(그 묶음의 마당 번호 범위, 자동 계산).
-//   달인 마당이 여러 개(1~5, 6~10 ...)로 늘어나도 자동 대응됨. 최고 별점은 저장 안 하고 level별 최근 별점만 표시
-// - 달인 마당 잠금(해당 5마당 모두 별 3개 시 해금)은 아직 구현하지 않고, 코드만 준비해 주석 처리해 둠(현재는 항상 해금 상태)
+// v0.6.0
+// Spelling Game - 달인 마당 카드에 최근 별점 대신 level별 최고 별점(매달 1일 초기화) 표시
 
-import { getGold, getSpellingBestStars, getSpellingReviewRecentStars } from '../../core/saveManager.js';
+import { getGold, getSpellingBestStars, getSpellingReviewBestStars } from '../../core/saveManager.js';
 import { createHeader, updateHeaderGold } from '../../shared/header.js';
 import { STAGES } from './data/stages.js';
 import { TOPICS } from './data/topics.js';
@@ -69,7 +63,7 @@ function renderStageCards() {
     starsLabel.className = 'stage-card__stars';
     // 달인 마당은 최고 별점을 저장하지 않고, 가장 최근 플레이 별점만 표시한다.
     starsLabel.textContent = isReview
-      ? starsToString(getSpellingReviewRecentStars(stage.level))
+      ? starsToString(getSpellingReviewBestStars(stage.level))
       : starsToString(getSpellingBestStars(stage.topic));
 
     card.append(levelLabel, starsLabel);

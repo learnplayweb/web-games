@@ -1,7 +1,4 @@
-// v0.4.0 : Fix_달인 마당 최근 별점을 level별로 구분 저장 (1~5, 6~10 등 여러 개가 생겨도 안 섞이도록)
-// v0.3.0 : Add_맞춤법 게임 달인 마당(복습) 최근 별점 저장 함수 추가
-// v0.2.0 : Add_맞춤법 게임(Spelling) 마당(주제)별 최고 별점 저장 + 결과 보상 저장 함수 추가
-// v0.1.11 : Add_효과(Effect) 인벤토리 및 장착 상태 슬롯 추가
+// v0.5.0 : Add_달인 마당 최고 별점 저장 + 매달 1일 자동 초기화(reviewPeriod, 메인 화면에서 checkSpellingPeriodReset 호출), 구버전 저장 데이터 보정
 // 
 // Save Manager
 // - localStorage 접근을 이 파일로 단일화 (Clock 진행/골드, 캐릭터 인벤토리/적용/이름/색상, 맞춤법 게임 진행)
@@ -33,9 +30,10 @@
 // - getSpellingBestStars(topic): 해당 주제(마당)의 최고 별점 반환 (없으면 0)
 // - saveSpellingResult(topic, stars, goldEarned): 마당 정상 완료 시 1회 호출.
 //   최고 별점 갱신 + Gold를 공용 지갑에 적립을 한 번에 처리 (게임 중간엔 호출하지 않음)
-// - getSpellingReviewRecentStars(level): 해당 달인 마당(level)의 최근 별점 반환 (최고값 아님, 없으면 0)
+// - getSpellingReviewBestStars(level): 해당 달인 마당(level)의 이번 기간 최고 별점 반환 (없거나 초기화됐으면 0)
 // - saveSpellingReviewResult(level, stars, goldEarned): 달인 마당 정상 완료 시 1회 호출.
-//   해당 level의 최근 별점 덮어쓰기(비교 없음) + Gold를 공용 지갑에 적립
+//   해당 level의 최고 별점 갱신(더 높을 때만) + Gold를 공용 지갑에 적립. 달인 마당 별점은 매달 1일 자동 초기화
+// - checkSpellingPeriodReset(): 달인 마당 별점 월 초기화 여부를 확인해 필요하면 초기화 (메인 화면 접속 시 1회 호출용)
 //
 // Public API (디버그 전용)
 // - resetSave(): clockGame_save 전체 초기화 (골드 포함)
@@ -58,7 +56,9 @@
 // { colors: { [hex]: number } }  // 색상 hex → 보유 수량
 //
 // Save Structure (spellingGame_save)
-// { bestStars: { [topic]: number } }  // 마당(주제) 문자열 → 최고 별점 (0~3)
+// { bestStars: { [topic]: number }, reviewBestStars: { [level]: number }, reviewPeriod: 'YYYY-MM' }
+//   bestStars: 일반 마당 주제별 최고 별점(0~3, 초기화 없음)
+//   reviewBestStars: 달인 마당 level별 최고 별점. reviewPeriod(마지막 초기화 연월)가 현재 연월과 다르면 비움
 
   const SAVE_KEY = 'clockGame_save'; // localStorage 키 (기존 키 유지)
 
@@ -349,17 +349,39 @@ export function getClockSave() {
 
   const SPELLING_SAVE_KEY = 'spellingGame_save';
 
+  // 달인 마당 별점 초기화 주기 키. 현재는 "연-월"(매달 1일 초기화, 기기 날짜 기준).
+  // 주기를 바꾸려면 이 함수만 수정 (예: 30일 단위 → String(Math.floor(Date.now() / (30 * 24 * 60 * 60 * 1000))))
+  function getReviewPeriodKey() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+
   function getDefaultSpellingSave() {
-    return { bestStars: {}, reviewRecentStars: {} }; // topic → 최고 별점(0~3). 달인 마당은 level → 최근 별점(복수 가능)
+    return { bestStars: {}, reviewBestStars: {}, reviewPeriod: getReviewPeriodKey() };
   }
 
   function loadSpelling() {
+    let data;
     try {
       const raw = localStorage.getItem(SPELLING_SAVE_KEY);
-      return raw ? JSON.parse(raw) : getDefaultSpellingSave();
+      data = raw ? JSON.parse(raw) : getDefaultSpellingSave();
     } catch {
-      return getDefaultSpellingSave();
+      data = getDefaultSpellingSave();
     }
+
+    // 구버전 저장 데이터 보정 (필드 누락/형식 불일치로 쓰기 중 에러가 나지 않도록)
+    if (!data.bestStars || typeof data.bestStars !== 'object') data.bestStars = {};
+    if (!data.reviewBestStars || typeof data.reviewBestStars !== 'object') data.reviewBestStars = {};
+
+    // 달인 마당 별점 정기 초기화 : 마지막 초기화 연월과 현재 연월이 다르면 달인 마당 별점만 비우고 연월을 갱신해 저장.
+    // (월초에 접속하지 않아도 다음 접속 때 한 번 비교로 처리되며, 같은 달엔 다시 초기화되지 않음. 일반 마당 별점은 건드리지 않음)
+    const currentPeriod = getReviewPeriodKey();
+    if (data.reviewPeriod !== currentPeriod) {
+      data.reviewBestStars = {};
+      data.reviewPeriod = currentPeriod;
+      writeSpelling(data);
+    }
+    return data;
   }
 
   function writeSpelling(saveData) {
@@ -374,23 +396,30 @@ export function getClockSave() {
     return loadSpelling().bestStars[topic] ?? 0;
   }
 
-  // 달인 마당(복습) 전용 : 최고 별점을 저장하지 않고 "최근" 별점만 매번 덮어쓴다.
-  // level로 구분해서 저장하므로 달인 마당이 여러 개(1~5, 6~10, 11~15 ...)로 늘어나도 서로 섞이지 않는다.
-  function getSpellingReviewRecentStars(level) {
-    return loadSpelling().reviewRecentStars[level] ?? 0;
+  // 달인 마당(복습) 전용 : level별 "이번 기간" 최고 별점. 달인 마당이 여러 개(1~5, 6~10, ...)여도 서로 섞이지 않는다.
+  function getSpellingReviewBestStars(level) {
+    return loadSpelling().reviewBestStars[level] ?? 0;
   }
 
-  // 달인 마당 정상 완료 시 1회 호출 : 해당 level의 최근 별점 덮어쓰기(최고값 비교 없음) + Gold를 공용 지갑에 적립
+  // 달인 마당 정상 완료 시 1회 호출 : 해당 level의 최고 별점 갱신(더 높을 때만) + Gold를 공용 지갑에 적립
   function saveSpellingReviewResult(level, stars, goldEarned) {
     const spellingSave = loadSpelling();
-    spellingSave.reviewRecentStars[level] = stars;
+    if (stars > (spellingSave.reviewBestStars[level] ?? 0)) {
+      spellingSave.reviewBestStars[level] = stars;
+    }
     writeSpelling(spellingSave);
 
     const commonSave = load();
     commonSave.gold += goldEarned;
     write(commonSave);
 
-    return { recentStars: stars, gold: commonSave.gold };
+    return { bestStars: spellingSave.reviewBestStars[level] ?? 0, gold: commonSave.gold };
+  }
+
+  // 메인 화면 등에서 1회 호출해 두면, 맞춤법 게임 화면을 열기 전에도 월 초기화가 미리 처리된다.
+  // (실제 비교/초기화는 loadSpelling 안에서 이뤄지며, 같은 달엔 아무 일도 일어나지 않는다)
+  function checkSpellingPeriodReset() {
+    loadSpelling();
   }
 
   // 마당(주제) 정상 완료 시 1회 호출 : 최고 별점 갱신 + Gold를 공용 지갑에 적립
@@ -462,6 +491,7 @@ export {
   setCharacterEffectSave,
   getSpellingBestStars,
   saveSpellingResult,
-  getSpellingReviewRecentStars,
+  getSpellingReviewBestStars,
   saveSpellingReviewResult,
+  checkSpellingPeriodReset,
 };
