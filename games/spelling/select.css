@@ -1,5 +1,5 @@
-/* v0.1.0
- Spelling Game - 마당 선택 화면 (시계 게임 select.css 그대로 재사용 + 복습 마당 전용 연노랑 카드 추가) */
+/* v0.1.1
+ Spelling Game - 잠김 안내 모달 스타일 추가 (메인 화면 모달과 동일 디자인) */ 
 
 /* ===========================
    1. 전역 초기화 & 변수
@@ -135,4 +135,68 @@ body {
 
 .stage-card--locked .stage-card__stars {
   color: var(--color-soon-text);
+}
+
+
+/* ===========================
+   5. 잠김 안내 모달 (달인 마당)
+=========================== */
+
+/* 화면 전체를 덮는 반투명 배경 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(45, 58, 74, 0.45);
+}
+
+/* hidden 속성이 display:flex에 덮이지 않도록 명시 */
+.modal-overlay[hidden] {
+  display: none;
+}
+
+/* 카드 레이아웃: 시계 게임 learning-modal__card와 동일 */
+.modal-card {
+  background: var(--color-surface);
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px rgba(91, 141, 238, 0.18);
+  padding: 1.5rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: min(280px, 82vw);
+}
+
+.modal-card__text {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.5;
+  white-space: pre-line; /* 문구의 \n을 줄바꿈으로 표시 */
+  word-break: keep-all;  /* 한글이 단어 중간에서 끊기지 않게 */
+}
+
+/* 닫기 버튼: 포인트 블루 알약형 */
+.modal-card__btn {
+  margin-top: 0.5rem;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-family: var(--font-base);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.modal-card__btn:hover,
+.modal-card__btn:focus-visible {
+  background: var(--color-primary-dark);
+  outline: none;
 }
