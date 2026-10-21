@@ -1,0 +1,65 @@
+<!-- v0.1.0 : 도움말 페이지 최초 생성 (이용 안내 + 캐릭터 불러오기) -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>도움말</title>
+  <link rel="stylesheet" href="../shared/header.css" />
+  <link rel="stylesheet" href="help.css" />
+</head>
+<body>
+
+  <div class="wrapper">
+
+    <header class="page-header">
+      <h1 class="page-title">도움말</h1>
+    </header>
+
+    <!-- 안내 문구는 자유롭게 수정 가능 (섹션 단위로 복사해서 추가) -->
+    <section class="help-section">
+      <h2 class="help-section__title">🧸 꼬무리 만들기</h2>
+      <p class="help-section__text">
+        캐릭터 상점에서 꼬무리 조각을 구입해 머리를 적용하고 이름을 정해 주세요.
+        조합으로 몸과 다리를 붙이고, 색상과 효과로 꾸밀 수 있어요.
+      </p>
+    </section>
+
+    <section class="help-section">
+      <h2 class="help-section__title">🎮 게임하기</h2>
+      <p class="help-section__text">
+        시계 읽기와 맞춤법 모험으로 💎를 모아 보세요.
+        맞춤법 모험은 나의 꼬무리가 있어야 시작할 수 있어요.
+      </p>
+    </section>
+
+    <section class="help-section">
+      <h2 class="help-section__title">💾 캐릭터 저장·불러오기</h2>
+      <p class="help-section__text">
+        상점의 [캐릭터 저장하기]로 꼬무리를 파일로 저장하면,
+        다른 기기에서 아래 버튼으로 같은 꼬무리를 불러올 수 있어요.
+      </p>
+      <p class="help-section__note">
+        이름과 생김새만 옮겨져요. 💎, 보유 파츠·색상·효과, 게임 기록은 옮겨지지 않아요.
+      </p>
+
+      <button type="button" class="help-btn" id="btn-import">캐릭터 불러오기</button>
+      <!-- 파일 선택창은 버튼으로 대신 열기 때문에 숨김 -->
+      <input type="file" id="import-input" accept=".json,application/json" hidden />
+    </section>
+
+  </div>
+
+  <!-- 안내/확인 모달: 내용과 버튼은 help.js가 채움 (버튼으로만 닫힘) -->
+  <div class="modal-overlay" id="help-modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
+      <p class="modal-card__title" id="help-modal-title"></p>
+      <div class="modal-card__body" id="help-modal-body"></div>
+      <div class="modal-card__actions" id="help-modal-actions"></div>
+    </div>
+  </div>
+
+  <script type="module" src="help.js"></script>
+
+</body>
+</html>

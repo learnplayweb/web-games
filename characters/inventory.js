@@ -1,4 +1,4 @@
-// v0.1.23 : Add_exportCharacterData (캐릭터 내보내기용 데이터 생성: 이름·적용 파츠·적용 색상만 포함)
+// v0.1.24 : Add_validateCharacterData/importCharacterData (캐릭터 불러오기: JSON 검증 후 이름·적용 파츠·적용 색상 반영)
 // 
 // Inventory
 // - Feat: 색 섞기/다시 섞기 시 패턴 및 그래디언트를 아우르는 통합 추첨(pickRandomMixStyle) 연동
@@ -39,6 +39,8 @@
 // Character API
 // - canSaveCharacter()
 // - exportCharacterData()
+// - validateCharacterData(raw)
+// - importCharacterData(raw)
 // - canRename()
 // - renameCharacter(name)
 //
@@ -70,7 +72,7 @@
 
 
 import {
-  BASE_PARTS, PART_CATEGORIES, CHARACTER_COLORS, PATTERNS, SHOP_COST, getPart, pickRandomMixStyle, getEffect,
+  BASE_PARTS, PART_CATEGORIES, CHARACTER_COLORS, PATTERNS, SHOP_COST, getPart, pickRandomMixStyle, getEffect, GRADIENT_PRESETS,
 } from './characterData.js';
 import {
   getCharacterSave, setCharacterSave, getGold, spendGold,
@@ -462,6 +464,72 @@ export function exportCharacterData() {
     color: equipped.color ?? null,
     colorMix: mix ? { patternId: mix.patternId, colors: [...mix.colors] } : null,
   };
+}
+
+// 색 섞기 스타일 id 허용 목록 (패턴 + 그래디언트)
+const MIX_STYLE_IDS = new Set([...PATTERNS.map((p) => p.id), ...GRADIENT_PRESETS.map((g) => g.id)]);
+const MAX_NAME_LENGTH = 10;
+
+/**
+ * 불러온 캐릭터 JSON(파싱된 객체)을 검증한다. 상태를 변경하지 않는다.
+ * 성공: { success: true, data: { name, head, body, legs, color, colorMix } } (정규화된 값)
+ * 실패: { success: false, reason }
+ */
+export function validateCharacterData(raw) {
+  const fail = (reason) => ({ success: false, reason });
+
+  if (!raw || typeof raw !== 'object') return fail('invalid-file');
+  if (raw.app !== 'kkomuri-character') return fail('invalid-file');
+  if (raw.version !== 1) return fail('unsupported-version');
+
+  const name = typeof raw.name === 'string' ? raw.name.trim().slice(0, MAX_NAME_LENGTH) : '';
+  if (!name) return fail('invalid-data');
+
+  // 파츠: 머리 필수, 조합은 head → body → legs 순서로만 존재 가능
+  const parts = raw.parts ?? {};
+  const head = parts.head ?? null;
+  const body = parts.body ?? null;
+  const legs = parts.legs ?? null;
+  if (!getPart(head)) return fail('invalid-data');
+  if (body !== null && !getPart(body)) return fail('invalid-data');
+  if (legs !== null && !getPart(legs)) return fail('invalid-data');
+  if (legs !== null && body === null) return fail('invalid-data');
+
+  // 색상: 단색 / 색 섞기(3색) 중 하나. 색 섞기가 있으면 단색은 무시(배타적)
+  const color = raw.color ?? null;
+  if (color !== null && !CHARACTER_COLORS.includes(color)) return fail('invalid-data');
+
+  let colorMix = null;
+  if (raw.colorMix != null) {
+    const { patternId, colors } = raw.colorMix;
+    const validColors = Array.isArray(colors) && colors.length === 3
+      && colors.every((c) => CHARACTER_COLORS.includes(c));
+    if (!MIX_STYLE_IDS.has(patternId) || !validColors) return fail('invalid-data');
+    colorMix = { patternId, colors: [...colors] };
+  }
+
+  return { success: true, data: { name, head, body, legs, color: colorMix ? null : color, colorMix } };
+}
+
+/**
+ * 캐릭터를 불러와 적용한다. 이름·적용 파츠·적용 색상만 덮어쓰며,
+ * 골드/보유 파츠·색상·효과와 장착 효과(effect)는 건드리지 않는다.
+ */
+export function importCharacterData(raw) {
+  const result = validateCharacterData(raw);
+  if (!result.success) return result;
+
+  const { name, head, body, legs, color, colorMix } = result.data;
+  const equipped = getEquippedParts();
+  equipped.head = head;
+  equipped.body = body;
+  equipped.legs = legs;
+  equipped.color = color;
+  equipped.colorMix = colorMix;
+  setEquippedParts(equipped);
+  setCharacterName(name);
+
+  return { success: true, name };
 }
 
 /** 이름 변경 가능 여부: 이름이 이미 설정돼 있고, 골드가 변경 비용 이상일 때만 가능하다. */
