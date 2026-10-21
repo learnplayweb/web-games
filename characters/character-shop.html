@@ -1,5 +1,4 @@
-<!-- v0.1.13 : 
- 렌더러가 쉽게 조작할 수 있도록 placeholder-outline/text 클래스 추가 -->
+<!-- v0.1.14 : 캐릭터 저장 안내 문구 수정 및 저장 결과(save-result-modal) 모달 추가 -->
 
 
 <!DOCTYPE html>
@@ -132,10 +131,22 @@
 
   <div id="save-modal" class="modal-overlay modal-overlay--hidden" role="dialog" aria-modal="true">
     <div class="modal-card">
-      <p class="modal-card__msg">캐릭터의 정보를<br>기기에 저장합니다.</p>
+      <p class="modal-card__msg">캐릭터를 기기에 저장합니다.<br><span class="modal-card__msg--sub">(이름과 생김새만 저장돼요.)</span></p>
       <div class="modal-card__actions">
         <button type="button" class="modal-card__btn modal-card__btn--confirm" id="modal-confirm">저장</button>
         <button type="button" class="modal-card__btn modal-card__btn--cancel" id="modal-cancel">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 캐릭터 저장 결과 모달 (확인 버튼으로만 닫힘) -->
+  <div id="save-result-modal" class="modal-overlay modal-overlay--hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <p class="modal-card__msg" id="save-result-title">캐릭터 저장 성공!</p>
+      <p class="modal-card__msg modal-card__msg--filename" id="save-result-file"></p>
+      <p class="modal-card__msg modal-card__msg--sub" id="save-result-hint"></p>
+      <div class="modal-card__actions">
+        <button type="button" class="modal-card__btn modal-card__btn--confirm" id="save-result-confirm">확인</button>
       </div>
     </div>
   </div>

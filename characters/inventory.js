@@ -1,4 +1,4 @@
-// v0.1.22 : Add_applyPenaltyLoss (게임 페널티용 캐릭터 손실 처리, 상점 해체와 달리 인벤토리로 돌아가지 않고 소실)
+// v0.1.23 : Add_exportCharacterData (캐릭터 내보내기용 데이터 생성: 이름·적용 파츠·적용 색상만 포함)
 // 
 // Inventory
 // - Feat: 색 섞기/다시 섞기 시 패턴 및 그래디언트를 아우르는 통합 추첨(pickRandomMixStyle) 연동
@@ -38,6 +38,7 @@
 //
 // Character API
 // - canSaveCharacter()
+// - exportCharacterData()
 // - canRename()
 // - renameCharacter(name)
 //
@@ -435,6 +436,32 @@ export function applyPenaltyLoss() {
 /** 캐릭터 저장 버튼 활성화 조건: 머리 파츠 적용 + 이름 저장이 모두 끝났는지 확인한다. */
 export function canSaveCharacter() {
   return Boolean(getEquippedPart('head')) && Boolean(getCharacterName());
+}
+
+/**
+ * 캐릭터 내보내기(JSON 파일 저장)용 데이터를 만든다.
+ * 저장 대상: 이름, 적용 파츠(head/body/legs; body/legs가 null이면 조합 전 상태), 적용 색상(단색/색 섞기).
+ * 제외: 골드, 보유 파츠/색상/효과, 장착 효과 등 게임 데이터.
+ * 저장 조건(canSaveCharacter)을 만족하지 않으면 null.
+ */
+export function exportCharacterData() {
+  if (!canSaveCharacter()) return null;
+
+  const equipped = getEquippedParts();
+  const mix = equipped.colorMix;
+
+  return {
+    app: 'kkomuri-character', // 불러오기 시 파일 종류 검증용
+    version: 1,               // 불러오기 시 포맷 버전 분기용
+    name: getCharacterName(),
+    parts: {
+      head: equipped.head ?? null,
+      body: equipped.body ?? null,
+      legs: equipped.legs ?? null,
+    },
+    color: equipped.color ?? null,
+    colorMix: mix ? { patternId: mix.patternId, colors: [...mix.colors] } : null,
+  };
 }
 
 /** 이름 변경 가능 여부: 이름이 이미 설정돼 있고, 골드가 변경 비용 이상일 때만 가능하다. */

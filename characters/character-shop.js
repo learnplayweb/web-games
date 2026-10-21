@@ -1,6 +1,4 @@
-// v0.1.49
-// Character Shop
-// Add_효과 파티클 연동 및 버튼 활성화 조건 강화
+// v0.1.50 : Add_캐릭터 저장(내보내기) - JSON 파일 다운로드 및 저장 결과 모달
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent } from '../core/svgloader.js';
@@ -9,7 +7,7 @@ import { renderCharacterSvg } from './characterRenderer.js';
 import {
   getPartQuantity, purchasePart, purchaseRandomPart, getEquippedPart, applyPart,
   canCombine, previewCombine, canRecombine, previewRecombine, confirmCombine,
-  canDismantle, dismantleCharacter, canSaveCharacter, canRename, renameCharacter,
+  canDismantle, dismantleCharacter, canSaveCharacter, exportCharacterData, canRename, renameCharacter,
   getColorQuantity, purchaseColor, purchaseRandomColor, canApplyColor, applyColor,
   getEquippedColor, getEquippedColorMix,
   canMixColor, canRemixColor, previewColorMix, previewColorRemix, confirmColorMix,
@@ -767,13 +765,72 @@ async function openColorMixModal(patternId, colors) {
   partModal.classList.remove('modal-overlay--hidden');
 }
 
+// ===========================
+// 캐릭터 저장(내보내기) 모달
+// ===========================
 const saveModal = document.getElementById('save-modal');
+const saveResultModal = document.getElementById('save-result-modal');
+const saveResultTitle = document.getElementById('save-result-title');
+const saveResultFile = document.getElementById('save-result-file');
+const saveResultHint = document.getElementById('save-result-hint');
+
+/** 파일명에 쓸 수 없는 문자(\ / : * ? " < > | 및 제어문자)와 앞뒤 공백·점을 제거한다. */
+function sanitizeFileName(name) {
+  return name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').replace(/^[\s.]+|[\s.]+$/g, '');
+}
+
+/** JSON 데이터를 Blob + a 태그로 다운로드한다. */
+function downloadJsonFile(fileName, data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000); // 다운로드가 시작되기 전에 해제되지 않도록 지연
+}
+
+/** 저장 결과 모달 표시 (성공: 파일명 안내 / 실패(fileName=null): 재시도 안내). [확인]으로만 닫힌다. */
+function showSaveResult(fileName) {
+  const isSuccess = Boolean(fileName);
+  saveResultTitle.textContent = isSuccess ? '캐릭터 저장 성공!' : '캐릭터 저장 실패';
+  saveResultFile.textContent = isSuccess ? `파일 이름: ${fileName}` : '';
+  saveResultFile.hidden = !isSuccess;
+
+  const hintLines = isSuccess
+    ? ['다운로드 폴더 또는', '파일 앱에서 확인하세요.']
+    : ['잠시 후 다시 시도해 주세요.'];
+  saveResultHint.replaceChildren();
+  hintLines.forEach((line, index) => {
+    if (index > 0) saveResultHint.appendChild(document.createElement('br'));
+    saveResultHint.appendChild(document.createTextNode(line));
+  });
+
+  saveResultModal.classList.remove('modal-overlay--hidden');
+}
+
 document.getElementById('btn-save').addEventListener('click', () => saveModal.classList.remove('modal-overlay--hidden'));
 document.getElementById('modal-cancel').addEventListener('click', () => saveModal.classList.add('modal-overlay--hidden'));
-document.getElementById('modal-confirm').addEventListener('click', () => saveModal.classList.add('modal-overlay--hidden'));
-saveModal.addEventListener('click', (event) => {
-  if (event.target === saveModal) saveModal.classList.add('modal-overlay--hidden');
+document.getElementById('modal-confirm').addEventListener('click', () => {
+  saveModal.classList.add('modal-overlay--hidden');
+
+  const data = exportCharacterData();
+  if (!data) return; // 저장 조건 미충족 (버튼이 비활성화되어 있어 정상 흐름에서는 도달하지 않음)
+
+  const fileName = `꼬무리-${sanitizeFileName(data.name) || '이름없음'}.json`;
+  try {
+    downloadJsonFile(fileName, data);
+    showSaveResult(fileName);
+  } catch (error) {
+    console.error('캐릭터 저장 실패:', error);
+    showSaveResult(null);
+  }
 });
+document.getElementById('save-result-confirm').addEventListener('click', () => saveResultModal.classList.add('modal-overlay--hidden'));
+// 저장/결과 모달은 오버레이 클릭으로 닫히지 않는다 (버튼으로만 닫힘)
 
 
 /* ===========================
