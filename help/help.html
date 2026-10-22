@@ -1,4 +1,4 @@
-<!-- v0.1.2 : 본문 정리 -->
+<!-- v0.1.3 : 캐릭터 상점·게임 보상을 펼침 메뉴로 변경 (제목 바 클릭) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -35,87 +35,96 @@
     </section>
 
     <!-- ② 캐릭터 상점 -->
-    <section class="help-section">
-      <h2 class="help-section__title">🧸 캐릭터 상점</h2>
+    <section class="help-section help-section--collapsible">
+      <div class="help-section__header">
+        <h2 class="help-section__title">🧸 캐릭터 상점</h2>
+        <button type="button" class="help-section__toggle" id="toggle-shop" aria-expanded="false" aria-controls="shop-body">▶</button>
+      </div>
+      <div class="help-section__body help-section__body--hidden" id="shop-body"> <!--펼친 상태로 시작하려면 이 클래스 삭제, 버튼의 aria-expanded를 true로 변경-->
 
-      <h3 class="help-section__sub">꼬무리</h3>
-      <ul class="help-list">
-        <li>게임으로 모은 💎로 나만의 꼬무리를 만들어요.</li>
-        <li>꼬무리 조각을 사서 붙이고(조합) 떼어낼(해체) 수 있어요.</li>
-      </ul>
+        <h3 class="help-section__sub">꼬무리</h3>
+        <ul class="help-list">
+          <li>게임으로 모은 💎로 나만의 꼬무리를 만들어요.</li>
+          <li>꼬무리 조각을 사서 붙이고(조합) 떼어낼(해체) 수 있어요.</li>
+        </ul>
 
-      <h3 class="help-section__sub">색상</h3>
-      <ul class="help-list">
-        <li>색을 사서 꼬무리에 칠해요.</li>
-        <li>색은 3가지까지 섞을 수 있어요.</li>
-        <li>색 섞기에는 여러 가지 무늬와 그라데이션이 있어요.</li>
-      </ul>
+        <h3 class="help-section__sub">색상</h3>
+        <ul class="help-list">
+          <li>색을 사서 꼬무리에 칠해요.</li>
+          <li>색은 3가지까지 섞을 수 있어요.</li>
+          <li>색 섞기에는 여러 가지 무늬와 그라데이션이 있어요.</li>
+        </ul>
 
-      <h3 class="help-section__sub">효과</h3>
-      <ul class="help-list">
-        <li>게임에서 콤보(연속으로 맞히기)를 여러 번 달성하면 나타나요.</li>
-        <li>효과는 3개까지 적용할 수 있어요.</li>
-      </ul>
+        <h3 class="help-section__sub">효과</h3>
+        <ul class="help-list">
+          <li>게임에서 콤보(연속으로 맞히기)를 여러 번 달성하면 나타나요.</li>
+          <li>효과는 3개까지 적용할 수 있어요.</li>
+        </ul>
+      </div>
     </section>
 
     <!-- ③ 게임 보상 (수치는 reward-system.md 기준) -->
-    <section class="help-section">
-      <h2 class="help-section__title">💎 게임 보상</h2>
-      <p class="help-section__text">
-        한 단계를 끝까지 마치면 💎를 받아요.<br>
-      </p>
+    <section class="help-section help-section--collapsible">
+      <div class="help-section__header">
+        <h2 class="help-section__title">💎 게임 보상</h2>
+        <button type="button" class="help-section__toggle" id="toggle-reward" aria-expanded="false" aria-controls="reward-body">▶</button>
+      </div>
+      <div class="help-section__body help-section__body--hidden" id="reward-body">
+        <p class="help-section__text">
+          한 단계를 끝까지 마치면 💎를 받아요.<br>
+        </p>
 
-      <h3 class="help-section__sub">정답 보상과 콤보 보너스</h3>
-      <table class="help-table">
-        <thead>
-          <tr><th>이전에 받은<br>가장 높은 별점</th><th>맞힌 문제<br>1개당 보상</th><th>콤보 보너스</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>없음 (처음)</td><td>💎 10</td><td>× 4</td></tr>
-          <tr><td>⭐</td><td>💎 7</td><td>× 3</td></tr>
-          <tr><td>⭐⭐</td><td>💎 4</td><td>× 2</td></tr>
-          <tr><td>⭐⭐⭐</td><td>💎 1</td><td>× 1</td></tr>
-        </tbody>
-      </table>
-      <ul class="help-list">
-        <li>같은 단계를 또 하면 받는 💎가 줄어들어요.<br>
-        새로운 단계에 도전해요!</li>
-      </ul>
+        <h3 class="help-section__sub">정답 보상과 콤보 보너스</h3>
+        <table class="help-table">
+          <thead>
+            <tr><th>이전에 받은<br>가장 높은 별점</th><th>맞힌 문제<br>1개당 보상</th><th>콤보 보너스</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>없음 (처음)</td><td>💎 10</td><td>× 4</td></tr>
+            <tr><td>⭐</td><td>💎 7</td><td>× 3</td></tr>
+            <tr><td>⭐⭐</td><td>💎 4</td><td>× 2</td></tr>
+            <tr><td>⭐⭐⭐</td><td>💎 1</td><td>× 1</td></tr>
+          </tbody>
+        </table>
+        <ul class="help-list">
+          <li>같은 단계를 또 하면 받는 💎가 줄어들어요.<br>
+          새로운 단계에 도전해요!</li>
+        </ul>
 
-      <p class="help-section__note">
-        콤보 수 = 가장 길게 연속으로 맞힌 횟수
-        <span class="help-hang">예) 처음 하는 단계에서 5문제를 연속으로 맞히면 5 × 4 = 💎 20</span>
-      </p>
-      
-      <h3 class="help-section__sub">별점 보너스</h3>
-      <table class="help-table">
-        <thead>
-          <tr><th>맞힌 문제 수</th><th>별점</th><th>별점 보너스</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>모두</td><td>⭐⭐⭐</td><td>💎 50</td></tr>
-          <tr><td>3분의 2 이상</td><td>⭐⭐</td><td>💎 30</td></tr>
-          <tr><td>3분의 1 이상</td><td>⭐</td><td>💎 10</td></tr>
-          <tr><td>3분의 1 미만</td><td>☆</td><td>없음</td></tr>
-        </tbody>
-      </table>
+        <p class="help-section__note">
+          콤보 수 = 가장 길게 연속으로 맞힌 횟수<br>
+          예) 처음 하는 단계에서 5문제를 연속으로 맞히면 5 × 4 = 💎 20
+        </p>
 
-      <ul class="help-list">
-        <li>별점 기록은 게임마다, 단계마다 따로 저장돼요.</li>
-        <li>처음 도전하거나 더 높은 별점을 받아야 보너스가 있어요.<br>별점이 높아지면 이전 별점의 보너스를 뺀 만큼 받아요.<br>
-        ▷ 별점이 그대로이거나 낮아지면 별점 보너스는 없어요.</li>
-      </ul>
-      <p class="help-section__note help-example">
-        <span>예)</span>  <!-- 줄 시작이 "별 없음"과 같은 칸에 정렬됨 -->
-        <span>별 없음 → ⭐ : 💎 10 (10-0)<br>
-        ⭐ → ⭐⭐ : 💎 20 (30-10)<br>
-        ⭐ → ⭐⭐⭐ : 💎 40 (50-10)</span>
-      </p>
+        <h3 class="help-section__sub">별점 보너스</h3>
+        <table class="help-table">
+          <thead>
+            <tr><th>맞힌 문제 수</th><th>별점</th><th>별점 보너스</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>모두</td><td>⭐⭐⭐</td><td>💎 50</td></tr>
+            <tr><td>3분의 2 이상</td><td>⭐⭐</td><td>💎 30</td></tr>
+            <tr><td>3분의 1 이상</td><td>⭐</td><td>💎 10</td></tr>
+            <tr><td>3분의 1 미만</td><td>☆</td><td>없음</td></tr>
+          </tbody>
+        </table>
 
-      <h3 class="help-section__sub">마지막 단계</h3>
-      <ul class="help-list">
-        <li>같은 단계를 또 해도 받는 💎가 줄어들지 않아요.<br>▷ 여러 번 복습할수록 좋아요!</li>
-      </ul>
+        <ul class="help-list">
+          <li>별점 기록은 게임마다, 단계마다 따로 저장돼요.</li>
+          <li>처음 도전하거나 더 높은 별점을 받아야 보너스가 있어요.<br>별점이 높아지면 이전 별점의 보너스를 뺀 만큼 받아요.<br>
+          ▷ 별점이 그대로이거나 낮아지면 별점 보너스는 없어요.</li>
+        </ul>
+        <p class="help-section__note">
+          예) 별 없음 → ⭐ : 💎 10 (10-0)<br>
+          ⭐ → ⭐⭐ : 💎 20 (30-10)<br>
+          ⭐ → ⭐⭐⭐ : 💎 40 (50-10)
+        </p>
+
+        <h3 class="help-section__sub">마지막 단계</h3>
+        <ul class="help-list">
+          <li>같은 단계를 또 해도 받는 💎가 줄어들지 않아요.<br>▷ 여러 번 복습할수록 좋아요!</li>
+        </ul>
+      </div>
     </section>
 
     <!-- 게임하기 (현재 미사용)

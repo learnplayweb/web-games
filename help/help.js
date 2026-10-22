@@ -5,6 +5,21 @@ import { validateCharacterData, importCharacterData } from '../characters/invent
 
 createHeader();
 
+// 펼침 메뉴: 제목 바 전체 클릭으로 접기/펼치기 (캐릭터 상점의 setupToggle과 동일 방식)
+function setupToggle(toggleId, bodyId) {
+  const button = document.getElementById(toggleId);
+  const header = button.closest('.help-section__header');
+  const body = document.getElementById(bodyId);
+  header.addEventListener('click', () => {
+    const isHidden = body.classList.toggle('help-section__body--hidden');
+    button.textContent = isHidden ? '\u25b6' : '\u25bc'; // ▶ 접힘 / ▼ 펼침
+    button.setAttribute('aria-expanded', String(!isHidden));
+  });
+}
+
+setupToggle('toggle-shop', 'shop-body');
+setupToggle('toggle-reward', 'reward-body');
+
 const MAX_FILE_SIZE = 64 * 1024; // 캐릭터 파일은 1KB 안팎이므로 지나치게 큰 파일은 거절
 
 const importButton = document.getElementById('btn-import');
