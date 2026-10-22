@@ -1,5 +1,5 @@
-// v0.31.1
-// Spelling Game - 마당 선택 화면으로 나갈 때 history.back() 사용 (뒤로가기 기록이 쌓이지 않게 수정)
+// v0.31.2
+// Spelling Game - 마당 선택 화면 이동 함수(goToSelect) 정의 추가 (호출만 있고 정의가 없어 이동하지 않던 문제 수정)
 //
 // Public API
 // - initCharacter()
@@ -99,6 +99,19 @@ function resolveChoiceSides(item) {
   item._resolved = true;
 }
 
+
+// 마당 선택 화면으로 나가기 (결과 모달 닫기 / 달인 마당 "다음에 다시 올게요")
+// 시계 게임과 동일하게 history.back()으로 선택 화면 기록으로 돌아가 기록이 쌓이지 않게 함 (메인 → 선택 → 마당)
+// 이전 기록이 없는 직접 진입(history.length 1)이면 선택 화면으로 바로 교체 이동. 기다림 없이 즉시 동작
+let isLeavingToSelect = false;
+function goToSelect() {
+  if (isLeavingToSelect) return; // 중복 호출 방지: history.back()이 두 번 실행되면 두 단계 뒤로 감
+  isLeavingToSelect = true;
+  if (history.length > 1) history.back();
+  else location.replace('select.html');
+}
+// 뒤로/앞으로 이동으로 이 화면이 복원(bfcache)될 때 다시 이동할 수 있도록 초기화
+window.addEventListener('pageshow', () => { isLeavingToSelect = false; });
 
 // select.html에서 넘어온 마당(level)로 진입.
 // URL의 ?level= 파라미터로 마당을 선택 (시계 게임과 동일한 방식). 없거나 잘못되면 1번 마당으로 진입.
