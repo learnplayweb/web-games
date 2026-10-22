@@ -1,4 +1,4 @@
-/* v0.1.0 : 도움말 페이지 최초 생성 - 레이아웃, 섹션 카드, 불러오기 버튼, 모달 */
+/* v0.1.2 : PC 폭 확대, 본문·주석 들여쓰기, 소제목 위 간격 확대 */
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -43,6 +43,12 @@ body {
   flex-direction: column;
   gap: 1rem;
 }
+/* PC(768px 이상): 모바일 480px 고정 폭을 넓힘 */
+@media (min-width: 768px) {
+  .wrapper {
+    max-width: 680px;
+  }
+}
 
 .page-header {
   text-align: center;
@@ -77,12 +83,49 @@ body {
 .help-section__text {
   font-size: 0.9rem;
   line-height: 1.6;
+  padding-left: 0.5rem; /* 스페이스 2칸 정도 */
 }
 
 .help-section__note {
   font-size: 0.8rem;
   line-height: 1.5;
+  padding-left: 0.5rem; /* 스페이스 2칸 정도 */
   color: var(--color-text-muted);
+}
+
+/* 섹션 안 소제목 */
+.help-section__sub {
+  margin-top: 0.8rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+/* 안내 목록 */
+.help-list {
+  padding-left: 1.2rem;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+/* 보상 표 */
+.help-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.help-table th,
+.help-table td {
+  padding: 0.45rem 0.3rem;
+  border-bottom: 1px solid var(--color-bg);
+}
+
+.help-table th {
+  background: var(--color-bg);
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 /* 불러오기 버튼: 포인트 블루 알약형 */
