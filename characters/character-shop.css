@@ -1,4 +1,4 @@
-/* v0.1.14 : Add_저장 모달 보조 문구(--sub)·파일명(--filename) 스타일 */
+/* v0.1.15 : Fix_효과 썸네일 슬롯 밖 넘침 클리핑 */
 
 /* ===========================
    1. 전역 초기화 & 변수
@@ -579,6 +579,9 @@ body {
 =========================== */
 .effect-slot > div {
   filter: saturate(1) brightness(0.83) contrast(1);
+  position: relative;      /* 파티클의 absolute 기준점 */
+  overflow: hidden;        /* 칸 밖으로 나가는 파티클 잘라냄 */
+  border-radius: inherit;  /* 슬롯의 둥근 모서리(0.75rem)에 맞춰 자름 */
 }
 
 /* (참고: 모달 안의 미리보기에도 필터를 먹이고 싶다면 아래 코드도 함께 추가 */
