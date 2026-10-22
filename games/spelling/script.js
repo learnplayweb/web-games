@@ -1,5 +1,5 @@
-// v0.31.0
-// Spelling Game - 달인 마당 보상을 일반 마당과 동일 규칙(최고 별점 저장, 단가 감소)으로 변경, 결과 저장 예외 방어
+// v0.31.1
+// Spelling Game - 마당 선택 화면으로 나갈 때 history.back() 사용 (뒤로가기 기록이 쌓이지 않게 수정)
 //
 // Public API
 // - initCharacter()
@@ -98,6 +98,7 @@ function resolveChoiceSides(item) {
   item.rightText = correctSide === 'right' ? item.correct : item.wrong;
   item._resolved = true;
 }
+
 
 // select.html에서 넘어온 마당(level)로 진입.
 // URL의 ?level= 파라미터로 마당을 선택 (시계 게임과 동일한 방식). 없거나 잘못되면 1번 마당으로 진입.
@@ -568,8 +569,9 @@ reviewIntroChoicesEl.querySelectorAll('[data-choice]').forEach((btn) => {
   btn.addEventListener('click', () => {
     if (btn.dataset.choice === 'start') {
       reviewIntroModalEl.classList.add('review-intro--hidden');
+    // 달인 마당 안내 "다음에 다시 올게요" 선택 시
     } else {
-      location.href = 'select.html';
+      goToSelect(); // 기존: location.href = 'select.html';
     }
   });
 });
@@ -725,7 +727,7 @@ function failStage() {
 
 function closeStageResult() {
   stageResultEl.classList.add('stage-result--hidden');
-  location.href = 'select.html'; // 완료/실패 관계없이 결과 확인 후엔 마당 선택 화면으로
+  goToSelect(); // 기존: location.href = 'select.html'; 완료/실패 관계없이 결과 확인 후엔 마당 선택 화면으로
 }
 
 stageResultEl.addEventListener('click', closeStageResult);
