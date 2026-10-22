@@ -93,6 +93,20 @@ body {
   color: var(--color-text-muted);
 }
 
+/* 내어쓰기: 해당 줄만 블록으로 분리해, 줄바꿈된 줄이 들여쓰기됨 */
+.help-hang {
+  display: block;
+  padding-left: 1.7em; /* "예) "의 너비 */
+  text-indent: -1.7em; /* 첫 줄은 제자리로 되돌림 */
+}
+
+/* "예)"와 예시 줄을 두 칸으로 나눠 둘째 줄부터 첫 줄 내용과 시작 위치를 맞춤 */
+.help-example {
+  display: flex;
+  gap: 0.3em; /* "예)"와 내용 사이 간격 */
+}
+
+
 /* 섹션 안 소제목 */
 .help-section__sub {
   margin-top: 0.8rem;

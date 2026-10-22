@@ -123,7 +123,7 @@ importInput.addEventListener('change', async () => {
     lines: [
       `지금 꼬무리: ${currentName}`,
       `불러올 꼬무리: ${result.name}`,
-      '지금 꼬무리의 이름과 생김새는 사라져요.',
+      '지금 꼬무리의 이름과', '생김새는 사라져요.',
     ],
     buttons: [
       { label: '불러오기', onClick: () => applyImport(result.raw) },

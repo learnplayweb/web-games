@@ -99,18 +99,9 @@ if (currentCombo >= 3 && currentCombo % 3 === 0) {
 파랑 264783
 
 ----
+다른 작업 착수.
 
-`saveManager.js`는 수정할 필요가 없습니다. 이미 필요한 함수가 모두 있습니다.
-
-- **내보내기**: `getEquippedParts()`에서 `head`, `body`, `legs`, `color`, `colorMix`만 골라 담고(`effect`는 제외), `getCharacterName()`의 이름을 함께 JSON으로 만듭니다.
-- **불러오기**: `setEquippedParts()`와 `setCharacterName()`으로 저장하면 됩니다. 이때 현재 `effect` 값은 그대로 보존하고, 골드나 보유 수량(`character_save`, `character_color_save`)은 건드리지 않습니다.
-
-필요한 파일은 아래와 같습니다.
-
-1. **`characters\characterData.js`** (필수): 불러온 파일은 사용자가 편집할 수 있으니 파츠 id, 색상 hex, `patternId`가 유효한지 검증해야 하는데, 그 기준이 이 파일에 있습니다.
-2. **`characters\inventory.js`** (이미 받음): 내보내기/불러오기 함수는 여기에 두는 게 적절합니다. `canSaveCharacter()`가 내보내기 가능 조건(머리 적용 + 이름 등록)을 이미 판단하고, `characterData.js` 검증 함수도 같이 쓸 수 있습니다.
-3. **버튼을 넣을 화면 파일**: 캐릭터 상점의 html/js/css를 주세요. 다른 화면에 넣으실 거면 그 파일을 주세요.
-
+상점의 효과 썸네일이 지저분함. 각 효과의 썸네일 가장자리가 겹치는 문제. 그리드 바깥으로 안 나가게 구획되었으면 좋겠는데 수정 방향 브리핑 먼저. 확인 받은 후 코드 작성할 것.
 불러온 캐릭터는 보유 수량 소모나 골드 차감 없이 바로 적용되므로, 이미 캐릭터가 있을 때 덮어쓰기를 허용할지, 캐릭터가 없을 때만 불러오게 할지는 먼저 정해 주세요.
 
 
