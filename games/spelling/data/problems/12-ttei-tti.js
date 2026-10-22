@@ -1,6 +1,6 @@
-export const TTUI_TTI_PROBLEMS = [
+export const TTEI_TTI_PROBLEMS = [
   {
-    id: 'ttui-tti-01',
+    id: 'ttei-tti-01',
     tokens: [
       { text: '불길한' },
       { text: '빨간색을' },
@@ -8,7 +8,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-02',
+    id: 'ttei-tti-02',
     tokens: [
       { text: '음산한' },
       { text: '분위기를' },
@@ -17,7 +17,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-03',
+    id: 'ttei-tti-03',
     tokens: [
       { text: '미소를' },
       { correct: '띠며', wrong: '띄며', fixedSide: 'right' },
@@ -26,7 +26,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-04',
+    id: 'ttei-tti-04',
     tokens: [
       { text: '색을' },
       { text: '눈에' },
@@ -36,7 +36,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-05',
+    id: 'ttei-tti-05',
     tokens: [
       { text: '하늘이' },
       { text: '푸른빛을' },
@@ -45,7 +45,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-06',
+    id: 'ttei-tti-06',
     tokens: [
       { text: '간격을' },
       { text: '넓게' },
@@ -54,7 +54,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-07',
+    id: 'ttei-tti-07',
     tokens: [
       { text: '친구의' },
       { text: '글씨가' },
@@ -63,7 +63,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-08',
+    id: 'ttei-tti-08',
     tokens: [
       { text: '중요한' },
       { text: '임무를' },
@@ -72,7 +72,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-09',
+    id: 'ttei-tti-09',
     tokens: [
       { text: '한' },
       { text: '줄을' },
@@ -82,7 +82,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-10',
+    id: 'ttei-tti-10',
     tokens: [
       { text: '노란색을' },
       { correct: '띠는', wrong: '띄는', fixedSide: 'right' },
@@ -91,7 +91,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-11',
+    id: 'ttei-tti-11',
     tokens: [
       { text: '색이' },
       { text: '어두워' },
@@ -101,7 +101,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-12',
+    id: 'ttei-tti-12',
     tokens: [
       { text: '어두운' },
       { text: '표정을' },
@@ -110,7 +110,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-13',
+    id: 'ttei-tti-13',
     tokens: [
       { text: '사이를' },
       { correct: '띄어', wrong: '띠어', fixedSide: 'left' },
@@ -118,7 +118,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-14',
+    id: 'ttei-tti-14',
     tokens: [
       { text: '사명감을' },
       { correct: '띠고', wrong: '띄고', fixedSide: 'right' },
@@ -126,7 +126,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-15',
+    id: 'ttei-tti-15',
     tokens: [
       { text: '필통이' },
       { text: '눈에' },
@@ -135,7 +135,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-16',
+    id: 'ttei-tti-16',
     tokens: [
       { text: '장미가' },
       { text: '붉은빛을' },
@@ -144,7 +144,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-17',
+    id: 'ttei-tti-17',
     tokens: [
       { text: '거리를' },
       { text: '너무' },
@@ -153,7 +153,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-18',
+    id: 'ttei-tti-18',
     tokens: [
       { text: '보라색을' },
       { correct: '띠는', wrong: '띄는', fixedSide: 'right' },
@@ -161,7 +161,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-19',
+    id: 'ttei-tti-19',
     tokens: [
       { text: '눈에' },
       { correct: '띄는', wrong: '띠는', fixedSide: 'left' },
@@ -169,7 +169,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-20',
+    id: 'ttei-tti-20',
     tokens: [
       { text: '미소를' },
       { correct: '띨', wrong: '띌', fixedSide: 'right' },
@@ -178,7 +178,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-21',
+    id: 'ttei-tti-21',
     tokens: [
       { text: '한' },
       { text: '칸' },
@@ -187,7 +187,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-22',
+    id: 'ttei-tti-22',
     tokens: [
       { text: '활기를' },
       { correct: '띤', wrong: '띈', fixedSide: 'right' },
@@ -195,7 +195,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-23',
+    id: 'ttei-tti-23',
     tokens: [
       { text: '가구' },
       { text: '사이의' },
@@ -204,7 +204,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-24',
+    id: 'ttei-tti-24',
     tokens: [
       { text: '열매가' },
       { text: '노란빛을' },
@@ -212,7 +212,7 @@ export const TTUI_TTI_PROBLEMS = [
     ]
   },
   {
-    id: 'ttui-tti-25',
+    id: 'ttei-tti-25',
     tokens: [
       { text: '눈에' },
       { text: '쏙' },
@@ -225,7 +225,7 @@ export const TTUI_TTI_PROBLEMS = [
 // 학습 모달 콘텐츠 (마당 시작 시 + 오답 시 공통 노출, 주제마다 달라지므로 해당 주제 파일에 위치)
 // lines: 각 줄을 세그먼트 배열로 표현. emph 없는 세그먼트는 기본 텍스트, 있으면 강조 스타일 적용.
 // emph: 'blue' → 강조(짙은 파랑, 굵게/크게), 'red' → 강조(짙은 빨강, 굵게/크게)
-export const TTUI_TTI_GUIDE = {
+export const TTEI_TTI_GUIDE = {
   title: '띄다 / 띠다 구별법',
   lines: [
     [

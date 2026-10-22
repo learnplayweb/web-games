@@ -37,7 +37,7 @@ import { DAERO_DERO_PROBLEMS, DAERO_DERO_GUIDE } from './problems/08-daero-dero.
 import { MAE_ME_PROBLEMS, MAE_ME_GUIDE } from './problems/09-mae-me.js';
 import { BUD_BUS_PROBLEMS, BUD_BUS_GUIDE } from './problems/10-bud-bus.js';
 import { BUCHI_BUTI_PROBLEMS, BUCHI_BUTI_GUIDE } from './problems/11-buchi-buti.js';
-import { TTUI_TTI_PROBLEMS, TTUI_TTI_GUIDE } from './problems/12-ttui-tti.js';
+import { TTEI_TTI_PROBLEMS, TTEI_TTI_GUIDE } from './problems/12-ttei-tti.js';
 import { BUSU_BUSI_PROBLEMS, BUSU_BUSI_GUIDE } from './problems/13-busu-busi.js';
 import { CM01_PROBLEMS, CM01_GUIDE } from './problems/14-day-col-lock.js';
 import { JOT_JJOT_PROBLEMS, JOT_JJOT_GUIDE } from './problems/15-jot-jjot.js';
@@ -54,7 +54,7 @@ export const TOPICS = [
   { id: 'mae-me',        label: '매다 / 메다',      problems: MAE_ME_PROBLEMS,        guide: MAE_ME_GUIDE },
   { id: 'bud-bus',       label: '붇다 / 붓다',      problems: BUD_BUS_PROBLEMS,       guide: BUD_BUS_GUIDE },
   { id: 'buchi-buti',    label: '부치다 / 붙이다',  problems: BUCHI_BUTI_PROBLEMS,    guide: BUCHI_BUTI_GUIDE },
-  { id: 'ttui-tti',      label: '뛰다 / 띄다',      problems: TTUI_TTI_PROBLEMS,      guide: TTUI_TTI_GUIDE },
+  { id: 'ttei-tti',      label: '띄다 / 띠다',      problems: TTEI_TTI_PROBLEMS,      guide: TTEI_TTI_GUIDE },
 
   ];
 
