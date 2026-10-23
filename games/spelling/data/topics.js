@@ -55,11 +55,10 @@ export const TOPICS = [
   { id: 'bud-bus',       label: '붇다 / 붓다',      problems: BUD_BUS_PROBLEMS,       guide: BUD_BUS_GUIDE },
   { id: 'buchi-buti',    label: '부치다 / 붙이다',  problems: BUCHI_BUTI_PROBLEMS,    guide: BUCHI_BUTI_GUIDE },
   { id: 'ttei-tti',      label: '띄다 / 띠다',      problems: TTEI_TTI_PROBLEMS,      guide: TTEI_TTI_GUIDE },
-
+  { id: 'busu-busi',     label: '부수다 / 부시다',  problems: BUSU_BUSI_PROBLEMS,     guide: BUSU_BUSI_GUIDE },
+//  { id: 'day-col-lock',  label: '며칠 / 색 / 잠그다', problems: CM01_PROBLEMS,        guide: CM01_GUIDE }, // common-mistakes 틀리기 쉬운 말
+ // { id: 'jot-jjot',      label: '좇다 / 쫓다',      problems: JOT_JJOT_PROBLEMS,      guide: JOT_JJOT_GUIDE },
   ];
 
 // { id: '',     label: '',  problems: _PROBLEMS,     guide: _GUIDE },
 
-// { id: 'busu-busi',     label: '부수다 / 부시다',  problems: BUSU_BUSI_PROBLEMS,     guide: BUSU_BUSI_GUIDE },
-//  { id: 'day-col-lock',  label: '며칠 / 색 / 잠그다', problems: CM01_PROBLEMS,        guide: CM01_GUIDE }, // common-mistakes 틀리기 쉬운 말
- // { id: 'jot-jjot',      label: '좇다 / 쫓다',      problems: JOT_JJOT_PROBLEMS,      guide: JOT_JJOT_GUIDE },
