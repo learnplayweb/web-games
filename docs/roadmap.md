@@ -97,8 +97,9 @@
 favicon.svg: 최신 브라우저용 (벡터)
 favicon.ico: 구형 브라우저용 (16·32·48px)
 apple-touch-icon.png: iOS 홈 화면 추가용 (180px)
-icon-192.png, icon-512.png: 안드로이드 홈 화면용. 지금은 연결하지 않고, 나중에 manifest를 만들 때 씁니다.
-* [ ] Version 1.0 Release
+icon-192.png, icon-512.png: 안드로이드 크롬에서 앱 설치 시 홈 화면용. 지금은 연결하지 않고, 나중에 manifest를 만들 때 사용.
+?v=2 > 파일 수정 시 숫자 올리기
+* [x] Version 1.0 Release
 ------
 
 
