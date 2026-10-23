@@ -118,7 +118,7 @@ export const BUCHI_BUTI_PROBLEMS = [
   {
     id: 'buchi-buti-14',
     tokens: [
-      { text: '옷에' },
+      { text: '문에' },
       { text: '장식을' },
       { correct: '붙이자.', wrong: '부치자.', fixedSide: 'right' },
     ]

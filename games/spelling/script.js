@@ -1,5 +1,5 @@
-// v0.31.2
-// Spelling Game - 마당 선택 화면 이동 함수(goToSelect) 정의 추가 (호출만 있고 정의가 없어 이동하지 않던 문제 수정)
+// v0.31.4
+// Spelling Game - 학습 모달 글자 크기 최소 한도를 비율 상수 하나(GUIDE_MIN_SCALE)로 통합
 //
 // Public API
 // - initCharacter()
@@ -465,10 +465,68 @@ function renderGuideModal(guide) {
   guide.lines.forEach((line) => renderSegmentLine(learningModalTextEl, line));
 }
 
+/* ===========================
+   학습 모달 글자 크기 자동 맞춤 (각 줄을 한 줄로 표시)
+=========================== */
+// 최소 비율: CSS 원래 크기의 몇 배까지 줄일 수 있는지 (기본·강조 모두 같은 비율로 축소). 그래도 안 들어가면 줄바꿈 허용
+const GUIDE_MIN_SCALE = 0.87;
+
+function fitGuideModalText() {
+  // 숨김 상태에서는 폭이 0이라 측정할 수 없음
+  if (learningModalEl.classList.contains('learning-modal--hidden')) return;
+
+  const lines = [...learningModalTextEl.querySelectorAll('p')];
+  if (lines.length === 0) return;
+
+  // 사용 가능한 폭: 모달 본문 폭 (카드 좌우 padding은 그대로 유지, 변경 없음)
+  // clientWidth/offsetWidth는 transform(등장 애니메이션)의 영향을 받지 않음
+  const textStyle = getComputedStyle(learningModalTextEl);
+  const available = learningModalTextEl.clientWidth
+    - parseFloat(textStyle.paddingLeft) - parseFloat(textStyle.paddingRight);
+  if (available <= 0) return;
+
+  const spans = [...learningModalTextEl.querySelectorAll('span')]; // 강조(emph) 세그먼트
+
+  // 1) 이전 맞춤 결과 초기화 → CSS 원래 크기로 되돌린 뒤, 줄바꿈 없이 본래 폭으로 측정
+  [...lines, ...spans].forEach((el) => { el.style.fontSize = ''; });
+  lines.forEach((p) => {
+    p.style.whiteSpace = 'nowrap';
+    p.style.width = 'max-content';
+    p.style.marginLeft = 'auto';  // 폭이 줄어든 줄도 가운데 정렬 유지
+    p.style.marginRight = 'auto';
+  });
+
+  const baseSize = parseFloat(getComputedStyle(lines[0]).fontSize);
+  const spanSizes = spans.map((span) => parseFloat(getComputedStyle(span).fontSize));
+
+
+  // 3) 가장 긴 줄이 들어올 때까지 비율 축소 (측정값 반올림 오차 보정을 위해 최대 3회 반복)
+  const widest = () => Math.max(...lines.map((p) => p.offsetWidth));
+  let scale = 1;
+  for (let i = 0; i < 3 && widest() > available && scale > GUIDE_MIN_SCALE; i += 1) {
+    scale = Math.max(GUIDE_MIN_SCALE, scale * (available / widest()));
+    lines.forEach((p) => { p.style.fontSize = `${baseSize * scale}px`; });
+    spans.forEach((span, index) => { span.style.fontSize = `${spanSizes[index] * scale}px`; });
+  }
+
+  // 4) 측정용 스타일 정리. 최소 크기로도 안 들어가면 잘리지 않도록 줄바꿈 허용
+  const overflow = widest() > available;
+  lines.forEach((p) => {
+    p.style.width = '';
+    p.style.marginLeft = '';
+    p.style.marginRight = '';
+    if (overflow) p.style.whiteSpace = '';
+  });
+}
+
 function showLearningModal() {
   renderGuideModal(CURRENT_GUIDE);
   learningModalEl.classList.remove('learning-modal--hidden');
+  fitGuideModalText(); // 모달이 보이는 상태에서 측정
+  document.fonts?.ready.then(fitGuideModalText); // 글꼴 로드 후 폭이 달라질 수 있어 다시 맞춤
 }
+
+window.addEventListener('resize', fitGuideModalText); // 화면 회전·크기 변경 시 다시 맞춤
 
 function closeLearningModal() {
   learningModalEl.classList.add('learning-modal--hidden');
