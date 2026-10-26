@@ -1,0 +1,68 @@
+<!-- template v0.1.0 : 게임 화면 HTML 템플릿 최초 생성 (script.js 템플릿이 기대하는 요소 id 포함) -->
+<!-- 사용법: games\<게임id>\index.html로 복사 후 TODO(게임별) 부분을 채운다. 규칙은 AI_RULES.md 참고 -->
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TODO(게임별) 게임 이름</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="../../characters/character-anim.css" />
+  <link rel="stylesheet" href="../../characters/assets/effects/effects.css" />
+  <link rel="icon" href="../../assets/favicon/favicon.ico" sizes="48x48" />
+  <link rel="icon" href="../../assets/favicon/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../../assets/favicon/apple-touch-icon.png?v=2" />
+</head>
+<body>
+
+  <!-- 전체 화면을 감싸는 래퍼 (PC 가운데 정렬용) -->
+  <div id="game-wrapper" class="game-wrapper">
+
+    <!-- 상단 정보 영역 : Combo(좌) / 필요 시 하트 등(우) -->
+    <header class="info-bar">
+      <span class="info-bar__item info-bar__combo">
+        <span class="info-bar__icon">🔥</span>
+        <span id="display-combo" class="info-bar__value">0</span>
+      </span>
+      <!-- TODO(게임별): 목숨이 있는 게임은 하트 영역 사용 (맞춤법: script.js가 개수에 맞춰 동적으로 채움)
+      <span class="info-bar__item info-bar__hearts" id="display-hearts"></span>
+      -->
+    </header>
+
+    <!-- 게임 진행 영역 : TODO(게임별) 문제·보드 등 게임 화면 -->
+    <section id="play-area" class="play-area">
+
+      <!-- 인게임 캐릭터 컨테이너 (script.js의 initCharacter가 SVG를 채움)
+           위치는 style.css의 .character-container 참고 (영역 안 배치 / 시계처럼 자유 배치 중 선택) -->
+      <div id="character-container" class="character-container"></div>
+
+    </section>
+
+    <!-- 입력 영역 : TODO(게임별) 버튼 구성 변경 (시계: 숫자 키패드 / 맞춤법: ← ↓ → 버튼). 필요 없으면 삭제 -->
+    <section class="keypad-area">
+      <button type="button" class="keypad-btn" data-key="example">TODO</button>
+    </section>
+
+  </div><!-- /.game-wrapper -->
+
+  <!-- 단계 완료 결과 화면: script.js의 finishStage()가 값을 채우고 stage-result--hidden을 제거, 탭하면 선택 화면으로 이동
+       목숨·페널티로 실패하는 게임은 실패 카드를 추가 (맞춤법 index.html의 stage-result-failure 참고) -->
+  <div id="stage-result" class="stage-result stage-result--hidden">
+    <div id="stage-result-success" class="result-card">
+      <h2 id="result-level" class="result-level">Lv.1 완료!</h2>
+      <p id="result-stars" class="result-stars">★★★</p>
+      <p id="result-score" class="result-score">0 / 0</p>
+      <p id="result-rate" class="result-rate">정답률 0%</p>
+      <p id="result-combo" class="result-combo">최고 콤보 🔥 0</p>
+      <hr class="result-divider" />
+      <p class="result-gold-row"><span>문제 정답</span><span id="result-gold-quiz" class="result-gold-value">💎 0</span></p>
+      <p class="result-gold-row"><span>콤보 보너스</span><span id="result-gold-combo" class="result-gold-value">💎 0</span></p>
+      <p class="result-gold-row"><span>별점 보너스</span><span id="result-gold-star" class="result-gold-value">💎 0</span></p>
+      <p class="result-gold-total"><span>총 획득</span><span id="result-gold-total" class="result-gold-value">💎 0</span></p>
+    </div>
+  </div>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
