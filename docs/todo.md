@@ -84,4 +84,14 @@ if (currentCombo >= 3 && currentCombo % 3 === 0) {
 
 파랑 264783
 
+템플릿 파일명 앞에 모두 t_ 추가했음.(인덱스, 스크립트, 스타일, 셀렉트 html, js)
+ai-rules 등 md 파일에도 버전명 기록할 것. (이후 갱신 시부터)
 
+
+// select.js 상단에 추가
+import { starsToEmoji } from '../../core/reward.js';
+
+// 파일 안의 로컬 starsToString 함수는 삭제하고, 호출부를 starsToEmoji(...)로 교체
+starsLabel.textContent = isReview
+  ? starsToEmoji(getSpellingReviewBestStars(stage.level))
+  : starsToEmoji(getSpellingBestStars(stage.topic));
