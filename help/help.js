@@ -1,7 +1,8 @@
-// v0.1.0 : 도움말 페이지 최초 생성 - 캐릭터 불러오기(파일 선택 → 검증 → 덮어쓰기 확인 → 적용)
+// v0.1.1 : 게임 보상 표·예시를 core/reward.js 값으로 자동 생성 (수치 변경 시 도움말 수정 불필요)
 import { createHeader } from '../shared/header.js';
 import { getCharacterName } from '../core/saveManager.js';
 import { validateCharacterData, importCharacterData } from '../characters/inventory.js';
+import { QUIZ_GOLD_BY_STARS, COMBO_MULTIPLIER_BY_STARS, STAR_VALUE } from '../core/reward.js';
 
 createHeader();
 
@@ -19,6 +20,88 @@ function setupToggle(toggleId, bodyId) {
 
 setupToggle('toggle-shop', 'shop-body');
 setupToggle('toggle-reward', 'reward-body');
+
+/* ===========================
+   게임 보상 표·예시 (core/reward.js 값으로 생성)
+   - help.html의 id 위치에 채워 넣음. 기존 내용이 있으면 덮어씀
+=========================== */
+
+// 별 개수 → 표시 문자열 (0개는 빈 별 1개). 도움말 표 디자인에 맞춘 표기
+function starsLabel(stars) {
+  return stars === 0 ? '\u2606' : '\u2B50'.repeat(stars);
+}
+
+// 표에 한 줄(tr) 추가
+function addTableRow(tbody, cells) {
+  const row = document.createElement('tr');
+  cells.forEach((text) => {
+    const cell = document.createElement('td');
+    cell.textContent = text;
+    row.appendChild(cell);
+  });
+  tbody.appendChild(row);
+}
+
+// 여러 줄 문장을 <br>로 이어서 채움
+function setLines(element, lines) {
+  element.replaceChildren();
+  lines.forEach((line, index) => {
+    if (index > 0) element.appendChild(document.createElement('br'));
+    element.appendChild(document.createTextNode(line));
+  });
+}
+
+function renderRewardTables() {
+  // 별 개수 목록은 reward.js의 표 키(0~3)에서 가져옴
+  const starKeys = Object.keys(QUIZ_GOLD_BY_STARS).map(Number).sort((a, b) => a - b);
+
+  // 표 1: 이전 최고 별점별 정답 보상·콤보 배율
+  const quizBody = document.getElementById('reward-quiz-body');
+  if (quizBody) {
+    quizBody.replaceChildren();
+    starKeys.forEach((stars) => {
+      addTableRow(quizBody, [
+        stars === 0 ? '없음 (처음)' : starsLabel(stars),
+        `\u{1F48E} ${QUIZ_GOLD_BY_STARS[stars]}`,
+        `\u00D7 ${COMBO_MULTIPLIER_BY_STARS[stars]}`,
+      ]);
+    });
+  }
+
+  // 콤보 예시: 처음 하는 단계(이전 별점 없음)에서 5문제 연속 정답
+  const comboExample = document.getElementById('reward-combo-example');
+  if (comboExample) {
+    const combo = 5;
+    const multiplier = COMBO_MULTIPLIER_BY_STARS[0];
+    comboExample.textContent = `예) 처음 하는 단계에서 ${combo}문제를 연속으로 맞히면 ${combo} \u00D7 ${multiplier} = \u{1F48E} ${combo * multiplier}`;
+  }
+
+  // 표 2: 맞힌 문제 수 → 별점 → 별점 보너스 (기준 문구는 calcStars의 정답률 기준과 같아야 함)
+  const starBody = document.getElementById('reward-star-body');
+  if (starBody) {
+    starBody.replaceChildren();
+    [
+      { stars: 3, condition: '모두' },
+      { stars: 2, condition: '3분의 2 이상' },
+      { stars: 1, condition: '3분의 1 이상' },
+      { stars: 0, condition: '3분의 1 미만' },
+    ].forEach(({ stars, condition }) => {
+      const value = STAR_VALUE[stars];
+      addTableRow(starBody, [condition, starsLabel(stars), value > 0 ? `\u{1F48E} ${value}` : '없음']);
+    });
+  }
+
+  // 별점 보너스 예시: 새 별 가치 − 이전 별 가치
+  const starExample = document.getElementById('reward-star-example');
+  if (starExample) {
+    setLines(starExample, [[0, 1], [1, 2], [1, 3]].map(([from, to]) => {
+      const fromLabel = from === 0 ? '별 없음' : starsLabel(from);
+      return `${fromLabel} \u2192 ${starsLabel(to)} : \u{1F48E} ${STAR_VALUE[to] - STAR_VALUE[from]} (${STAR_VALUE[to]}-${STAR_VALUE[from]})`;
+    }));
+  }
+}
+
+renderRewardTables();
 
 const MAX_FILE_SIZE = 64 * 1024; // 캐릭터 파일은 1KB 안팎이므로 지나치게 큰 파일은 거절
 

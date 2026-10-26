@@ -1,4 +1,9 @@
-<!-- v0.1.3 : 캐릭터 상점·게임 보상을 펼침 메뉴로 변경 (제목 바 클릭) -->
+<!-- v0.1.5 : 표·예시 영역에 id 추가> help.js가 core\reward.js의 QUIZ_GOLD_BY_STARS, COMBO_MULTIPLIER_BY_STARS, STAR_VALUE를 읽어서 채움 
+  표 1: 이전 별점별 정답 보상과 콤보 배율
+  콤보 예시: "처음 하는 단계에서 5문제를 연속으로 맞히면 5 × 4 = 💎 20"
+  표 2: 맞힌 문제 수, 별점, 별점 보너스
+  별점 보너스 예시: 새 별 가치에서 이전 별 가치를 뺀 값 -->
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -82,12 +87,8 @@
           <thead>
             <tr><th>이전에 받은<br>가장 높은 별점</th><th>맞힌 문제<br>1개당 보상</th><th>콤보 보너스</th></tr>
           </thead>
-          <tbody>
-            <tr><td>없음 (처음)</td><td>💎 10</td><td>× 4</td></tr>
-            <tr><td>⭐</td><td>💎 7</td><td>× 3</td></tr>
-            <tr><td>⭐⭐</td><td>💎 4</td><td>× 2</td></tr>
-            <tr><td>⭐⭐⭐</td><td>💎 1</td><td>× 1</td></tr>
-          </tbody>
+          <!-- 정답 보상과 콤보 보너스 표 -->
+          <tbody id="reward-quiz-body"></tbody>
         </table>
         <ul class="help-list">
           <li>같은 단계를 또 하면 받는 💎가 줄어들어요.<br>
@@ -96,7 +97,8 @@
 
        <p class="help-section__note">
           콤보 수 = 가장 길게 연속으로 맞힌 횟수
-          <span class="help-hang">예) 처음 하는 단계에서 5문제를 연속으로 맞히면 5 × 4 = 💎 20</span>
+          <!-- 콤보 예시: help-hang span에 id 추가 -->
+          <span class="help-hang" id="reward-combo-example"></span>
         </p>
 
         <h3 class="help-section__sub">별점 보너스</h3>
@@ -104,12 +106,8 @@
           <thead>
             <tr><th>맞힌 문제 수</th><th>별점</th><th>별점 보너스</th></tr>
           </thead>
-          <tbody>
-            <tr><td>모두</td><td>⭐⭐⭐</td><td>💎 50</td></tr>
-            <tr><td>3분의 2 이상</td><td>⭐⭐</td><td>💎 30</td></tr>
-            <tr><td>3분의 1 이상</td><td>⭐</td><td>💎 10</td></tr>
-            <tr><td>3분의 1 미만</td><td>☆</td><td>없음</td></tr>
-          </tbody>
+          <!-- 별점 보너스 표 -->
+          <tbody id="reward-star-body"></tbody>
         </table>
 
         <ul class="help-list">
@@ -117,16 +115,15 @@
           <li>별점이 높아지면 이전 별점의 보너스를 뺀 만큼 받아요.<br>
           ▷ 별점이 그대로이거나 낮아지면 별점 보너스는 없어요.</li>
         </ul>
+          <!-- 별점 예시: 두번째 span에 id 추가 (첫째 "예)" span은 그대로) -->
         <p class="help-section__note help-example">
           <span>예)</span>
-          <span>별 없음 → ⭐ : 💎 10 (10-0)<br>
-          ⭐ → ⭐⭐ : 💎 20 (30-10)<br>
-          ⭐ → ⭐⭐⭐ : 💎 40 (50-10)</span>
+          <span id="reward-star-example"></span>
         </p>
 
-        <h3 class="help-section__sub">마지막 단계</h3>
+        <h3 class="help-section__sub">복습 단계</h3>
         <ul class="help-list">
-          <li>같은 단계를 또 해도 받는 💎가 줄어들지 않아요.<br>▷ 여러 번 복습할수록 좋아요!</li>
+          <li>같은 단계를 또 해도 받는 💎가 줄어들지 않거나 매달 1일 처음처럼 돌아와요.<br>▷ 여러 번 복습할수록 좋아요!</li>
         </ul>
       </div>
     </section>
