@@ -1,14 +1,10 @@
-// v0.7.0
-// Spelling Game - 달인 마당 조건부 해금(담당 일반 마당 모두 별 3점) + 잠김 안내 모달
+// v0.8.0
+// Spelling Game - 선택 화면 공통 모듈(shared/stageSelect.js) 사용으로 변경 (카드 렌더링·헤더·뒤로가기 갱신 이동)
 
-import { getGold, getSpellingBestStars, getSpellingReviewBestStars } from '../../core/saveManager.js';
-import { createHeader, updateHeaderGold } from '../../shared/header.js';
+import { getSpellingBestStars, getSpellingReviewBestStars } from '../../core/saveManager.js';
+import { initStageSelect } from '../../shared/stageSelect.js';
 import { STAGES } from './data/stages.js';
 import { TOPICS } from './data/topics.js';
-
-function starsToString(stars) {
-  return '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
-}
 
 // topic id → topics.js의 label
 function topicLabel(topicId) {
@@ -88,59 +84,28 @@ function showLockModal(message) {
   lockModal.querySelector('.modal-card__btn').focus();
 }
 
-function renderStageCards() {
-  const list = document.getElementById('stage-card-list');
-  list.innerHTML = '';
-
-  STAGES.forEach((stage) => {
+// 맞춤법 고유 규칙: 일반 마당은 항상 해금, 달인 마당은 묶인 일반 마당 모두 별 3점일 때 해금
+// 별점은 달인 마당은 level별(매달 1일 초기화), 일반 마당은 topic별 최고 별점
+function buildCards() {
+  return STAGES.map((stage) => {
     const isReview = stage.type === 'review';
 
-    // 일반 마당은 항상 해금, 달인 마당은 조건 충족 시에만 해금
-    const isUnlocked = isReview ? isReviewUnlocked(stage) : true;
-
-    const card = document.createElement('div');
-    card.className = `stage-card ${isUnlocked ? 'stage-card--unlocked' : 'stage-card--locked'}`;
-    if (isReview) card.classList.add('stage-card--review');
-
-    const name = isReview
-      ? `달인 마당. ${reviewRangeLabel(stage)}`
-      : `마당${normalStageNumber(stage)}. ${topicLabel(stage.topic)}`;
-
-    const levelLabel = document.createElement('p');
-    levelLabel.className = 'stage-card__level';
-    levelLabel.textContent = isUnlocked ? name : `🔒 ${name}`;
-
-    const starsLabel = document.createElement('p');
-    starsLabel.className = 'stage-card__stars';
-    // 달인 마당은 level별 최고 별점(매달 1일 초기화), 일반 마당은 topic별 최고 별점 표시
-    starsLabel.textContent = isReview
-      ? starsToString(getSpellingReviewBestStars(stage.level))
-      : starsToString(getSpellingBestStars(stage.topic));
-
-    card.append(levelLabel, starsLabel);
-
-    if (isUnlocked) {
-      card.addEventListener('click', () => {
-        location.href = `index.html?level=${stage.level}`;
-      });
-    } else {
-      // 잠김 상태: 이동 대신 안내 모달 (달인 마당만 잠기므로 범위 문구 사용)
-      card.addEventListener('click', () => {
+    return {
+      level: stage.level,
+      name: isReview
+        ? `달인 마당. ${reviewRangeLabel(stage)}`
+        : `마당${normalStageNumber(stage)}. ${topicLabel(stage.topic)}`,
+      stars: isReview
+        ? getSpellingReviewBestStars(stage.level)
+        : getSpellingBestStars(stage.topic),
+      unlocked: isReview ? isReviewUnlocked(stage) : true,
+      review: isReview,
+      // 잠긴 달인 마당: 이동 대신 안내 모달 (달인 마당만 잠기므로 범위 문구 사용)
+      onLockedClick: () => {
         showLockModal(`마당 ${reviewRangeLabel(stage)} 모두\n 별 3점이어야 열려요.`);
-      });
-    }
-    list.appendChild(card);
+      },
+    };
   });
 }
 
-createHeader();
-renderStageCards();
-
-// index.html에서 history.back()으로 select.html로 돌아올 때 bfcache 복원이면
-// 모듈 스크립트가 재실행되지 않아 최신 저장 데이터(별점 등)를 반영하지 못하는 문제 방지
-window.addEventListener('pageshow', (event) => {
-  if (event.persisted) {
-    renderStageCards();
-    updateHeaderGold(getGold());
-  }
-});
+initStageSelect({ getCards: buildCards });

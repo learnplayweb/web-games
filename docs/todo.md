@@ -84,10 +84,16 @@ if (currentCombo >= 3 && currentCombo % 3 === 0) {
 
 파랑 264783
 
+# 했음 & 앞으로 반영
 템플릿 파일명 앞에 모두 t_ 추가했음.(인덱스, 스크립트, 스타일, 셀렉트 html, js)
+파일명 같은 파일의 빠른 판별 위해 버전명 앞에 main, clock 등 기입. (이후 갱신 시부터) 예: // template v0.1.1 : 별점 조회를~~ (이하 생략)
+
 ai-rules 등 md 파일에도 버전명 기록할 것. (이후 갱신 시부터)
+# 질문
+stageSelect.js, stage-select.css인데 파일 이름 다르게 한 이유 있나? 없으면 stageSelect.css로 변경해도 됨? (경로 변경은 업데이트만. 파일 재제공 불필요)
 
 
+3번(선택 화면 공통화) 시 아래 사항 하기 전의 파일 줬음.
 // select.js 상단에 추가
 import { starsToEmoji } from '../../core/reward.js';
 
@@ -95,3 +101,8 @@ import { starsToEmoji } from '../../core/reward.js';
 starsLabel.textContent = isReview
   ? starsToEmoji(getSpellingReviewBestStars(stage.level))
   : starsToEmoji(getSpellingBestStars(stage.topic));
+
+# 확인 사항
+두 게임 CSS에서 값이 같은 규칙이 17개입니다. 템플릿에 복사해서 넣는 대신 shared\game-common.css 같은 공용 파일 하나로 빼서 두 게임과 새 게임이 함께 쓰게 할 수도 있습니다.
+
+맞춤법 선택 화면의 CSS 공통 모달?

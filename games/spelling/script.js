@@ -1,10 +1,11 @@
-// v0.31.4
-// Spelling Game - 학습 모달 글자 크기 최소 한도를 비율 상수 하나(GUIDE_MIN_SCALE)로 통합
+// v0.31.5
+// Spelling Game - 보상 계산(별점·정답 보상·콤보 보너스·별 보상)을 core/reward.js 공통 모듈로 이동
 //
 // Public API
 // - initCharacter()
 
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
+import { calcStars, starsToString, calcRewardGold } from '../../core/reward.js';
 import { getEquippedParts, getCharacterName, getSpellingBestStars, getSpellingReviewBestStars, saveSpellingResult, saveSpellingReviewResult } from '../../core/saveManager.js';
 import { spawnEffect } from '../../characters/assets/effects/effects.js';
 import { pickRandomEquippedEffect, applyPenaltyLoss } from '../../characters/inventory.js';
@@ -134,17 +135,6 @@ const CURRENT_GUIDE = IS_REVIEW_STAGE ? null : TOPIC_GUIDES[currentStage.topic];
 const PREV_BEST_STARS = IS_REVIEW_STAGE
   ? getSpellingReviewBestStars(currentStage.level)
   : getSpellingBestStars(currentStage.topic);
-
-/* ===========================
-   보상 테이블 (기존 정리안 그대로) : 상수로 관리해 밸런스 조정이 쉽도록 함
-=========================== */
-
-// 선택 지점당 Gold : 이전 최고 별점이 낮을수록(=처음 도전에 가까울수록) 더 많이 지급
-const CHOICE_GOLD_BY_STARS = { 0: 10, 1: 7, 2: 4, 3: 1 };
-// 콤보 보너스 배율 : 최장 콤보 × 배율. 이전 최고 별점이 낮을수록 배율이 큼
-const COMBO_MULTIPLIER_BY_STARS = { 0: 4, 1: 3, 2: 2, 3: 1 };
-// 별점 자체의 가치 (누적) : 별점 보상 = 새 최고 별 가치 − 이전 최고 별 가치
-const STAR_VALUE = { 0: 0, 1: 10, 2: 30, 3: 50 };
 
 /* ===========================
    캐릭터 초기화 (정면 idle) + 모션 재생 헬퍼
@@ -469,7 +459,7 @@ function renderGuideModal(guide) {
    학습 모달 글자 크기 자동 맞춤 (각 줄을 한 줄로 표시)
 =========================== */
 // 최소 비율: CSS 원래 크기의 몇 배까지 줄일 수 있는지 (기본·강조 모두 같은 비율로 축소). 그래도 안 들어가면 줄바꿈 허용
-const GUIDE_MIN_SCALE = 0.87;
+const GUIDE_MIN_SCALE = 0.9;
 
 function fitGuideModalText() {
   // 숨김 상태에서는 폭이 0이라 측정할 수 없음
@@ -499,8 +489,7 @@ function fitGuideModalText() {
   const baseSize = parseFloat(getComputedStyle(lines[0]).fontSize);
   const spanSizes = spans.map((span) => parseFloat(getComputedStyle(span).fontSize));
 
-
-  // 3) 가장 긴 줄이 들어올 때까지 비율 축소 (측정값 반올림 오차 보정을 위해 최대 3회 반복)
+  // 2) 가장 긴 줄이 들어올 때까지 비율 축소 (측정값 반올림 오차 보정을 위해 최대 3회 반복)
   const widest = () => Math.max(...lines.map((p) => p.offsetWidth));
   let scale = 1;
   for (let i = 0; i < 3 && widest() > available && scale > GUIDE_MIN_SCALE; i += 1) {
@@ -509,7 +498,7 @@ function fitGuideModalText() {
     spans.forEach((span, index) => { span.style.fontSize = `${spanSizes[index] * scale}px`; });
   }
 
-  // 4) 측정용 스타일 정리. 최소 크기로도 안 들어가면 잘리지 않도록 줄바꿈 허용
+  // 3) 측정용 스타일 정리. 최소 크기로도 안 들어가면 잘리지 않도록 줄바꿈 허용
   const overflow = widest() > available;
   lines.forEach((p) => {
     p.style.width = '';
@@ -675,15 +664,6 @@ const stageResultCharacterEl = document.getElementById('stage-result-character')
 let stageEnded = false;
 let stageFailed = false; // 완료/실패 카드 중 어떤 게 떠 있는지 추적용 (현재는 닫기 동작 분기엔 쓰지 않음)
 
-function calcStars(correctCount, total) {
-  if (total === 0) return 0;
-  const rate = correctCount / total;
-  if (rate >= 1) return 3;
-  if (rate >= 2 / 3) return 2;
-  if (rate >= 1 / 3) return 1;
-  return 0;
-}
-
 // 마당을 정상적으로 완료했을 때만 호출된다 (새로고침/이탈 시엔 이 함수 자체가 호출되지 않으므로
 // firstAttemptResults/maxCombo 같은 진행 중 임시 데이터가 저장으로 이어지지 않는다).
 function finishStage() {
@@ -697,10 +677,12 @@ function finishStage() {
 
   // 보상 계산 — 게임 중엔 지급하지 않고 여기서 한 번에 계산+저장
   // 일반/달인 마당 동일 규칙: 문제·콤보 단가는 이전 최고 별점이 높을수록 줄고, 별점 보상은 최고 별점 갱신 시 차액만 지급
-  const goldQuiz  = correctCount * (CHOICE_GOLD_BY_STARS[PREV_BEST_STARS] ?? CHOICE_GOLD_BY_STARS[0]);
-  const goldCombo = maxCombo * (COMBO_MULTIPLIER_BY_STARS[PREV_BEST_STARS] ?? COMBO_MULTIPLIER_BY_STARS[0]);
-  const goldStar  = Math.max(0, STAR_VALUE[stars] - STAR_VALUE[PREV_BEST_STARS]);
-  const goldTotal = goldQuiz + goldCombo + goldStar;
+  const { goldQuiz, goldCombo, goldStar, goldTotal } = calcRewardGold({
+    correctCount,
+    maxCombo,
+    stars,
+    prevBestStars: PREV_BEST_STARS, // 달인 마당은 level별, 일반 마당은 topic별 이전 최고 별점
+  });
 
   // 저장 중 예외가 나도 결과 모달은 반드시 표시되도록 보호
   try {
@@ -714,7 +696,7 @@ function finishStage() {
   }
 
   resultLevelEl.textContent = IS_REVIEW_STAGE ? '달인 마당 성공!' : '마당 완료!';
-  resultStarsEl.textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+  resultStarsEl.textContent = starsToString(stars);
   resultScoreEl.textContent = `${correctCount} / ${total}`;
   resultRateEl.textContent = `정답률 ${rate}%`;
   resultComboEl.textContent = `최고 콤보 🔥 ${maxCombo}`;

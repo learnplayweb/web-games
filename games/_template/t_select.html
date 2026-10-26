@@ -1,0 +1,27 @@
+<!-- template v0.1.0 : 단계 선택 화면 HTML 템플릿 최초 생성 -->
+<!-- 사용법: games\<게임id>\select.html로 복사 후 TODO(게임별) 부분을 채운다 -->
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TODO(게임별) 게임 이름 - 단계 선택</title>
+  <link rel="stylesheet" href="../../shared/header.css" />
+  <link rel="stylesheet" href="../../shared/stage-select.css" />
+  <!-- TODO(게임별): 잠김 안내 같은 모달이 필요하면 공통 모달 스타일 연결 (게임 전용 규칙은 select.css에 추가)
+  <link rel="stylesheet" href="../../shared/modal.css" />
+  -->
+  <link rel="icon" href="../../assets/favicon/favicon.ico" sizes="48x48" />
+  <link rel="icon" href="../../assets/favicon/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../../assets/favicon/apple-touch-icon.png?v=2" />
+</head>
+<body>
+  <div class="stage-select-wrapper">
+    <h2 id="stage-select-title" class="stage-select-title">단계 선택</h2>
+    <div id="stage-card-list" class="stage-card-list"></div>
+  </div>
+
+  <script type="module" src="select.js"></script>
+</body>
+</html>

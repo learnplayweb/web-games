@@ -1,12 +1,6 @@
-// select.js
-import { getClockSave, getGold } from '../../core/saveManager.js';
-import {
-  grantMaxGold,
-  resetAll,
-  setAllClockStars,
-  unlockAllClockLevels,
-} from '../../core/debug.js';
-import { createHeader, updateHeaderGold } from '../../shared/header.js';
+// clock v0.2.0 : 선택 화면 공통 모듈(shared/stageSelect.js) 사용으로 변경 (카드 렌더링·헤더·뒤로가기 갱신 이동)
+import { getClockSave } from '../../core/saveManager.js';
+import { initStageSelect } from '../../shared/stageSelect.js';
 
 const LEVEL_NAMES = [
   'Lv.1 : 정각',
@@ -19,36 +13,18 @@ const LEVEL_NAMES = [
   'Lv.8 : 시간 계산 (전체)',
 ];
 
-function starsToString(stars) {
-  return '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
-}
-
-function renderStageCards() {
+// 시계 고유 규칙: 단계는 순서대로 해금(unlockedLevel), 복습 단계(Lv.8)는 최고 별점이 아닌 최근 별점(currentStars)을 표시
+function buildCards() {
   const save = getClockSave();
-  const list = document.getElementById('stage-card-list');
-  list.innerHTML = '';
 
-  LEVEL_NAMES.forEach((name, index) => {
+  return LEVEL_NAMES.map((name, index) => {
     const level = index + 1;
-    const isUnlocked = level <= save.unlockedLevel;
-    const card = document.createElement('div');
-    card.className = `stage-card ${isUnlocked ? 'stage-card--unlocked' : 'stage-card--locked'}`;
-
-    const levelLabel = document.createElement('p');
-    levelLabel.className = 'stage-card__level';
-    levelLabel.textContent = isUnlocked ? name : `🔒 ${name}`;
-
-    const starsLabel = document.createElement('p');
-    starsLabel.className = 'stage-card__stars';
-    starsLabel.textContent = starsToString(level === 8 ? save.currentStars ?? 0 : save.bestStars[index] ?? 0);
-
-    card.append(levelLabel, starsLabel);
-    if (isUnlocked) {
-      card.addEventListener('click', () => {
-        location.href = `index.html?level=${level}`;
-      });
-    }
-    list.appendChild(card);
+    return {
+      level,
+      name,
+      unlocked: level <= save.unlockedLevel,
+      stars: level === 8 ? save.currentStars ?? 0 : save.bestStars[index] ?? 0,
+    };
   });
 }
 
@@ -101,18 +77,4 @@ document.querySelectorAll('#debug-menu [data-debug]').forEach((button) => {
 });
 */
 
-createHeader();
-renderStageCards();
-
-// index.html에서 history.back()으로 select.html로 돌아올 때
-// 브라우저가 페이지를 bfcache(뒤로/앞으로 가기 캐시)에서 그대로 복원하면
-// 이 모듈 스크립트가 다시 실행되지 않아 renderStageCards()/헤더 골드가
-// 최신 저장 데이터(별점 반영, 단계 해금)를 반영하지 못하는 문제가 있었다.
-// pageshow 이벤트의 event.persisted가 true인 경우(=bfcache 복원)에만
-// 카드 목록과 헤더 골드를 다시 그려 새로고침 없이 최신 상태를 반영한다.
-window.addEventListener('pageshow', (event) => {
-  if (event.persisted) {
-    renderStageCards();
-    updateHeaderGold(getGold());
-  }
-});
+initStageSelect({ getCards: buildCards });

@@ -1,12 +1,8 @@
-// v0.5.0
-// Clock Game - Gold reward finalized only once at stage completion
-// - 정답 시 골드 즉시 저장 제거, 결과 화면에서 1회 합산 저장
-// - rewardGranted 플래그로 finishStage 중복 실행 방지
-// - 상단 골드 표시 제거 (콤보만 표시), checkAnswer 중복 정답 처리 블록 제거
+// v0.6.0 
+// Clock Game - 보상 계산(별점·정답 보상·콤보 보너스·별 보상)을 core/reward.js 공통 모듈로 이동
 //
 // Public API (Internal Game Logic)
 // - setClock(hour, minute, second)
-// - getQuizRewardGold()
 // - checkAnswer()
 // - moveCharacterToRandomPosition()
 // - initCharacter()
@@ -16,6 +12,7 @@ import { renderCharacterSvg } from '../../characters/characterRenderer.js';
 import { LEVELS, shuffleArray } from './data/levels.js';
 import { spawnEffect } from '../../characters/assets/effects/effects.js';
 import { pickRandomEquippedEffect } from '../../characters/inventory.js';
+import { calcStars, starsToString, calcRewardGold } from '../../core/reward.js';
 // ↑↑↑
 
 /* ===========================
@@ -45,11 +42,6 @@ let currentCombo = 0;
 let maxCombo     = 0;
 
 let prevBestStars = 0;
-
-function getQuizRewardGold() {
-  const table = { 0: 10, 1: 7, 2: 4, 3: 1 };
-  return table[prevBestStars] ?? 10;
-}
 
 function updateComboDisplay() {
   document.getElementById('display-combo').textContent = currentCombo;
@@ -243,23 +235,7 @@ function nextQuestion() {
    보상 계산
 =========================== */
 
-const COMBO_MULTIPLIER_TABLE = { 0: 4, 1: 3, 2: 2, 3: 1 };
-function getComboMultiplier() {
-  return COMBO_MULTIPLIER_TABLE[prevBestStars] ?? 4;
-}
-
-const STAR_BONUS       = { 0: 0, 1: 10, 2: 30, 3: 50 };
-function calcStars(correct, total) {
-  const ratio = correct / total;
-  if (ratio >= 1)      return 3;
-  if (ratio >= 2 / 3) return 2;
-  if (ratio >= 1 / 3) return 1;
-  return 0;
-}
-
-function starsToString(stars) {
-  return '\u2605'.repeat(stars) + '\u2606'.repeat(3 - stars);
-}
+// 보상 수치·계산식(calcStars, calcRewardGold 등)은 core/reward.js 공통 모듈 사용
 
 /* ===========================
    결과 화면
@@ -272,14 +248,14 @@ function finishStage() {
   const { currentLevel, correctCount, totalQuestions } = stageState;
   const rate  = Math.round((correctCount / totalQuestions) * 100);
   const stars = calcStars(correctCount, totalQuestions);
-  const goldQuiz  = correctCount * getQuizRewardGold();
-  const goldCombo = maxCombo * getComboMultiplier();
-  const goldStar = currentLevel === 8
-    ? STAR_BONUS[stars]
-    : Math.max(0, STAR_BONUS[stars] - STAR_BONUS[prevBestStars]);
-
-  const goldBonus = goldCombo + goldStar;
-  const goldTotal = goldQuiz + goldBonus;
+  // 시계 고유 규칙: 최종 레벨(Lv.8)은 이전 별점 0 고정(prevBestStars)이며, 별 보상도 차액이 아닌 전액 지급
+  const { goldQuiz, goldCombo, goldStar, goldTotal } = calcRewardGold({
+    correctCount,
+    maxCombo,
+    stars,
+    prevBestStars,
+    fullStarBonus: currentLevel === 8,
+  });
 
   // [최종 보상 1회 지급] 문제 정답 + 콤보 + 별 보너스를 합산해 한 번만 실제 저장소에 반영
   saveClockResult(currentLevel, stars, goldTotal, LEVELS.length);
