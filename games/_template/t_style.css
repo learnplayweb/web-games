@@ -1,7 +1,9 @@
-/* template v0.1.0 : 게임 화면 CSS 템플릿 최초 생성 (시계·맞춤법 공통 규칙 + 게임별 TODO) */
+/* template v0.2.0 : 공통 규칙을 shared/game-common.css로 분리, 게임별로 정해야 하는 규칙만 남김 */
 
 /* 사용법: games\<게임id>\style.css로 복사 후 TODO(게임별) 부분을 채운다.
-   [공통] 구간은 시계·맞춤법 게임에서 같은 값을 쓰는 규칙이므로 가능한 한 그대로 둔다. */
+   - 변수·전역 초기화·전체 레이아웃·상단 정보 바·콤보 표시·캐릭터 크기·키패드 버튼 디자인·결과 카드는
+     ../../shared/game-common.css가 담당하므로 index.html에서 이 파일보다 먼저 연결한다.
+   - 이 파일에서는 같은 선택자로 게임마다 다른 속성만 추가/덮어쓴다. */
 
 /* TODO(게임별): 게임 전용 글꼴이 필요하면 선언 (경로는 games\<게임id>\ 기준)
 @font-face {
@@ -14,76 +16,8 @@
 */
 
 /* ===========================
-   1. 전역 초기화 & 변수 [공통]
+   3. 상단 정보 영역 : 하트 (목숨이 있는 게임만 사용)
 =========================== */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  touch-action: manipulation;
-}
-
-:root {
-  --color-bg: #f0f4ff;
-  --color-surface: #ffffff;
-  --color-primary: #5b8dee;
-  --color-primary-dark: #3a6fdb;
-  --color-text: #2d3a4a;
-  --color-text-muted: #7a8fa6;
-  --color-keypad-bg: #eaf0fb;
-  --color-keypad-active: #dce8fb;
-
-  --font-base: 'Segoe UI', system-ui, sans-serif;
-  --max-width: 480px;
-}
-
-html, body {
-  height: 100%;
-}
-
-body {
-  font-family: var(--font-base);
-  color: var(--color-text);
-  background-color: var(--color-bg);
-}
-
-/* ===========================
-   2. 전체 레이아웃 [공통]
-   세로 배분: info-bar(1/12) + play-area(나머지) + keypad-area
-=========================== */
-.game-wrapper {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  position: relative; /* 캐릭터 등 absolute 요소의 기준점 */
-}
-
-/* ===========================
-   3. 상단 정보 영역 [공통]
-=========================== */
-.info-bar {
-  flex: 1 1 8.33%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 1.25rem;
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-
-.info-bar__combo {
-  color: var(--color-primary-dark);
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-/* 목숨(하트)이 있는 게임만 사용 */
 .info-bar__hearts {
   display: flex;
   align-items: center;
@@ -104,12 +38,11 @@ body {
 }
 
 /* ===========================
-   5. 캐릭터 [공통: 크기·SVG]
+   5. 인게임 캐릭터 : 배치
+   크기(80x150)와 SVG 규칙은 game-common.css. 여기서는 위치만 정한다.
 =========================== */
 .character-container {
   position: relative; /* 영역 안에 배치 (맞춤법 방식) */
-  width: 80px;
-  height: 150px; /* viewBox 160x300 비율 유지 */
 }
 
 /* TODO(게임별): 시계처럼 JS로 자유롭게 위치를 정하려면 위 position 대신 아래 사용
@@ -119,56 +52,22 @@ body {
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
 */
 
-.character-container > svg.ingame-character {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
 /* ===========================
-   6. 입력(키패드) 영역 [공통: 버튼 디자인]
-   TODO(게임별): 영역 높이(flex)와 버튼 구성은 게임에 맞게 조정 (시계 25%, 맞춤법 20%)
+   6. 입력(키패드) 영역 : 높이
+   버튼 디자인(.keypad-btn, 좌우 이동 .keypad-btn--nav / --side)은 game-common.css
 =========================== */
 .keypad-area {
-  flex: 1 1 20%;
-  display: flex;
-  align-items: stretch;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem 1rem;
+  flex: 1 1 20%; /* TODO(게임별): 영역 높이 (시계 25%, 맞춤법 20%) */
 }
 
+/* TODO(게임별): 키패드 글꼴을 바꾸려면 (맞춤법은 방향 화살표용 글꼴 사용)
 .keypad-btn {
-  flex: 1;
-  min-height: 44px;
-  background: var(--color-keypad-bg);
-  border: none;
-  border-radius: 0.75rem;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-text);
-  cursor: pointer;
-  transition: background-color 0.15s;
+  font-family: 'KerisKeduArrow', var(--font-base);
 }
-
-.keypad-btn:active {
-  background: var(--color-keypad-active);
-}
-
-/* 좌우 이동 같은 강조 버튼 (시계 ←/→, 맞춤법 ←/→ 공통: 폭 15%, 파란 배경) */
-.keypad-btn--nav {
-  flex: 0 0 15%;
-  background: var(--color-primary);
-  color: #ffffff;
-  font-size: 1.5rem;
-}
-
-.keypad-btn--nav:active {
-  background: var(--color-primary-dark);
-}
+*/
 
 /* ===========================
-   7. 단계 완료 결과 화면 [공통]
-   (시계 result-card와 맞춤법 result-card가 동일한 규칙)
+   7. 단계 완료 결과 화면 : 오버레이 (결과 카드 .result-card는 game-common.css)
 =========================== */
 .stage-result {
   position: fixed;
@@ -185,29 +84,6 @@ body {
   display: none;
 }
 
-.result-card {
-  background: var(--color-surface);
-  border-radius: 1.25rem;
-  box-shadow: 0 8px 32px rgba(91, 141, 238, 0.18);
-  padding: 2rem 1.75rem;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  width: min(320px, 88vw);
-}
-
-.result-level { font-size: 1.4rem; font-weight: 800; color: var(--color-primary); }
-.result-score { font-size: 2rem; font-weight: 800; color: var(--color-text); }
-.result-rate { font-size: 1rem; color: var(--color-text-muted); }
-.result-combo { font-size: 1rem; font-weight: 700; color: var(--color-primary-dark); }
-.result-stars { font-size: 1.75rem; letter-spacing: 0.1em; color: #d4a017; }
-.result-divider { border: none; border-top: 1px solid #e8edf5; margin: 0.25rem 0; }
-
-.result-gold-row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.9rem; color: var(--color-text-muted); text-align: left; }
-.result-gold-value { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.result-gold-total { display: flex; justify-content: space-between; gap: 1rem; font-size: 1rem; font-weight: 700; color: var(--color-primary-dark); margin-top: 0.25rem; text-align: left; }
-
 /* ===========================
    8. 효과 파티클 레이어 (시계 게임에서 사용)
    콤보 효과가 UI에 가려질 때만 유지, 필요 없으면 삭제
@@ -215,13 +91,4 @@ body {
 .fx {
   z-index: 9999 !important;
   pointer-events: none;
-}
-
-/* ===========================
-   9. PC 대응 (480px 이상) [공통]
-=========================== */
-@media (min-width: 480px) {
-  .game-wrapper {
-    box-shadow: 0 0 24px rgba(0, 0, 0, 0.05);
-  }
 }

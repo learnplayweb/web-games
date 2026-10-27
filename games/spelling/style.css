@@ -1,5 +1,4 @@
-/* v0.22.0
- Spelling Game - 달인 마당 안내 모달(1~5단계) 추가, 실패 모달 폰트를 연천-미수체로 교체 */
+/* spelling v0.23.0 : 값이 같은 공통 규칙을 shared/game-common.css로 이동 (섹션 번호는 유지, 게임 고유 규칙만 남김) */
 
 /* ===========================
    0. 폰트 선언
@@ -30,73 +29,8 @@
 }
 
 /* ===========================
-   1. 전역 초기화 & 변수 (시계 게임과 동일)
-=========================== */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  touch-action: manipulation;
-}
-
-:root {
-  --color-bg: #f0f4ff;
-  --color-surface: #ffffff;
-  --color-primary: #5b8dee;
-  --color-primary-dark: #3a6fdb;
-  --color-text: #2d3a4a;
-  --color-text-muted: #7a8fa6;
-  --color-keypad-bg: #eaf0fb;
-  --color-keypad-active: #dce8fb;
-
-  --font-base: 'Segoe UI', system-ui, sans-serif;
-  --max-width: 480px;
-}
-
-html, body {
-  height: 100%;
-}
-
-body {
-  font-family: var(--font-base);
-  color: var(--color-text);
-  background-color: var(--color-bg);
-}
-
-/* ===========================
-   2. 전체 레이아웃
-=========================== */
-.game-wrapper {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
-/* ===========================
    3. 상단 정보 영역 (시계 게임과 동일한 높이/폰트 기준)
 =========================== */
-.info-bar {
-  flex: 1 1 8.33%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 1.25rem;
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-
-.info-bar__combo {
-  color: var(--color-primary-dark);
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
 
 .info-bar__hearts {
   display: flex;
@@ -110,14 +44,6 @@ body {
 =========================== */
 .character-container {
   position: relative;
-  width: 80px;
-  height: 150px; /* 시계 게임 캐릭터와 동일 크기 (viewBox 160x300 비율 유지) */
-}
-
-.character-container > svg.ingame-character {
-  width: 100%;
-  height: 100%;
-  display: block;
 }
 
 /* ===========================
@@ -250,7 +176,6 @@ body {
   clip-path: path('M 11.50 0.00 L 154.50 0.00 Q 158.00 0.00 158.43 3.47 L 165.57 60.53 Q 166.00 64.00 162.50 64.00 L 3.50 64.00 Q 0.00 64.00 0.43 60.53 L 7.57 3.47 Q 8.00 0.00 11.50 0.00 Z');
 }
 
-
 /* 일반 블록(다음이 갈림길이 아닐 때)은 오른쪽을 숨겨 단일 블록처럼 보이게 함. JS가 갈림길일 때만 보이게 전환 */
 #board-front-right {
   display: none;
@@ -316,41 +241,13 @@ body {
 =========================== */
 .keypad-area {
   flex: 1 1 20%;
-  display: flex;
-  align-items: stretch;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem 1rem;
 }
 
 .keypad-btn {
-  flex: 1;
-  min-height: 44px;
-  background: var(--color-keypad-bg);
-  border: none;
-  border-radius: 0.75rem;
   font-family: 'KerisKeduArrow', var(--font-base);
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-text);
-  cursor: pointer;
-  transition: background-color 0.15s;
-}
-
-.keypad-btn:active {
-  background: var(--color-keypad-active);
 }
 
 /* 좌우 버튼 : 시계 게임 nav 버튼과 동일한 폭(15%)으로, 점프 버튼까지의 이동 거리 단축 */
-.keypad-btn--side {
-  flex: 0 0 15%;
-  background: var(--color-primary);
-  color: #ffffff;
-  font-size: 1.5rem;
-}
-
-.keypad-btn--side:active {
-  background: var(--color-primary-dark);
-}
 
 /* 가운데 점프 버튼 : 좌우 버튼과 같은 파랑 계열 화살표 색상, 크고 굵게 강조 */
 .keypad-btn--jump {
@@ -392,28 +289,6 @@ body {
 }
 
 /* 마당 완료 카드 : 시계 게임 result-card 레이아웃 그대로 재사용 (통일성 유지) */
-.result-card {
-  background: var(--color-surface);
-  border-radius: 1.25rem;
-  box-shadow: 0 8px 32px rgba(91, 141, 238, 0.18);
-  padding: 2rem 1.75rem;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  width: min(320px, 88vw);
-}
-
-.result-level { font-size: 1.4rem; font-weight: 800; color: var(--color-primary); }
-.result-score { font-size: 2rem; font-weight: 800; color: var(--color-text); }
-.result-rate { font-size: 1rem; color: var(--color-text-muted); }
-.result-combo { font-size: 1rem; font-weight: 700; color: var(--color-primary-dark); }
-.result-stars { font-size: 1.75rem; letter-spacing: 0.1em; color: #d4a017; }
-.result-divider { border: none; border-top: 1px solid #e8edf5; margin: 0.25rem 0; }
-
-.result-gold-row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.9rem; color: var(--color-text-muted); text-align: left; }
-.result-gold-value { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.result-gold-total { display: flex; justify-content: space-between; gap: 1rem; font-size: 1rem; font-weight: 700; color: var(--color-primary-dark); margin-top: 0.25rem; text-align: left; }
 
 .learning-modal__card,
 .stage-result__card {
@@ -581,13 +456,4 @@ body {
 
 .review-intro__choice-btn:active {
   background: var(--color-keypad-active);
-}
-
-/* ===========================
-   8. PC 대응 (480px 이상, 시계 게임과 동일)
-=========================== */
-@media (min-width: 480px) {
-  .game-wrapper {
-    box-shadow: 0 0 24px rgba(0, 0, 0, 0.05);
-  }
 }

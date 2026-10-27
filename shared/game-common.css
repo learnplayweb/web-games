@@ -1,0 +1,167 @@
+/* shared v0.1.0 : 게임 화면 공통 스타일 최초 생성 (시계·맞춤법 style.css에서 값이 같은 규칙을 통합) */
+
+/* 사용법: 게임 화면(games\<id>\index.html)의 <head>에서 games\<id>\style.css보다 먼저 연결한다 (../../shared/game-common.css).
+   - 두 게임에서 선언이 같은 규칙만 들어 있다. 게임마다 값이 다른 부분(키패드 영역 높이, 캐릭터 배치, 결과 화면 오버레이 등)은
+     각 게임의 style.css에서 같은 선택자로 필요한 속성만 추가/덮어쓴다 (이 파일이 먼저 로드되므로 게임 쪽이 우선한다). */
+
+/* ===========================
+   1. 전역 초기화 & 변수
+=========================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  touch-action: manipulation;
+}
+
+:root {
+  --color-bg: #f0f4ff;
+  --color-surface: #ffffff;
+  --color-primary: #5b8dee;
+  --color-primary-dark: #3a6fdb;
+  --color-text: #2d3a4a;
+  --color-text-muted: #7a8fa6;
+  --color-keypad-bg: #eaf0fb;
+  --color-keypad-active: #dce8fb;
+
+  --font-base: 'Segoe UI', system-ui, sans-serif;
+  --max-width: 480px; 
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-base);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+/* ===========================
+   2. 전체 레이아웃
+=========================== */
+.game-wrapper {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative; /* 캐릭터 컨테이너 기준점 */
+}
+
+/* ===========================
+   3. 상단 정보 영역 (콤보)
+=========================== */
+.info-bar {
+  flex: 1 1 8.33%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+/* 콤보 표시 (시계·맞춤법 동일) */
+.info-bar__combo {
+  color: var(--color-primary-dark);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* ===========================
+   4. 인게임 캐릭터 (크기·SVG)
+   위치(position)와 효과는 게임마다 달라 각 게임의 style.css에서 지정 (시계: absolute 자유 배치, 맞춤법: relative)
+=========================== */
+.character-container {
+  width: 80px;
+  height: 150px; /* viewBox 160x300 비율 */
+}
+
+.character-container > svg.ingame-character {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ===========================
+   5. 입력(키패드) 영역 공통 디자인
+   영역 높이(flex)는 게임마다 달라 각 게임의 style.css에서 지정 (시계 25%, 맞춤법 20%)
+=========================== */
+.keypad-area {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem 1rem;
+}
+
+.keypad-btn {
+  flex: 1;
+  min-height: 44px;
+  background: var(--color-keypad-bg);
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.keypad-btn:active {
+  background: var(--color-keypad-active);
+}
+
+/* 좌우 이동 버튼: 시계는 .keypad-btn--nav, 맞춤법은 .keypad-btn--side (선언 동일) */
+.keypad-btn--nav,
+.keypad-btn--side {
+  flex: 0 0 15%;
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: 1.5rem;
+}
+
+.keypad-btn--nav:active,
+.keypad-btn--side:active {
+  background: var(--color-primary-dark);
+}
+
+/* ===========================
+   6. 단계 완료 결과 카드 (결과 화면 오버레이는 게임별)
+=========================== */
+.result-card {
+  background: var(--color-surface);
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 32px rgba(91, 141, 238, 0.18);
+  padding: 2rem 1.75rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: min(320px, 88vw);
+}
+
+.result-level { font-size: 1.4rem; font-weight: 800; color: var(--color-primary); }
+.result-score { font-size: 2rem; font-weight: 800; color: var(--color-text); }
+.result-rate { font-size: 1rem; color: var(--color-text-muted); }
+.result-combo { font-size: 1rem; font-weight: 700; color: var(--color-primary-dark); }
+.result-stars { font-size: 1.75rem; letter-spacing: 0.1em; color: #d4a017; }
+.result-divider { border: none; border-top: 1px solid #e8edf5; margin: 0.25rem 0; }
+
+.result-gold-row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.9rem; color: var(--color-text-muted); text-align: left; }
+.result-gold-value { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.result-gold-total { display: flex; justify-content: space-between; gap: 1rem; font-size: 1rem; font-weight: 700; color: var(--color-primary-dark); margin-top: 0.25rem; text-align: left; }
+
+/* ===========================
+   7. PC 대응 (480px 이상)
+=========================== */
+@media (min-width: 480px) {
+  .game-wrapper {
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.05);
+  }
+}

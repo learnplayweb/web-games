@@ -1,3 +1,5 @@
+<!-- template v0.1.0 : 버전 기록 시작, 게임 화면 공통 CSS(game-common.css) 안내 반영 -->
+
 # 새 게임 추가 체크리스트
 
 새 게임 `<id>`를 추가할 때 손봐야 하는 곳을 순서대로 확인한다. 항목마다 `[ ]`를 `[x]`로 바꿔 가며 쓴다.
@@ -13,7 +15,7 @@
 ## 2. 게임 폴더 만들기 (`games\<id>\`)
 
 - [ ] `games\_template\script.js`를 `games\<id>\script.js`로 복사 후 `TODO(게임별)` 채우기
-- [ ] `games\_template\index.html`, `style.css`를 복사하고 `TODO(게임별)` 채우기 (`script.js` 템플릿이 쓰는 요소 id 포함, 캐릭터·효과 CSS와 파비콘 `<link>`도 이미 연결됨)
+- [ ] `games\_template\index.html`, `style.css`를 복사하고 `TODO(게임별)` 채우기 (`script.js` 템플릿이 쓰는 요소 id 포함, 공통 CSS `shared\game-common.css`·캐릭터·효과 CSS·파비콘 `<link>`도 이미 연결됨)
   - 필수 id: `character-container`, `display-combo`, `stage-result`(+ `stage-result--hidden`), `result-level`, `result-stars`, `result-score`, `result-rate`, `result-combo`, `result-gold-quiz`, `result-gold-combo`, `result-gold-star`, `result-gold-total`
 - [ ] `games\_template\select.html`, `select.js`를 복사하고 `buildCards()`의 TODO 채우기 (카드 렌더링은 `shared\stageSelect.js`가 처리). 잠김 안내 같은 모달이 필요하면 `select.html`의 `modal.css` 주석을 풀고 `select.js`에 `onLockedClick` 연결
 - [ ] `data\`: 문제 데이터와 단계 정의

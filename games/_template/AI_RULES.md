@@ -1,10 +1,12 @@
+<!-- template v0.2.0 : 7번 버전 주석에 소속 표기 추가, 6번 화면 이동 문구 보완, game-common.css 안내 추가 -->
+
 # AI 요청용 규칙 (꼬무리 마을 웹게임)
 
 새 게임을 만들거나 기존 게임을 수정하도록 AI에게 요청할 때 함께 첨부한다.
 
 ## 0. 요청할 때 첨부할 파일
 
-- 필수: 이 문서, `games\_template\t_script.js`, `t_index.html`, `t_style.css`, `t_select.html`, `t_select.js`(모두 `games\_template\`), `reward-system.md`
+- 필수: 이 문서, `games\_template\script.js`, `index.html`, `style.css`, `select.html`, `select.js`(모두 `games\_template\`), `reward-system.md`
 - 필요 시: `core\saveManager.js`, 참고 게임의 `script.js`(시계/맞춤법), 수정 대상 파일
 
 ## 1. 프로젝트
@@ -19,7 +21,8 @@
 index.html / index.js / style.css          메인 화면
 shared\header.js, header.css               공용 헤더 (메인·선택 화면)
 shared\modal.css                           공통 모달 스타일 (.modal-overlay / .modal-card …)
-shared\stageSelect.js, stage-select.css     단계 선택 화면 공통 모듈·스타일 (카드 렌더링, 헤더, 뒤로가기 후 갱신)
+shared\stageSelect.js, stageSelect.css     단계 선택 화면 공통 모듈·스타일 (카드 렌더링, 헤더, 뒤로가기 후 갱신)
+shared\game-common.css                     게임 화면 공통 스타일 (변수, 레이아웃, 상단 바, 키패드 버튼, 결과 카드)
 core\saveManager.js                        저장/불러오기 (골드, 별점, 캐릭터, 일반 게임 공통 저장)
 core\reward.js                             보상·별점 공통 계산 (수치는 여기에만)
 characters\                                캐릭터 (characterRenderer.js, inventory.js, assets\effects\effects.js)
@@ -30,7 +33,7 @@ help\help.html                             도움말
 ## 3. 공통 모듈 (필수 사용)
 
 - **보상·별점**: `core\reward.js`의 `calcStars`, `calcRewardGold`, `starsToString`, `starsToEmoji`를 쓴다. 게임 안에 수치나 계산식을 복사하지 않는다.
-- **저장**: 새 게임은 `saveManager.js`에 함수를 새로 만들지 않고 일반 함수를 쓴다. `getStageBestStars(게임id, 단계키)`, `getStageReviewBestStars`(복습 규칙 B), `getStageRecentStars`(복습 규칙 A), `saveStageResult(게임id, 단계키, stars, 골드, kind)`(kind: `normal` / `review-monthly` / `review-recent`). 게임 id는 영문 소문자로 시작하는 영문/숫자이고 `clock`은 쓸 수 없다. 시계는 골드·해금이 들어 있는 전용 저장 구조라 기존 함수(`saveClockResult` 등)를 그대로 쓴다. 골드(💎)는 프로젝트 전체에서 하나뿐인 재화다.
+- **저장**: 새 게임은 `saveManager.js`에 함수를 새로 만들지 않고 일반 함수를 쓴다. `getStageBestStars(게임id, 단계키)`, `getStageReviewBestStars`(복습 규칙 B), `getStageRecentStars`(복습 규칙 A), `saveStageResult(게임id, 단계키, stars, 골드, kind)`(kind: `normal` / `review-monthly` / `review-recent`). 게임 id는 영문 소문자로 시작하는 영문/숫자이고 `clock`은 쓸 수 없다. 시계는 골드·해금이 들어 있는 전용 저장 구조라 기존 함수(`saveClockResult` 등)를 그대로 쓴다. 골드(💎)는 프로젝트 전체에서 하나뿐인 재화이며 공용 지갑(`wallet_save`)에 저장된다. 게임 코드는 `getGold` / `addGold` / `spendGold`만 쓰고 저장 키를 직접 읽지 않는다.
 - **캐릭터**: `renderCharacterSvg(svg, { head, body, legs, color, colorMix, expression, animation })`. expression/animation 값은 `idle` / `correct` / `wrong`.
 - **효과**: `pickRandomEquippedEffect()`로 고른 id를 `spawnEffect(대상요소, id)`로 재생한다.
 - **단계 선택 화면**: `games\<id>\select.js`는 `initStageSelect({ getCards })`만 호출하고, 카드 정보(이름·별점·해금 여부·복습 단계 여부)만 게임에서 계산한다. 카드를 직접 그리는 코드를 새로 쓰지 않는다.
@@ -53,12 +56,12 @@ help\help.html                             도움말
 ## 6. 화면 이동
 
 - 선택 → 게임: `location.href = 'index.html?level=N'` (기록이 쌓이는 정상 이동).
-- 게임 종료·나가기: `location.href`로 선택 화면에 이동하지 않는다. 기록이 쌓여서 뒤로 가기를 누르면 이전 게임이 다시 나온다. 템플릿의 `goToSelect()`(`history.back()` + 중복 호출 방지 + 직접 진입 시 `location.replace`)를 쓴다.
-- 기대 동작: 마당2에서 뒤로 → 선택 화면 → 뒤로 → 메인 화면.
+- 게임 종료·나가기: `location.href`로 선택 화면에 이동하지 않는다. 기록이 새로 쌓여서, 선택 화면에서 뒤로 가기를 누르면 이전에 끝낸 게임 화면이 다시 나오는 문제가 생기기 때문이다. 템플릿의 `goToSelect()`(`history.back()` + 중복 호출 방지 + 직접 진입 시 `location.replace`)를 쓴다.
+- 마당1 종료 → 선택화면 → 마당2로 이동 후 뒤로 가기 기대 동작: 마당2 (뒤로) → 선택 화면 (뒤로) → 메인 화면. (마당1이 나오면 안 됨.)
 
 ## 7. 코드 작성·응답 규칙
 
-- 파일 맨 위에 `// vX.Y.Z : 이번 업데이트 내용 한 줄`만 적는다 (누적 이력 금지).
+- 파일 맨 위에 `// 소속 vX.Y.Z : 이번 업데이트 내용 한 줄`만 적는다 (누적 이력 금지). (예: // clock v0.6.0 : 이번 업데이트 내용 한 줄)
 - 설명은 응답 본문보다 코드의 인라인 주석에 적는다.
 - 수정한 파일만 출력한다. 사소한 수정(오타, 경로 대소문자 등)은 전체 파일 대신 원인과 수정 방법만 설명한다.
 - 요구사항 체크리스트는 체크 표시만 쓰고 설명은 붙이지 않는다.

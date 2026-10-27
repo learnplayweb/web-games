@@ -118,11 +118,10 @@ export const MATCHU_MACHI_PROBLEMS = [
   {
     id: 'matchu-machi-14',
     tokens: [
-      { text: '로또' },
-      { text: '번호를' },
-      { text: '여러' },
-      { text: '개' },
-      { correct: '맞췄다.', wrong: '맞혔다.', fixedSide: 'left' }
+      { text: '시험' },
+      { text: '문제를' },
+      { text: '많이' },
+      { correct: '맞혔다.', wrong: '맞혔다.', fixedSide: 'right' }
     ]
   },
   {

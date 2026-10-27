@@ -1,6 +1,6 @@
 /* v0.1.0 : 단계 선택 화면 공통 스타일 최초 생성 (시계 select.css + 맞춤법 select.css 통합) */
 
-/* 사용법: 선택 화면 <head>에서 shared/header.css 다음에 연결 (games\<id>\select.html은 ../../shared/stage-select.css)
+/* 사용법: 선택 화면 <head>에서 shared/header.css 다음에 연결 (games\<id>\select.html은 ../../shared/stageSelect.css)
    - 카드 상태 클래스: stage-card--unlocked / --locked / --review (shared/stageSelect.js가 붙임)
    - 게임별로 다른 스타일이 필요하면 games\<id>\select.css에 필요한 규칙만 추가한다. */
 
