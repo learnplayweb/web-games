@@ -1,4 +1,4 @@
-// v0.1.1 : starsToEmoji 추가 (선택 화면 별점 표시 공통화)
+// core v0.2.0 : 무한 마당 기록 정산(RECORD_GOLD_UNIT, calcRecordGold) 추가
 
 // 보상 수치는 reward-system.md 기준. 밸런스 조정은 이 파일의 상수만 바꾸면 모든 게임에 반영됨.
 // 키 = 단계의 "이전 최고 별점"(0~3). 플레이 시작 시점의 값을 게임 쪽에서 넘겨준다.
@@ -45,4 +45,12 @@ export function calcRewardGold({ correctCount, maxCombo, stars, prevBestStars, f
     : Math.max(0, STAR_VALUE[stars] - STAR_VALUE[prevBestStars]);
 
   return { goldQuiz, goldCombo, goldStar, goldTotal: goldQuiz + goldCombo + goldStar };
+}
+
+// 무한 마당(맞춤법) 기록 정산: 기록 10마다 💎1 (일의 자리는 버림). 예) 기록 28 → 💎2
+export const RECORD_GOLD_UNIT = 10;
+
+export function calcRecordGold(record) {
+  if (!Number.isFinite(record) || record <= 0) return 0;
+  return Math.floor(record / RECORD_GOLD_UNIT);
 }

@@ -1,4 +1,4 @@
-// v0.4.0
+// spelling v0.5.0 : 무한 마당(infinite) 단계와 점수·목숨 상수 추가
 // Spelling Game - 마당(스테이지) 구성
 // - STAGES는 직접 나열하지 않고 topics.js의 TOPICS 배열에서 자동으로 만든다.
 //   일반 마당 5개(CHUNK_SIZE)마다 그 5개를 묶은 달인 마당을 하나씩 끼워 넣는다.
@@ -8,6 +8,7 @@
 //   saveManager의 달인 마당별 최근 별점을 구분하는 키로도 쓰인다).
 // - 화면에 보이는 "마당N" 번호·"달인 마당 N~M" 범위는 select.js가 STAGES를 보고 따로 계산한다.
 // - 마지막 묶음이 5개를 채우지 못하면(예: 7개 중 마지막 2개) 그 묶음은 아직 달인 마당을 만들지 않는다.
+// - 무한 마당(type: 'infinite')은 항상 맨 끝에 1개 추가된다. level 번호는 마당이 늘면 뒤로 밀리므로 저장 키로 쓰지 않는다(saveManager의 'infinite' 고정 키 사용).
 
 import { TOPICS } from './topics.js';
 
@@ -31,6 +32,9 @@ function buildStages(topics) {
     }
   }
 
+  // 무한 마당 : 항상 맨 끝 (선택 화면에서도 맨 아래에 표시됨)
+  stages.push({ level, type: 'infinite' });
+
   return stages;
 }
 
@@ -43,3 +47,8 @@ export const REVIEW_STAGE_QUESTION_COUNT = 20;
 // 마당 기본 목숨 수
 export const NORMAL_STAGE_LIVES = 3;
 export const REVIEW_STAGE_LIVES = 5;
+
+// 무한 마당 : 목숨은 1개(한 번만 틀려도 종료), 점프 점수 규칙
+// - 일반 블록 → 일반 블록: +1 / 선택지로 점프: +3 / 선택지 → 일반 블록: +2
+export const INFINITE_STAGE_LIVES = 1;
+export const INFINITE_SCORE = Object.freeze({ normalToNormal: 1, toChoice: 3, choiceToNormal: 2 });

@@ -1,8 +1,25 @@
-/* v0.2.0 : 공통 스타일을 shared/stageSelect.css, shared/modal.css로 이동. 맞춤법 전용 규칙만 유지 */
+/* spelling v0.3.0 : 무한 마당 카드(stage-card--infinite) 스타일 추가 */
 
 /* 잠김 안내 문구: 문구의 \n을 줄바꿈으로 표시하고, 한글이 단어 중간에서 끊기지 않게 함 (공통 modal.css 위에 덮어씀) */
 .modal-card__text {
   line-height: 1.5;
   white-space: pre-line;
   word-break: keep-all;
+}
+
+/* 무한 마당 카드: 달인 마당(연노랑 #fffbe0)보다 진한 노랑. 잠김 상태에서도 이 색을 우선 적용 (잠김은 투명도로 표시) */
+.stage-card--infinite {
+  background: var(--color-infinite-bg, #f1dd8b);
+}
+
+/* 별점 대신 표시하는 '최근 기록' 문구 */
+.stage-card--infinite .stage-card__stars {
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.stage-card--infinite.stage-card--locked .stage-card__stars {
+  color: var(--color-soon-text);
 }

@@ -1,4 +1,4 @@
-<!-- template v0.2.0 : 7번 버전 주석에 소속 표기 추가, 6번 화면 이동 문구 보완, game-common.css 안내 추가 -->
+<!-- template v0.4.0 : 4번에 무한 단계(규칙 C) 보상 규칙 추가 -->
 
 # AI 요청용 규칙 (꼬무리 마을 웹게임)
 
@@ -45,6 +45,7 @@ help\help.html                             도움말
 - 일반 단계: 정답 보상(문제당) + 콤보 보너스(최장 콤보 × 배율) + 별 보상(새 별 가치 − 이전 별 가치, 유지·하락 시 0).
 - 이전 최고 별점은 플레이 시작 시 1회 읽어 고정한다. 최고 별점은 게임·단계별로 독립 저장한다.
 - 복습 단계는 학습 성격에 따라 게임마다 규칙이 다를 수 있다. 규칙 A(시계 Lv.8): 이전 별점 0 고정 + 별 보상 전액 / 규칙 B(맞춤법 달인 마당): 해당 level 최고 별점(매달 초기화) 기준. 새 게임의 복습 단계 규칙은 `reward-system.md`에 먼저 정하고 사용자에게 확인한다.
+- 무한 단계(규칙 C, 맞춤법 무한 마당)는 별점 없이 점프 점수(기록)를 쌓고, 한 번 틀리면 끝난다. 게임이 끝났을 때 기록 10마다 💎1(`core\reward.js`의 `calcRecordGold`)로 정산하고 최근 기록을 저장한다. 수치와 규칙은 `reward-system.md`를 따른다.
 
 ## 5. 진행·표시 규칙
 
@@ -52,6 +53,7 @@ help\help.html                             도움말
 - 캐릭터 리액션: 정답은 `correct`, 오답은 `wrong` 표정·동작을 보여주고 일정 시간 뒤 `idle`로 복귀(`renderCharacterState`, `playCharacterMotion`). 표정·동작 조합과 지속 시간은 게임마다 다를 수 있다.
 - 별 표시: 결과 화면 ★/☆(`starsToString`), 선택 화면 ⭐/☆(`starsToEmoji`). 골드 💎, 콤보 🔥.
 - 결과 화면 요소 id: `result-level`, `result-stars`, `result-score`, `result-rate`, `result-combo`, `result-gold-quiz`, `result-gold-combo`, `result-gold-star`, `result-gold-total`. 오버레이는 `stage-result`(숨김 클래스 `stage-result--hidden`).
+- 화면 대응: 모바일(세로, 폭 320~480px)을 기준으로 만들고 PC(480px 이상)에서도 깨지지 않게 한다. 게임 화면은 `game-common.css`처럼 `max-width: 480px` 가운데 정렬을 기본으로 하고, 선택·도움말 같은 목록형 화면은 PC에서 폭을 넓혀 카드 열을 늘린다. 터치 버튼은 높이 44px 이상, 가로 스크롤은 만들지 않는다.
 
 ## 6. 화면 이동
 

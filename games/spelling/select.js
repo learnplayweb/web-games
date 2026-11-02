@@ -1,7 +1,6 @@
-// v0.8.0
-// Spelling Game - 선택 화면 공통 모듈(shared/stageSelect.js) 사용으로 변경 (카드 렌더링·헤더·뒤로가기 갱신 이동)
+// spelling v0.9.0 : 무한 마당 카드 추가 (맨 아래, 최근 기록 표시, 모든 달인 마당 별 3점이면 해금)
 
-import { getSpellingBestStars, getSpellingReviewBestStars } from '../../core/saveManager.js';
+import { getSpellingBestStars, getSpellingReviewBestStars, getSpellingInfiniteRecord } from '../../core/saveManager.js';
 import { initStageSelect } from '../../shared/stageSelect.js';
 import { STAGES } from './data/stages.js';
 import { TOPICS } from './data/topics.js';
@@ -30,6 +29,13 @@ function reviewRangeLabel(stage) {
 // 달인 마당 해금 조건: 묶인 일반 마당(N~M) 전체가 최고 별점 3개
 function isReviewUnlocked(stage) {
   return stage.topics.every((topicId) => getSpellingBestStars(topicId) === 3);
+}
+
+// 무한 마당 해금 조건: 현재 있는 달인 마당이 모두 별 3점 (달인 마당이 늘면 자동 반영, 하나도 없으면 잠김)
+// 달인 마당 별점은 매달 1일 초기화되므로 무한 마당도 매달 다시 조건을 채워야 열린다.
+function isInfiniteUnlocked() {
+  const reviewStages = STAGES.filter((stage) => stage.type === 'review');
+  return reviewStages.length > 0 && reviewStages.every((stage) => getSpellingReviewBestStars(stage.level) === 3);
 }
 
 /* ===========================
@@ -88,6 +94,20 @@ function showLockModal(message) {
 // 별점은 달인 마당은 level별(매달 1일 초기화), 일반 마당은 topic별 최고 별점
 function buildCards() {
   return STAGES.map((stage) => {
+    // 무한 마당: 별점 대신 최근 기록을 표시하고, 진한 노랑 카드(stage-card--infinite)로 구분
+    if (stage.type === 'infinite') {
+      return {
+        level: stage.level,
+        name: '무한 마당',
+        statusText: `기록 ${getSpellingInfiniteRecord()}`,
+        unlocked: isInfiniteUnlocked(),
+        extraClass: 'stage-card--infinite',
+        onLockedClick: () => {
+          showLockModal('모든 달인 마당\n별 3점이어야 열려요.');
+        },
+      };
+    }
+
     const isReview = stage.type === 'review';
 
     return {

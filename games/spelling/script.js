@@ -1,16 +1,15 @@
-// v0.31.5
-// Spelling Game - 보상 계산(별점·정답 보상·콤보 보너스·별 보상)을 core/reward.js 공통 모듈로 이동
+// spelling v0.32.0 : 무한 마당 추가 (전체 문제은행 무중복 출제, 한 번의 실수로 종료, 점프 기록을 종료 시 10마다 💎1로 정산)
 //
 // Public API
 // - initCharacter()
 
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
-import { calcStars, starsToString, calcRewardGold } from '../../core/reward.js';
-import { getEquippedParts, getCharacterName, getSpellingBestStars, getSpellingReviewBestStars, saveSpellingResult, saveSpellingReviewResult } from '../../core/saveManager.js';
+import { calcStars, starsToString, calcRewardGold, calcRecordGold } from '../../core/reward.js';
+import { getEquippedParts, getCharacterName, getSpellingBestStars, getSpellingReviewBestStars, saveSpellingResult, saveSpellingReviewResult, saveSpellingInfiniteResult } from '../../core/saveManager.js';
 import { spawnEffect } from '../../characters/assets/effects/effects.js';
 import { pickRandomEquippedEffect, applyPenaltyLoss } from '../../characters/inventory.js';
 import { TOPICS } from './data/topics.js';
-import { STAGES, NORMAL_STAGE_QUESTION_COUNT, NORMAL_STAGE_LIVES, REVIEW_STAGE_QUESTION_COUNT, REVIEW_STAGE_LIVES } from './data/stages.js';
+import { STAGES, NORMAL_STAGE_QUESTION_COUNT, NORMAL_STAGE_LIVES, REVIEW_STAGE_QUESTION_COUNT, REVIEW_STAGE_LIVES, INFINITE_STAGE_LIVES, INFINITE_SCORE } from './data/stages.js';
 
 /* ===========================
    상수
@@ -119,22 +118,28 @@ window.addEventListener('pageshow', () => { isLeavingToSelect = false; });
 const requestedLevel = parseInt(new URLSearchParams(location.search).get('level'), 10) || 1;
 const currentStage = STAGES.find((stage) => stage.level === requestedLevel) ?? STAGES[0];
 const IS_REVIEW_STAGE = currentStage.type === 'review';
+const IS_INFINITE_STAGE = currentStage.type === 'infinite'; // 무한 마당: 한 번의 실수로 종료, 기록 정산
 
 const STAGE_QUESTION_COUNT = IS_REVIEW_STAGE ? REVIEW_STAGE_QUESTION_COUNT : NORMAL_STAGE_QUESTION_COUNT;
-const STAGE_LIVES          = IS_REVIEW_STAGE ? REVIEW_STAGE_LIVES : NORMAL_STAGE_LIVES;
+const STAGE_LIVES          = IS_INFINITE_STAGE ? INFINITE_STAGE_LIVES : (IS_REVIEW_STAGE ? REVIEW_STAGE_LIVES : NORMAL_STAGE_LIVES);
 
-const BLOCK_QUEUE = IS_REVIEW_STAGE
-  ? buildReviewBlockQueue(currentStage, STAGE_QUESTION_COUNT)
-  : buildNormalBlockQueue(PROBLEM_BANKS[currentStage.topic] ?? [], STAGE_QUESTION_COUNT);
+// 무한 마당은 빈 큐로 시작해 진행하면서 문장을 계속 채운다 (extendInfiniteQueue)
+const BLOCK_QUEUE = IS_INFINITE_STAGE
+  ? []
+  : IS_REVIEW_STAGE
+    ? buildReviewBlockQueue(currentStage, STAGE_QUESTION_COUNT)
+    : buildNormalBlockQueue(PROBLEM_BANKS[currentStage.topic] ?? [], STAGE_QUESTION_COUNT);
 const TOTAL_CHOICE_POINTS = BLOCK_QUEUE.filter((item) => item.type === 'choice').length;
 // 달인 마당은 여러 주제를 섞어 다루므로 단일 학습 가이드가 맞지 않아 사용하지 않음(오답 모달 자체가 없기도 함)
-const CURRENT_GUIDE = IS_REVIEW_STAGE ? null : TOPIC_GUIDES[currentStage.topic];
+const CURRENT_GUIDE = (IS_REVIEW_STAGE || IS_INFINITE_STAGE) ? null : TOPIC_GUIDES[currentStage.topic];
 
 // 이번 판을 시작하기 "이전"의 최고 별점 (보상 계산 기준). 완료 후 갱신되므로 게임 시작 시점에 한 번만 읽는다.
-// 달인 마당은 level별 최고 별점(매달 1일 자동 초기화)을 기준으로 한다.
-const PREV_BEST_STARS = IS_REVIEW_STAGE
-  ? getSpellingReviewBestStars(currentStage.level)
-  : getSpellingBestStars(currentStage.topic);
+// 달인 마당은 level별 최고 별점(매달 1일 자동 초기화)을 기준으로 한다. 무한 마당은 별점이 없으므로 사용하지 않는다.
+const PREV_BEST_STARS = IS_INFINITE_STAGE
+  ? 0
+  : IS_REVIEW_STAGE
+    ? getSpellingReviewBestStars(currentStage.level)
+    : getSpellingBestStars(currentStage.topic);
 
 /* ===========================
    캐릭터 초기화 (정면 idle) + 모션 재생 헬퍼
@@ -256,8 +261,40 @@ function renderMid(scaledDown = false) {
   }
 }
 
-// 큐에서 다음 아이템을 front로 끌어옴. 큐가 비었으면 마당 완료 처리.
+/* ===========================
+   무한 마당 출제 : 모든 주제의 문제은행(문장)을 한 덱으로 모아 섞은 뒤 하나씩 뽑고,
+   모두 한 번씩 출제되면 다시 전체를 섞는다. TOPICS를 읽으므로 문제·주제가 추가되면 자동 반영된다.
+=========================== */
+
+const INFINITE_QUEUE_LOOKAHEAD = 6; // 큐에 항상 이만큼은 미리 채워 둠
+let infiniteDeck = [];
+let lastDrawnSentence = null;
+
+function drawInfiniteSentence() {
+  if (infiniteDeck.length === 0) {
+    infiniteDeck = shuffleArray(TOPICS.flatMap((topic) => topic.problems));
+    // 다시 섞은 직후 방금 낸 문장이 바로 이어서 나오지 않도록 맨 앞(0번)과 자리를 바꾼다 (덱은 뒤에서부터 뽑음)
+    const last = infiniteDeck.length - 1;
+    if (infiniteDeck.length > 1 && infiniteDeck[last] === lastDrawnSentence) {
+      [infiniteDeck[0], infiniteDeck[last]] = [infiniteDeck[last], infiniteDeck[0]];
+    }
+  }
+  lastDrawnSentence = infiniteDeck.pop() ?? null;
+  return lastDrawnSentence;
+}
+
+// 아직 지나지 않은 블록이 lookahead개 미만이면 새 문장을 뽑아 큐 뒤에 이어 붙임
+function extendInfiniteQueue() {
+  while (BLOCK_QUEUE.length - queuePointer < INFINITE_QUEUE_LOOKAHEAD) {
+    const sentence = drawInfiniteSentence();
+    if (!sentence) break; // 문제은행이 비어 있으면 중단 (무한 반복 방지)
+    BLOCK_QUEUE.push(...flattenProblemsToQueue([sentence]));
+  }
+}
+
+// 큐에서 다음 아이템을 front로 끌어옴. 큐가 비었으면 마당 완료 처리. (무한 마당은 항상 채워 둠)
 function pullNextFront() {
+  if (IS_INFINITE_STAGE) extendInfiniteQueue();
   if (queuePointer >= BLOCK_QUEUE.length) {
     currentItems.front = null;
     finishStage();
@@ -270,6 +307,7 @@ function pullNextFront() {
 
 // 최초 화면 : 이전(back)은 아직 흘러온 것이 없으므로 숨김. 현재(mid)=큐[0], 다음(front)=큐[1].
 function initBoard() {
+  if (IS_INFINITE_STAGE) extendInfiniteQueue(); // 무한 마당: 시작 전에 첫 문장들을 채움
   currentItems.back = null;
   currentItems.mid  = BLOCK_QUEUE[0] ?? null;
   renderBack();
@@ -285,6 +323,9 @@ function initBoard() {
 // 이 시점의 currentLane을 mid로 승격되는 아이템에 스냅샷하여, 이후 캐릭터가 다른 레인으로 이동해도
 // 이미 지나간 이 블록은 자신이 답해진 레인을 그대로 유지한 채 흘러간다.
 function advancePastFront() {
+  // 무한 마당 기록: 지금 서 있는 블록(mid) → 도착하는 블록(front)의 종류에 따라 점수 가산
+  if (IS_INFINITE_STAGE) addInfiniteScore(currentItems.mid, currentItems.front);
+
   // 페이드아웃(트랜지션 있음) : 이전/현재 블록은 "현재 레인을 유지한 채" 살짝 축소
   setBlockTransform(backEl, currentItems.back ? currentItems.back.__lane : 'center', true);
   setBlockTransform(midEl,  currentItems.mid  ? currentItems.mid.__lane  : 'center', true);
@@ -418,6 +459,34 @@ function updateHeartsDisplay() {
   heartEls.forEach((el, idx) => {
     el.textContent = idx < livesRemaining ? '❤️' : '♡';
   });
+}
+
+/* ===========================
+   무한 마당 기록 (하트 자리에 표시)
+   - 일반 → 일반 +1 / 선택지로 점프 +3 / 선택지 → 일반 +2 (점수 값은 data/stages.js의 INFINITE_SCORE)
+=========================== */
+
+let infiniteRecord = 0;
+const heartsDisplayEl = document.getElementById('display-hearts');
+const recordDisplayEl = document.getElementById('display-record');
+const recordValueEl   = document.getElementById('display-record-value');
+
+function updateRecordDisplay() {
+  recordValueEl.textContent = infiniteRecord;
+}
+
+function addInfiniteScore(fromItem, toItem) {
+  if (toItem?.type === 'choice') infiniteRecord += INFINITE_SCORE.toChoice;
+  else if (fromItem?.type === 'choice') infiniteRecord += INFINITE_SCORE.choiceToNormal;
+  else infiniteRecord += INFINITE_SCORE.normalToNormal;
+  updateRecordDisplay();
+}
+
+// 무한 마당: 하트 대신 기록 표시
+function setupInfiniteHud() {
+  heartsDisplayEl.style.display = 'none';
+  recordDisplayEl.style.display = 'flex';
+  updateRecordDisplay();
 }
 
 /* ===========================
@@ -637,6 +706,30 @@ reviewIntroChoicesEl.querySelectorAll('[data-choice]').forEach((btn) => {
 });
 
 /* ===========================
+   무한 마당 시작 안내 모달 (달인 마당 안내 모달과 같은 디자인·글꼴). 탭하거나 키를 누르면 닫히고 게임 시작
+=========================== */
+
+const INFINITE_INTRO_LINES = [
+  [{ text: '한 번의 실수로 끝!' }],
+  [{ text: '어디까지 갈 수 있을까?' }],
+];
+
+const infiniteIntroModalEl = document.getElementById('infinite-intro-modal');
+const infiniteIntroTextEl  = document.getElementById('infinite-intro-text');
+
+function showInfiniteIntroModal() {
+  infiniteIntroTextEl.innerHTML = '';
+  INFINITE_INTRO_LINES.forEach((line) => renderSegmentLine(infiniteIntroTextEl, line));
+  infiniteIntroModalEl.classList.remove('review-intro--hidden');
+}
+
+function closeInfiniteIntroModal() {
+  infiniteIntroModalEl.classList.add('review-intro--hidden');
+}
+
+infiniteIntroModalEl.addEventListener('click', closeInfiniteIntroModal);
+
+/* ===========================
    마당 완료 / 실패. 아무 곳이나 탭 또는 방향키/스페이스바로 닫힘
    완료 시에만 별점·콤보·선택지점 보상을 계산해 saveSpellingResult()로 1회 저장
 =========================== */
@@ -644,6 +737,10 @@ reviewIntroChoicesEl.querySelectorAll('[data-choice]').forEach((btn) => {
 const stageResultEl = document.getElementById('stage-result');
 const successCardEl = document.getElementById('stage-result-success');
 const failureCardEl = document.getElementById('stage-result-failure');
+const infiniteCardEl = document.getElementById('stage-result-infinite');
+const infiniteResultRecordEl = document.getElementById('infinite-result-record');
+const infiniteResultComboEl  = document.getElementById('infinite-result-combo');
+const infiniteResultGoldEl   = document.getElementById('infinite-result-gold');
 
 // 완료 카드 (시계 게임 result-card 레이아웃)
 const resultLevelEl = document.getElementById('result-level');
@@ -707,6 +804,7 @@ function finishStage() {
 
   successCardEl.style.display = 'flex';
   failureCardEl.style.display = 'none';
+  infiniteCardEl.style.display = 'none';
   stageResultEl.classList.remove('stage-result--hidden');
 }
 
@@ -730,7 +828,34 @@ function getTopicParticle(name) {
 // 막아야 하지만(추후 구현 예정), 그 전까지는 이 기본값으로 대체 표시한다.
 const DEFAULT_CHARACTER_NAME = '꼬무리';
 
+// 무한 마당 종료(한 번의 실수) : 기록 10마다 💎1로 정산하고 최근 기록을 저장. 게임 중에는 지급하지 않는다.
+function finishInfiniteStage() {
+  if (stageEnded) return;
+  stageEnded = true;
+  stageFailed = true; // 완료가 아닌 종료 상태 (실패 연출·페널티는 사용하지 않음)
+
+  const goldEarned = calcRecordGold(infiniteRecord);
+
+  // 저장 중 예외가 나도 결과 모달은 반드시 표시되도록 보호
+  try {
+    saveSpellingInfiniteResult(infiniteRecord, goldEarned);
+  } catch (e) {
+    console.error('결과 저장 중 오류:', e);
+  }
+
+  infiniteResultRecordEl.textContent = `기록 ${infiniteRecord}`;
+  infiniteResultComboEl.textContent = `최고 콤보 🔥 ${maxCombo}`;
+  infiniteResultGoldEl.textContent = `💎 ${goldEarned}`;
+
+  successCardEl.style.display = 'none';
+  failureCardEl.style.display = 'none';
+  infiniteCardEl.style.display = 'flex';
+  stageResultEl.classList.remove('stage-result--hidden');
+}
+
 function failStage() {
+  if (IS_INFINITE_STAGE) { finishInfiniteStage(); return; } // 무한 마당은 페널티·실패 카드 없이 기록 정산
+
   stageEnded = true;
   stageFailed = true;
 
@@ -774,6 +899,7 @@ function failStage() {
 
   successCardEl.style.display = 'none';
   failureCardEl.style.display = 'flex';
+  infiniteCardEl.style.display = 'none';
   stageResultEl.classList.remove('stage-result--hidden');
 }
 
@@ -889,7 +1015,7 @@ function handleInput(action) {
         clearFlash(correctEl);
         resetCollapsedBlock(wrongEl);
       }, FADE_OUT_DURATION);
-    } else if (IS_REVIEW_STAGE) {
+    } else if (IS_REVIEW_STAGE || IS_INFINITE_STAGE) { // 달인 마당·무한 마당: 학습 모달 없이 즉시 추락 + 목숨 차감 (무한 마당은 목숨 1개)
       // 달인 마당 오답 : 목숨 차감, 학습 모달 없음. 블록+캐릭터가 함께(더 빠르게) 추락 후 롤백.
       isBusy = true;
 
@@ -967,7 +1093,8 @@ function handleInput(action) {
 function isAnyModalOpen() {
   return !learningModalEl.classList.contains('learning-modal--hidden')
       || !stageResultEl.classList.contains('stage-result--hidden')
-      || !reviewIntroModalEl.classList.contains('review-intro--hidden');
+      || !reviewIntroModalEl.classList.contains('review-intro--hidden')
+      || !infiniteIntroModalEl.classList.contains('review-intro--hidden');
 }
 
 function closeOpenModal() {
@@ -977,6 +1104,8 @@ function closeOpenModal() {
     closeStageResult();
   } else if (!reviewIntroModalEl.classList.contains('review-intro--hidden')) {
     handleReviewIntroTap(); // 방향키/스페이스바로도 진행(빠르게 두 번이면 5단계로 스킵)
+  } else if (!infiniteIntroModalEl.classList.contains('review-intro--hidden')) {
+    closeInfiniteIntroModal(); // 무한 마당 시작 안내: 어떤 입력이든 닫고 시작
   }
 }
 
@@ -1008,10 +1137,16 @@ document.addEventListener('keydown', (e) => {
 
 initCharacter();
 initBoard();
-renderHeartSlots();
-updateHeartsDisplay();
+if (IS_INFINITE_STAGE) {
+  setupInfiniteHud(); // 하트 대신 기록 표시
+} else {
+  renderHeartSlots();
+  updateHeartsDisplay();
+}
 updateComboDisplay();
-if (IS_REVIEW_STAGE) {
+if (IS_INFINITE_STAGE) {
+  showInfiniteIntroModal(); // 무한 마당 시작 안내 (학습 가이드 없음)
+} else if (IS_REVIEW_STAGE) {
   showReviewIntroModal(); // 달인 마당 시작 시 1~5단계 안내 모달 (여러 주제가 섞여 있어 기존 학습 가이드는 생략)
 } else {
   showLearningModal(); // 마당 시작 시 주제 학습 가이드 먼저 안내

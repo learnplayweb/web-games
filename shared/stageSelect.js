@@ -1,4 +1,4 @@
-// v0.1.0 : 단계 선택 화면 공통 모듈 최초 생성 (시계·맞춤법 select.js의 카드 렌더링·헤더·뒤로가기 갱신 통합)
+// shared v0.2.0 : 카드 옵션 추가 — statusText(별점 대신 표시할 문구), extraClass(카드 색 등 추가 클래스)
 //
 // 사용법 (games\<id>\select.js)
 //   import { initStageSelect } from '../../shared/stageSelect.js';
@@ -11,6 +11,8 @@
 // - unlocked:      true면 클릭 시 게임 화면으로 이동
 // - review:        (선택) 복습 단계 카드면 true → 연노랑 카드
 // - onLockedClick: (선택) 잠긴 카드를 눌렀을 때 실행할 함수 (예: 잠김 안내 모달). 없으면 아무 일도 없음
+// - statusText:    (선택) 별점 대신 표시할 문구 (예: '최근 기록 28'). 없으면 stars를 ⭐로 표시
+// - extraClass:    (선택) 카드에 추가할 클래스 이름 (예: 게임 전용 카드 색)
 //
 // Public API
 // - initStageSelect({ getCards, gameUrl })
@@ -21,11 +23,12 @@ import { createHeader, updateHeaderGold } from './header.js';
 
 // 카드 1개 DOM 생성
 function buildCard(card, gameUrl) {
-  const { level, name, stars, unlocked, review = false, onLockedClick } = card;
+  const { level, name, stars, unlocked, review = false, onLockedClick, statusText, extraClass } = card;
 
   const element = document.createElement('div');
   element.className = `stage-card ${unlocked ? 'stage-card--unlocked' : 'stage-card--locked'}`;
   if (review) element.classList.add('stage-card--review');
+  if (extraClass) element.classList.add(extraClass);
 
   const levelLabel = document.createElement('p');
   levelLabel.className = 'stage-card__level';
@@ -33,7 +36,7 @@ function buildCard(card, gameUrl) {
 
   const starsLabel = document.createElement('p');
   starsLabel.className = 'stage-card__stars';
-  starsLabel.textContent = starsToEmoji(stars);
+  starsLabel.textContent = statusText ?? starsToEmoji(stars);
 
   element.append(levelLabel, starsLabel);
 

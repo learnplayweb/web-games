@@ -1,4 +1,4 @@
-/* spelling v0.23.0 : 값이 같은 공통 규칙을 shared/game-common.css로 이동 (섹션 번호는 유지, 게임 고유 규칙만 남김) */
+/* spelling v0.24.0 : 무한 마당 기록 표시(.info-bar__record) 스타일 추가 */
 
 /* ===========================
    0. 폰트 선언
@@ -37,6 +37,13 @@
   align-items: center;
   gap: 0.15rem;
   font-size: 1.1rem;
+}
+
+/* 무한 마당 기록 표시 (콤보 표시와 같은 모양, 하트 자리에 표시) */
+.info-bar__record {
+  color: var(--color-primary-dark);
+  align-items: center;
+  gap: 0.3rem;
 }
 
 /* ===========================

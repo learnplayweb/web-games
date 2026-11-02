@@ -1,4 +1,4 @@
-<!-- spelling v0.13.1 : 공통 css 연결 -->
+<!-- spelling v0.14.0 : 무한 마당용 기록 표시·종료 결과 카드·시작 안내 모달 마크업 추가, 공통 CSS(game-common.css) 연결 -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -26,6 +26,11 @@
       </span>
       <!-- 하트는 목숨 개수(일반 3 / 달인 마당 5)에 맞춰 script.js가 동적으로 채움 -->
       <span class="info-bar__item info-bar__hearts" id="display-hearts"></span>
+      <!-- 무한 마당 전용 : 하트 대신 기록(점프 점수)을 표시. script.js가 무한 마당일 때만 보이게 함 -->
+      <span class="info-bar__item info-bar__record" id="display-record" style="display:none;">
+        <span class="info-bar__icon">🏁</span>
+        <span id="display-record-value" class="info-bar__value">0</span>
+      </span>
     </header>
 
     <!-- 게임 진행 영역 : 이전(back)/현재(mid)/다음(front, 갈림길 포함) 블록 + 캐릭터(현재 블록과 겹쳐 배치) -->
@@ -85,6 +90,16 @@
       <p class="result-gold-total"><span>총 획득</span><span id="result-gold-total" class="result-gold-value">💎 0</span></p>
     </div>
 
+    <!-- 무한 마당 종료 카드 : 기록 + 정산 💎 (기록 10마다 💎1). 무한 마당일 때만 script.js가 표시 -->
+    <div id="stage-result-infinite" class="result-card" style="display:none;">
+      <h2 class="result-level">무한 마당 종료!</h2>
+      <p id="infinite-result-record" class="result-score">기록 0</p>
+      <p id="infinite-result-combo" class="result-combo">최고 콤보 🔥 0</p>
+      <p class="result-rate">기록 10마다 💎1</p>
+      <hr class="result-divider" />
+      <p class="result-gold-total"><span>획득</span><span id="infinite-result-gold" class="result-gold-value">💎 0</span></p>
+    </div>
+
     <!-- 실패 카드 : 통계 없이 캐릭터 + 격려 문구만 -->
     <div id="stage-result-failure" class="stage-result__card">
       <h2 id="stage-result-title" class="stage-result__title"></h2>
@@ -103,6 +118,14 @@
         <button type="button" class="review-intro__choice-btn" data-choice="start">물론,<br>준비는<br>완벽해! 🔥</button>
         <button type="button" class="review-intro__choice-btn" data-choice="later">다음에<br>다시<br>올게요...💦</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 무한 마당 시작 안내 모달 : 달인 마당 안내 모달과 같은 디자인·글꼴. 탭하면 닫히고 게임 시작 -->
+  <div id="infinite-intro-modal" class="review-intro review-intro--hidden">
+    <div class="review-intro__card">
+      <div id="infinite-intro-text" class="review-intro__text"></div>
+      <div class="review-intro__arrow">▽</div>
     </div>
   </div>
 

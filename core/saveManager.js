@@ -1,11 +1,11 @@
-// v0.7.0 : Update_공용 지갑(Gold)을 wallet_save 키로 분리 (구버전 clockGame_save.gold(26.11월 삭제할 것)에서 자동 복사, 원본은 백업으로 유지)
+// core v0.8.0 : Add_맞춤법 무한 마당 최근 기록 저장(getSpellingInfiniteRecord/saveSpellingInfiniteResult), 구버전 골드 복사(readLegacyGold) 제거
 // 
 // Save Manager
 // - localStorage 접근을 이 파일로 단일화 (공용 지갑, Clock 진행, 캐릭터 인벤토리/적용/이름/색상, 맞춤법 게임 진행)
 // - 저장 키: wallet_save, clockGame_save, character_save, character_equip_save, character_name_save, character_color_save,
 //            character_effect_save, spellingGame_save, 새 게임은 {게임id}Game_save (일반 게임 공통 저장)
 // - Gold는 게임 공용 지갑(wallet_save)을 사용한다 (모든 게임이 여기 적립/차감). 게임 코드는 getGold/addGold/spendGold만 쓴다
-//   (예전에는 clockGame_save.gold에 있었으며, 처음 실행할 때 wallet_save로 자동 복사된다. 구버전 필드는 삭제하지 않고 백업으로 남긴다)
+//   (예전에는 clockGame_save.gold에 있었으며 이전 버전에서 wallet_save로 복사되었다. clockGame_save의 gold 필드는 더 이상 읽지 않는다)
 // - 디버그용 초기화/설정 함수 포함 (resetSave, resetCharacterSave 등)
 // Public API (character_save 관련)
 // - getCharacterSave(): 캐릭터 저장 데이터 반환 (없으면 기본값)
@@ -36,6 +36,10 @@
 //   해당 level의 최고 별점 갱신(더 높을 때만) + Gold를 공용 지갑에 적립. 달인 마당 별점은 매달 1일 자동 초기화
 // - checkSpellingPeriodReset(): 달인 마당 별점 월 초기화 여부를 확인해 필요하면 초기화 (메인 화면 접속 시 1회 호출용)
 //
+// Public API (맞춤법 무한 마당)
+// - getSpellingInfiniteRecord(): 최근 기록 (없으면 0)
+// - saveSpellingInfiniteResult(record, goldEarned): 최근 기록 저장 + Gold 적립. 반환: { record, gold }
+//
 // Public API (일반 게임 공통 — 새 게임은 saveManager에 함수를 추가하지 않고 이 함수들을 사용)
 // - 게임id: 영문 소문자로 시작하는 영문/숫자 (저장 키 {게임id}Game_save). 'clock'은 전용 저장 구조라 사용 불가
 // - getStageBestStars(gameId, stageKey): 일반 단계 최고 별점 (없으면 0, 초기화 없음)
@@ -57,7 +61,7 @@
 // - spendGold(amount): 골드가 충분하면 차감 후 true, 부족하면 저장 없이 false
 //
 // Save Structure (wallet_save)
-// { gold: number }  // 공용 지갑. 없으면 clockGame_save.gold(구버전 위치)에서 복사해 생성
+// { gold: number }  // 공용 지갑. 없거나 깨졌으면 0으로 시작
 //
 // Save Structure (character_save)
 // { parts: { [category]: { [id]: number } } }  // 카테고리별 파츠 id → 보유 수량 (예: { head: { circle: 2 } })
@@ -111,28 +115,13 @@ export function getClockSave() {
   }
 
   /* ===== Gold (공통) — 공용 지갑 wallet_save =====
-     예전에는 골드가 clockGame_save.gold에 들어 있었다. 처음 지갑을 읽을 때 그 값을 wallet_save로 복사한다.
-     - 복사만 하고 clockGame_save의 gold 필드는 지우지 않는다 (문제 시 되돌릴 백업. 이후엔 갱신되지 않음)
-     - wallet_save가 한 번 만들어지면 그 값만 사용한다 (골드가 0이어도 구버전 값으로 되돌아가지 않음) */
+     지갑 데이터가 없거나 깨졌으면 0으로 시작한다. */
 
   const WALLET_KEY = 'wallet_save';
 
   function getDefaultWallet() {
     return { gold: 0 };
   }
-
-  // 구버전 위치(clockGame_save.gold)의 골드. 없거나 숫자가 아니면 null  1. 여기부터
-  function readLegacyGold() {
-    try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return null;
-      const gold = JSON.parse(raw)?.gold;
-      return Number.isFinite(gold) ? gold : null;
-    } catch {
-      return null;
-    }
-  }
-  // 여기까지 삭제하고 2. loadWallet() 
 
   function writeWallet(wallet) {
     try {
@@ -150,17 +139,10 @@ export function getClockSave() {
         if (data && Number.isFinite(data.gold)) return { gold: data.gold };
       }
     } catch {
-      // 지갑 데이터가 깨졌으면 아래에서 구버전 값으로 복구 또는 0으로 시작
+      // 지갑 데이터가 깨졌으면 아래에서 0으로 시작
     }
 
-    // 지갑이 아직 없거나 깨진 경우: 구버전 골드를 복사 (구버전 데이터가 없는 새 사용자는 저장 없이 0으로 시작) 2. 여기부터
-    const legacyGold = readLegacyGold();
-    if (legacyGold === null) return getDefaultWallet();
-
-    const wallet = { gold: legacyGold };
-    writeWallet(wallet);
-    return wallet;
-  // 여기까지 삭제하고 return getDefaultWallet(); 추가할 것. 3. resetClockProgress()의 한 줄 삭제
+    return getDefaultWallet(); // 지갑이 아직 없거나 깨진 경우: 0으로 시작
   }
 
   function getGold() {
@@ -568,6 +550,22 @@ export function getClockSave() {
     return { bestStars: result.stars, gold: result.gold };
   }
 
+  /* 무한 마당(맞춤법) : 별점 대신 "기록"(점프 점수)을 저장한다.
+     일반 저장의 "최근 별점" 칸(recentStars, 매 플레이 덮어씀, 월별 초기화 없음)을 키 'infinite'로 재사용한다.
+     (저장 값이 별점이 아닌 기록 숫자이므로 이름만 다르게 감싼다) */
+  const SPELLING_INFINITE_KEY = 'infinite';
+
+  // 최근 기록 (플레이한 적 없으면 0)
+  function getSpellingInfiniteRecord() {
+    return getStageRecentStars(SPELLING_GAME_ID, SPELLING_INFINITE_KEY);
+  }
+
+  // 무한 마당 종료 시 1회 호출 : 최근 기록 저장(덮어씀) + 정산 Gold를 공용 지갑에 적립
+  function saveSpellingInfiniteResult(record, goldEarned) {
+    const result = saveStageResult(SPELLING_GAME_ID, SPELLING_INFINITE_KEY, record, goldEarned, 'review-recent');
+    return { record: result.stars, gold: result.gold };
+  }
+
   /* ===== 디버그 전용 (core/debug.js에서만 사용) ===== */
 
   // Clock 진행 상태 + 공용 지갑(골드)을 모두 기본값으로 되돌린다.
@@ -578,7 +576,6 @@ export function getClockSave() {
 
   // Clock Game 진행 상태(단계 해금/별점)만 기본값으로 되돌리고 골드는 그대로 둔다.
   function resetClockProgress() {
-    loadWallet(); // 구버전 골드가 아직 복사되지 않았다면 먼저 복사해 둔 뒤 진행 상태만 초기화 3. 이 줄 삭제.  끝.
     write(getDefaultSave());
   }
 
@@ -624,6 +621,8 @@ export {
   getSpellingReviewBestStars,
   saveSpellingReviewResult,
   checkSpellingPeriodReset,
+  getSpellingInfiniteRecord,
+  saveSpellingInfiniteResult,
   getStageBestStars,
   getStageReviewBestStars,
   getStageRecentStars,

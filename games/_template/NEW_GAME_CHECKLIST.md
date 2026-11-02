@@ -1,4 +1,4 @@
-<!-- template v0.1.0 : 버전 기록 시작, 게임 화면 공통 CSS(game-common.css) 안내 반영 -->
+<!-- template v0.2.0 : 디버그 항목 보강 (전체 초기화 + 디버그 메뉴의 초기화·해금) -->
 
 # 새 게임 추가 체크리스트
 
@@ -26,7 +26,8 @@
 - [ ] `script.js`·`select.js`의 `GAME_ID`와 단계 키(`stageKey`)가 서로 같은지 확인
 - [ ] 단계 종류(`STAGE_KIND`) 정하기: `normal` / `review-recent`(규칙 A) / `review-monthly`(규칙 B)
 - [ ] 월별 초기화(규칙 B)를 쓰면 메인 화면 접속 시 `checkGamePeriodReset(게임id)` 호출 여부 결정
-- [ ] 개발용 초기화: `core\debug.js`의 `GENERIC_GAME_IDS`에 게임 id 추가
+- [ ] 전체 초기화: `core\debug.js`의 `GENERIC_GAME_IDS`에 게임 id 추가
+- [ ] 디버그 메뉴: 새 게임의 레벨 초기화·해금 항목을 `debug.js`에 추가하고 개발용 프리뷰 페이지의 디버그 메뉴에 연결 (해금 개념이 있는 게임만 해금 항목. 디버그 메뉴는 게임 화면에서 접근할 수 없어 배포 때 따로 제거하지 않아도 됨)
 - [ ] 게임 진행 데이터는 캐릭터 내보내기 대상이 아님 → 저장·불러오기 기능 수정 불필요
 
 ## 4. 메인 화면 연결 (`index.html`, `index.js`)
