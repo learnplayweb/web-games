@@ -1,4 +1,4 @@
-// core v0.8.0 : Add_맞춤법 무한 마당 최근 기록 저장(getSpellingInfiniteRecord/saveSpellingInfiniteResult), 구버전 골드 복사(readLegacyGold) 제거
+// core v0.9.0 : Add_setAllStageStars (디버그 전용: 일반 게임 단계 별점 일괄 설정, 맞춤법 전체 단계 해금용)
 // 
 // Save Manager
 // - localStorage 접근을 이 파일로 단일화 (공용 지갑, Clock 진행, 캐릭터 인벤토리/적용/이름/색상, 맞춤법 게임 진행)
@@ -50,6 +50,7 @@
 //   반환: { stars: 저장된 별점, gold: 적립 후 보유 Gold }
 // - checkGamePeriodReset(gameId): 월별 초기화 여부를 확인해 필요하면 초기화 (메인 화면 접속 시 1회 호출용)
 // - resetGameSave(gameId): 해당 게임 저장 데이터 초기화 (디버그 전용)
+// - setAllStageStars(gameId, stageKeys, stars, kind): 지정한 단계들의 별점을 일괄 설정 (디버그 전용, kind: 'normal' | 'review-monthly')
 //
 // Public API (디버그 전용)
 // - resetSave(): clockGame_save 전체 + 공용 지갑(골드) 초기화
@@ -518,6 +519,17 @@ export function getClockSave() {
     writeGameSave(gameId, getDefaultGameSave());
   }
 
+  // 지정한 단계(stageKeys)들의 별점을 stars로 일괄 설정한다 (디버그 전용, 골드는 건드리지 않음).
+  // 단계 해금이 별점 조건으로 계산되는 게임(맞춤법)의 전체 단계 해금에 사용.
+  // kind: 'normal' 일반 단계 최고 별점 / 'review-monthly' 복습 단계(규칙 B, 이번 기간) 최고 별점
+  function setAllStageStars(gameId, stageKeys, stars, kind = 'normal') {
+    if (!isValidGameId(gameId)) return;
+    const gameSave = loadGameSave(gameId);
+    const field = kind === 'review-monthly' ? 'reviewBestStars' : 'bestStars';
+    stageKeys.forEach((key) => { gameSave[field][key] = stars; });
+    writeGameSave(gameId, gameSave);
+  }
+
   /* ===== Spelling Game(맞춤법 게임) 전용 =====
      공통 저장 함수(gameId = 'spelling')를 감싼 얇은 래퍼. 저장 키(spellingGame_save)와 구조는 기존과 동일하다.
      맞춤법의 복습 단계(달인 마당)는 규칙 B(월별 초기화 최고 별점)를 사용한다. */
@@ -629,4 +641,5 @@ export {
   saveStageResult,
   checkGamePeriodReset,
   resetGameSave,
+  setAllStageStars,
 };

@@ -1,4 +1,4 @@
-// v0.3.0
+// characters v0.3.1 : 디버그 메뉴에 맞춤법 전체 단계 해금·초기화 항목 추가 (액션이 비동기라 실행 완료 후 새로고침)
 // preview.js
 // - characterRenderer.js의 renderCharacterSvg 재사용, characterData.js에서 파츠/표정 목록을 직접 import
 // - head/body/legs/eyes/mouth 드롭다운을 BASE_PARTS·FACE_ASSETS로부터 런타임 생성 (목록 추가 시 코드 수정 불필요)
@@ -136,6 +136,8 @@ const DEBUG_MENU_ITEMS = [
   { key: 'star1', label: '시계 별 1개' },
   { key: 'star2', label: '시계 별 2개' },
   { key: 'star3', label: '시계 별 3개' },
+  { key: 'unlockAllSpelling', label: '맞춤법 모든 단계 해금' },
+  { key: 'resetSpelling', label: '맞춤법 게임 초기화' },
   { key: 'resetCharacter', label: '캐릭터샵 초기화' },
   { key: 'resetAll', label: '전체 데이터 초기화 (골드+캐릭터+게임)' },
 ];
@@ -150,6 +152,8 @@ function buildDebugActions(debugModule) {
     star1: () => debugModule.setAllClockStars(1),
     star2: () => debugModule.setAllClockStars(2),
     star3: () => debugModule.setAllClockStars(3),
+    unlockAllSpelling: debugModule.unlockAllSpellingStages, // 비동기(게임 데이터를 동적으로 불러옴)
+    resetSpelling: debugModule.resetSpelling,
   };
 }
 
@@ -174,8 +178,8 @@ function openDebugMenu(debugModule) {
     const button = document.createElement('button');
     button.type = 'button';
     button.textContent = label;
-    button.addEventListener('click', () => {
-      actions[key]?.();
+    button.addEventListener('click', async () => {
+      await actions[key]?.(); // 비동기 액션(맞춤법 해금)이 끝난 뒤에 새로고침해야 저장 결과가 반영됨
       window.location.reload(); // 페이지 무관하게 최신 저장 데이터로 화면 갱신
     });
     card.appendChild(button);

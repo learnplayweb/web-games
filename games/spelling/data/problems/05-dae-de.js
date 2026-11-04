@@ -42,9 +42,8 @@ export const DAE_DE_PROBLEMS = [
   {
     id: 'dae-de-05',
     tokens: [
-      { text: '제가' },
-      { text: '먹은' },
-      { text: '떡볶이는' },
+      { text: '떡볶이를' },
+      { text: '먹었는데' },
       { text: '생각보다' },
       { correct: '맵데요.', wrong: '맵대요.', fixedSide: 'right' }
     ]
