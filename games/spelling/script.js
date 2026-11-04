@@ -1,4 +1,4 @@
-// spelling v0.32.0 : 무한 마당 추가 (전체 문제은행 무중복 출제, 한 번의 실수로 종료, 점프 기록을 종료 시 10마다 💎1로 정산)
+// spelling v0.32.1 : 마당 완료 결과 제목에 주제 이름 표시 (topics.js의 label, 예: 안 / 않 완료!)
 //
 // Public API
 // - initCharacter()
@@ -792,7 +792,11 @@ function finishStage() {
     console.error('결과 저장 중 오류:', e);
   }
 
-  resultLevelEl.textContent = IS_REVIEW_STAGE ? '달인 마당 성공!' : '마당 완료!';
+  // 일반 마당: 어떤 마당인지 주제 이름(topics.js의 label)을 제목에 표시 (예: "안 / 않 완료!"). 찾지 못하면 기본 문구
+  const topicLabel = TOPICS.find((topic) => topic.id === currentStage.topic)?.label;
+  resultLevelEl.textContent = IS_REVIEW_STAGE
+    ? '달인 마당 성공!'
+    : (topicLabel ? `${topicLabel} 완료!` : '마당 완료!');
   resultStarsEl.textContent = starsToString(stars);
   resultScoreEl.textContent = `${correctCount} / ${total}`;
   resultRateEl.textContent = `정답률 ${rate}%`;

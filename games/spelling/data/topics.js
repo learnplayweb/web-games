@@ -39,8 +39,10 @@ import { BUD_BUS_PROBLEMS, BUD_BUS_GUIDE } from './problems/10-bud-bus.js';
 import { BUCHI_BUTI_PROBLEMS, BUCHI_BUTI_GUIDE } from './problems/11-buchi-buti.js';
 import { TTEI_TTI_PROBLEMS, TTEI_TTI_GUIDE } from './problems/12-ttei-tti.js';
 import { BUSU_BUSI_PROBLEMS, BUSU_BUSI_GUIDE } from './problems/13-busu-busi.js';
-import { CM01_PROBLEMS, CM01_GUIDE } from './problems/14-day-col-lock.js';
+import { E_UI_PROBLEMS, E_UI_GUIDE } from './problems/14-e-ui.js';
 import { JOT_JJOT_PROBLEMS, JOT_JJOT_GUIDE } from './problems/15-jot-jjot.js';
+// import { CM01_PROBLEMS, CM01_GUIDE } from './problems/16-day-col-lock.js';
+
 
 export const TOPICS = [
   { id: 'doe-dwae',      label: '되 / 돼',         problems: DOE_DWAE_PROBLEMS,      guide: DOE_DWAE_GUIDE },
@@ -56,6 +58,8 @@ export const TOPICS = [
   { id: 'buchi-buti',    label: '부치다 / 붙이다',  problems: BUCHI_BUTI_PROBLEMS,    guide: BUCHI_BUTI_GUIDE },
   { id: 'ttei-tti',      label: '띄다 / 띠다',      problems: TTEI_TTI_PROBLEMS,      guide: TTEI_TTI_GUIDE },
   { id: 'busu-busi',     label: '부수다 / 부시다',  problems: BUSU_BUSI_PROBLEMS,     guide: BUSU_BUSI_GUIDE },
+  { id: 'e-ui',          label: '에 / 의',         problems: E_UI_PROBLEMS,          guide: E_UI_GUIDE },
+
 //  { id: 'day-col-lock',  label: '며칠 / 색 / 잠그다', problems: CM01_PROBLEMS,        guide: CM01_GUIDE }, // common-mistakes 틀리기 쉬운 말
  // { id: 'jot-jjot',      label: '좇다 / 쫓다',      problems: JOT_JJOT_PROBLEMS,      guide: JOT_JJOT_GUIDE },
   ];
