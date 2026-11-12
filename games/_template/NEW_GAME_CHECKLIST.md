@@ -1,4 +1,4 @@
-<!-- template v0.3.0 : 디버그 메뉴 연결 방법 구체화 (Preview.js, 별점 일괄 설정) -->
+<!-- template v0.3.0 : 디버그 메뉴 연결 방법 구체화 (preview.js, 별점 일괄 설정) -->
 
 # 새 게임 추가 체크리스트
 
@@ -27,7 +27,7 @@
 - [ ] 단계 종류(`STAGE_KIND`) 정하기: `normal` / `review-recent`(규칙 A) / `review-monthly`(규칙 B)
 - [ ] 월별 초기화(규칙 B)를 쓰면 메인 화면 접속 시 `checkGamePeriodReset(게임id)` 호출 여부 결정
 - [ ] 전체 초기화: `core\debug.js`의 `GENERIC_GAME_IDS`에 게임 id 추가
-- [ ] 디버그 메뉴: 새 게임의 초기화·해금 함수를 `core\debug.js`에 추가하고, 개발용 프리뷰 페이지 `Preview.js`의 `DEBUG_MENU_ITEMS`와 `buildDebugActions`에 연결 (해금이 별점 조건이면 `setAllStageStars`로 마당 목록을 읽어 일괄 설정, 비동기 함수면 메뉴에서 `await`. 디버그 메뉴는 게임 화면에서 접근할 수 없어 배포 때 따로 제거하지 않아도 됨)
+- [ ] 디버그 메뉴: 새 게임의 초기화·해금 함수를 `core\debug.js`에 추가하고, 개발용 프리뷰 페이지 `preview.js`의 `DEBUG_MENU_ITEMS`와 `buildDebugActions`에 연결 (해금이 별점 조건이면 `setAllStageStars`로 마당 목록을 읽어 일괄 설정, 비동기 함수면 메뉴에서 `await`. 디버그 메뉴는 게임 화면에서 접근할 수 없어 배포 때 따로 제거하지 않아도 됨)
 - [ ] 게임 진행 데이터는 캐릭터 내보내기 대상이 아님 → 저장·불러오기 기능 수정 불필요
 
 ## 4. 메인 화면 연결 (`index.html`, `index.js`)
