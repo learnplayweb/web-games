@@ -1,6 +1,6 @@
-// spelling v0.9.0 : 무한 마당 카드 추가 (맨 아래, 최근 기록 표시, 모든 달인 마당 별 3점이면 해금)
+// spelling v0.10.0 : 무한 마당 카드에 최근·최고 기록 표시 (왼쪽 '최근 N', 오른쪽 '최고 N')
 
-import { getSpellingBestStars, getSpellingReviewBestStars, getSpellingInfiniteRecord } from '../../core/saveManager.js';
+import { getSpellingBestStars, getSpellingReviewBestStars, getSpellingInfiniteRecord, getSpellingInfiniteBestRecord } from '../../core/saveManager.js';
 import { initStageSelect } from '../../shared/stageSelect.js';
 import { STAGES } from './data/stages.js';
 import { TOPICS } from './data/topics.js';
@@ -99,7 +99,8 @@ function buildCards() {
       return {
         level: stage.level,
         name: '무한 마당',
-        statusText: `기록 ${getSpellingInfiniteRecord()}`,
+        statusText: `최근 ${getSpellingInfiniteRecord()}`,
+        statusSubText: `최고 ${getSpellingInfiniteBestRecord()}`, // 같은 줄 오른쪽 끝, 일의 자리 위치 고정
         unlocked: isInfiniteUnlocked(),
         extraClass: 'stage-card--infinite',
         onLockedClick: () => {

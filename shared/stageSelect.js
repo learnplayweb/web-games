@@ -1,4 +1,4 @@
-// shared v0.2.0 : 카드 옵션 추가 — statusText(별점 대신 표시할 문구), extraClass(카드 색 등 추가 클래스)
+// shared v0.3.0 : 카드 옵션 추가 — statusSubText(상태 문구와 같은 줄 오른쪽에 표시할 보조 문구, 예: 최고 기록)
 //
 // 사용법 (games\<id>\select.js)
 //   import { initStageSelect } from '../../shared/stageSelect.js';
@@ -13,6 +13,7 @@
 // - onLockedClick: (선택) 잠긴 카드를 눌렀을 때 실행할 함수 (예: 잠김 안내 모달). 없으면 아무 일도 없음
 // - statusText:    (선택) 별점 대신 표시할 문구 (예: '최근 기록 28'). 없으면 stars를 ⭐로 표시
 // - extraClass:    (선택) 카드에 추가할 클래스 이름 (예: 게임 전용 카드 색)
+// - statusSubText: (선택) 상태 문구와 같은 줄의 오른쪽 끝에 표시할 보조 문구 (예: '최고 기록: 47'). 오른쪽 정렬이라 숫자 일의 자리 위치가 고정된다
 //
 // Public API
 // - initStageSelect({ getCards, gameUrl })
@@ -23,7 +24,7 @@ import { createHeader, updateHeaderGold } from './header.js';
 
 // 카드 1개 DOM 생성
 function buildCard(card, gameUrl) {
-  const { level, name, stars, unlocked, review = false, onLockedClick, statusText, extraClass } = card;
+  const { level, name, stars, unlocked, review = false, onLockedClick, statusText, statusSubText, extraClass } = card;
 
   const element = document.createElement('div');
   element.className = `stage-card ${unlocked ? 'stage-card--unlocked' : 'stage-card--locked'}`;
@@ -36,7 +37,19 @@ function buildCard(card, gameUrl) {
 
   const starsLabel = document.createElement('p');
   starsLabel.className = 'stage-card__stars';
-  starsLabel.textContent = statusText ?? starsToEmoji(stars);
+  const mainText = statusText ?? starsToEmoji(stars);
+  if (statusSubText) {
+    // 한 줄에 왼쪽(상태 문구) / 오른쪽(보조 문구) 배치. 레이아웃은 stageSelect.css의 stage-card__stars--split 참고
+    starsLabel.classList.add('stage-card__stars--split');
+    const mainSpan = document.createElement('span');
+    mainSpan.textContent = mainText;
+    const subSpan = document.createElement('span');
+    subSpan.className = 'stage-card__status-sub';
+    subSpan.textContent = statusSubText;
+    starsLabel.append(mainSpan, subSpan);
+  } else {
+    starsLabel.textContent = mainText;
+  }
 
   element.append(levelLabel, starsLabel);
 

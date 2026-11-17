@@ -1,4 +1,4 @@
-<!-- template v0.4.0 : 4번에 무한 단계(규칙 C) 보상 규칙 추가 -->
+<!-- template v0.7.0 : 4번 무한 단계(규칙 C) 최근·최고 기록 저장 반영 -->
 
 # AI 요청용 규칙 (꼬무리 마을 웹게임)
 
@@ -25,7 +25,7 @@ shared\stageSelect.js, stageSelect.css     단계 선택 화면 공통 모듈·�
 shared\game-common.css                     게임 화면 공통 스타일 (변수, 레이아웃, 상단 바, 키패드 버튼, 결과 카드)
 core\saveManager.js                        저장/불러오기 (골드, 별점, 캐릭터, 일반 게임 공통 저장)
 core\reward.js                             보상·별점 공통 계산 (수치는 여기에만)
-characters\                                캐릭터 (characterRenderer.js, inventory.js, assets\effects\effects.js)
+characters\                                캐릭터 (characterRenderer.js, motions.js 동작 등록부, motionPlayer.js 동작 엔진, inventory.js, assets\effects\effects.js)
 games\<id>\                                게임별 (index.html, script.js, style.css, select.html, select.js, data\)
 help\help.html                             도움말
 ```
@@ -34,7 +34,8 @@ help\help.html                             도움말
 
 - **보상·별점**: `core\reward.js`의 `calcStars`, `calcRewardGold`, `starsToString`, `starsToEmoji`를 쓴다. 게임 안에 수치나 계산식을 복사하지 않는다.
 - **저장**: 새 게임은 `saveManager.js`에 함수를 새로 만들지 않고 일반 함수를 쓴다. `getStageBestStars(게임id, 단계키)`, `getStageReviewBestStars`(복습 규칙 B), `getStageRecentStars`(복습 규칙 A), `saveStageResult(게임id, 단계키, stars, 골드, kind)`(kind: `normal` / `review-monthly` / `review-recent`). 게임 id는 영문 소문자로 시작하는 영문/숫자이고 `clock`은 쓸 수 없다. 시계는 골드·해금이 들어 있는 전용 저장 구조라 기존 함수(`saveClockResult` 등)를 그대로 쓴다. 골드(💎)는 프로젝트 전체에서 하나뿐인 재화이며 공용 지갑(`wallet_save`)에 저장된다. 게임 코드는 `getGold` / `addGold` / `spendGold`만 쓰고 저장 키를 직접 읽지 않는다.
-- **캐릭터**: `renderCharacterSvg(svg, { head, body, legs, color, colorMix, expression, animation })`. expression/animation 값은 `idle` / `correct` / `wrong`.
+- **캐릭터 그리기**: 게임 시작 때 한 번 `renderCharacterSvg(svg, { head, body, legs, color, colorMix, expression: 'idle', animation: 'idle' })`로 그린다.
+- **캐릭터 반응(동작)**: `createMotionPlayer(svg, { getEquip })`로 엔진을 만들고 `motion.play('이벤트이름')`만 부른다. 눈·입·몸·팔·다리의 조합은 `characters\motions.js`의 `PRESETS`에 이벤트 이름(`events`)과 함께 등록되어 있고, 같은 이벤트에 프리셋이 여러 개면 무작위로 재생한 뒤 `duration`이 지나면 기본(idle)으로 돌아온다. 반응 코드(`renderCharacterState` 같은 함수)를 게임마다 새로 만들지 않는다.
 - **효과**: `pickRandomEquippedEffect()`로 고른 id를 `spawnEffect(대상요소, id)`로 재생한다.
 - **단계 선택 화면**: `games\<id>\select.js`는 `initStageSelect({ getCards })`만 호출하고, 카드 정보(이름·별점·해금 여부·복습 단계 여부)만 게임에서 계산한다. 카드를 직접 그리는 코드를 새로 쓰지 않는다.
 - **모달**: 안내·확인 모달은 `shared\modal.css`의 클래스(`.modal-overlay`, `.modal-card`, `.modal-card__text`/`__title`/`__body`/`__actions`/`__btn`, `--cancel`)를 쓰고, 페이지 CSS에 모달 스타일을 복사하지 않는다. 게임 진행 중 모달(학습·결과 등)은 게임 CSS에서 따로 정의한다. 캐릭터 상점의 모달은 기능이 달라 `character-shop.css`에 독립된 전용 디자인을 두며, 클래스 이름이 같아도 값이 다르다(상점 페이지는 `modal.css`를 불러오지 않음).
@@ -45,12 +46,12 @@ help\help.html                             도움말
 - 일반 단계: 정답 보상(문제당) + 콤보 보너스(최장 콤보 × 배율) + 별 보상(새 별 가치 − 이전 별 가치, 유지·하락 시 0).
 - 이전 최고 별점은 플레이 시작 시 1회 읽어 고정한다. 최고 별점은 게임·단계별로 독립 저장한다.
 - 복습 단계는 학습 성격에 따라 게임마다 규칙이 다를 수 있다. 규칙 A(시계 Lv.8): 이전 별점 0 고정 + 별 보상 전액 / 규칙 B(맞춤법 달인 마당): 해당 level 최고 별점(매달 초기화) 기준. 새 게임의 복습 단계 규칙은 `reward-system.md`에 먼저 정하고 사용자에게 확인한다.
-- 무한 단계(규칙 C, 맞춤법 무한 마당)는 별점 없이 점프 점수(기록)를 쌓고, 한 번 틀리면 끝난다. 게임이 끝났을 때 기록 10마다 💎1(`core\reward.js`의 `calcRecordGold`)로 정산하고 최근 기록을 저장한다. 수치와 규칙은 `reward-system.md`를 따른다.
+- 무한 단계(규칙 C, 맞춤법 무한 마당)는 별점 없이 점프 점수(기록)를 쌓고, 한 번 틀리면 끝난다. 게임이 끝났을 때 기록 10마다 💎1(`core\reward.js`의 `calcRecordGold`)로 정산하고 최근 기록과 최고 기록(표시용)을 저장한다. 수치와 규칙은 `reward-system.md`를 따른다.
 
 ## 5. 진행·표시 규칙
 
 - 콤보: 정답 +1, 오답 0으로 리셋, 3콤보마다(3, 6, 9 …) 장착된 효과 재생.
-- 캐릭터 리액션: 정답은 `correct`, 오답은 `wrong` 표정·동작을 보여주고 일정 시간 뒤 `idle`로 복귀(`renderCharacterState`, `playCharacterMotion`). 표정·동작 조합과 지속 시간은 게임마다 다를 수 있다.
+- 캐릭터 반응: 정답은 `motion.play('correct')`, 오답은 `motion.play('wrong')`를 쓴다. 게임 전용 반응은 `motions.js`에 `게임이름:이벤트`(예: `spelling:jump`) 프리셋을 등록해서 부른다. 게임 흐름이 동작 길이와 맞물려 있으면 `motion.play('이벤트', { duration })`으로 게임 쪽 길이를 쓴다. 새 동작(조합)은 프리뷰 화면(`characters\preview\preview.html`)에서 테스트한 뒤 "등록용 코드 복사"로 `PRESETS`에 추가한다. 이벤트 이름은 `PRESETS`에 적으면 곧 등록되며, 없는 이름을 부르면 콘솔에 경고가 나온다.
 - 별 표시: 결과 화면 ★/☆(`starsToString`), 선택 화면 ⭐/☆(`starsToEmoji`). 골드 💎, 콤보 🔥.
 - 결과 화면 요소 id: `result-level`, `result-stars`, `result-score`, `result-rate`, `result-combo`, `result-gold-quiz`, `result-gold-combo`, `result-gold-star`, `result-gold-total`. 오버레이는 `stage-result`(숨김 클래스 `stage-result--hidden`).
 - 화면 대응: 모바일(세로, 폭 320~480px)을 기준으로 만들고 PC(480px 이상)에서도 깨지지 않게 한다. 게임 화면은 `game-common.css`처럼 `max-width: 480px` 가운데 정렬을 기본으로 하고, 선택·도움말 같은 목록형 화면은 PC에서 폭을 넓혀 카드 열을 늘린다. 터치 버튼은 높이 44px 이상, 가로 스크롤은 만들지 않는다.

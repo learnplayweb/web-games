@@ -1,4 +1,4 @@
-// core v0.9.0 : Add_setAllStageStars (디버그 전용: 일반 게임 단계 별점 일괄 설정, 맞춤법 전체 단계 해금용)
+// core v0.10.0 : Add_맞춤법 무한 마당 최고 기록 저장·조회(getSpellingInfiniteBestRecord), 종료 시 최근 기록과 함께 갱신
 // 
 // Save Manager
 // - localStorage 접근을 이 파일로 단일화 (공용 지갑, Clock 진행, 캐릭터 인벤토리/적용/이름/색상, 맞춤법 게임 진행)
@@ -38,7 +38,8 @@
 //
 // Public API (맞춤법 무한 마당)
 // - getSpellingInfiniteRecord(): 최근 기록 (없으면 0)
-// - saveSpellingInfiniteResult(record, goldEarned): 최근 기록 저장 + Gold 적립. 반환: { record, gold }
+// - getSpellingInfiniteBestRecord(): 최고 기록 (없으면 0, 표시용. 월별 초기화 없음)
+// - saveSpellingInfiniteResult(record, goldEarned): 최근 기록 저장 + 최고 기록 갱신(더 높을 때만) + Gold 적립. 반환: { record, bestRecord, gold }
 //
 // Public API (일반 게임 공통 — 새 게임은 saveManager에 함수를 추가하지 않고 이 함수들을 사용)
 // - 게임id: 영문 소문자로 시작하는 영문/숫자 (저장 키 {게임id}Game_save). 'clock'은 전용 저장 구조라 사용 불가
@@ -572,10 +573,20 @@ export function getClockSave() {
     return getStageRecentStars(SPELLING_GAME_ID, SPELLING_INFINITE_KEY);
   }
 
-  // 무한 마당 종료 시 1회 호출 : 최근 기록 저장(덮어씀) + 정산 Gold를 공용 지갑에 적립
+  // 최고 기록 (표시용): 일반 저장의 "최고 별점" 칸(bestStars, 초기화 없음)에 같은 키로 저장한다.
+  // 최고 기록을 도입하기 전부터 플레이한 사용자는 최근 기록만 있으므로, 최근 기록이 더 크면 그 값을 최고 기록으로 본다.
+  function getSpellingInfiniteBestRecord() {
+    return Math.max(
+      getStageBestStars(SPELLING_GAME_ID, SPELLING_INFINITE_KEY),
+      getStageRecentStars(SPELLING_GAME_ID, SPELLING_INFINITE_KEY),
+    );
+  }
+
+  // 무한 마당 종료 시 1회 호출 : 최근 기록 저장(덮어씀) + 최고 기록 갱신(더 높을 때만) + 정산 Gold를 공용 지갑에 적립
   function saveSpellingInfiniteResult(record, goldEarned) {
-    const result = saveStageResult(SPELLING_GAME_ID, SPELLING_INFINITE_KEY, record, goldEarned, 'review-recent');
-    return { record: result.stars, gold: result.gold };
+    const recent = saveStageResult(SPELLING_GAME_ID, SPELLING_INFINITE_KEY, record, goldEarned, 'review-recent'); // Gold는 여기서 한 번만 적립
+    const best = saveStageResult(SPELLING_GAME_ID, SPELLING_INFINITE_KEY, record, 0, 'normal'); // 최고 기록만 갱신 (Gold 0)
+    return { record: recent.stars, bestRecord: Math.max(best.stars, recent.stars), gold: recent.gold };
   }
 
   /* ===== 디버그 전용 (core/debug.js에서만 사용) ===== */
@@ -634,6 +645,7 @@ export {
   saveSpellingReviewResult,
   checkSpellingPeriodReset,
   getSpellingInfiniteRecord,
+  getSpellingInfiniteBestRecord,
   saveSpellingInfiniteResult,
   getStageBestStars,
   getStageReviewBestStars,

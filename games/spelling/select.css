@@ -1,4 +1,4 @@
-/* spelling v0.3.0 : 무한 마당 카드(stage-card--infinite) 스타일 추가 */
+/* spelling v0.4.0 : 무한 마당 카드의 최고 기록(오른쪽 보조 문구) 스타일 추가 (색은 text-muted, 잠김·해금 동일) */
 
 /* 잠김 안내 문구: 문구의 \n을 줄바꿈으로 표시하고, 한글이 단어 중간에서 끊기지 않게 함 (공통 modal.css 위에 덮어씀) */
 .modal-card__text {
@@ -22,4 +22,11 @@
 
 .stage-card--infinite.stage-card--locked .stage-card__stars {
   color: var(--color-soon-text);
+}
+
+/* 최고 기록: 최근 기록보다 작은 text-muted 색. 잠김·해금 상태와 상관없이 같은 색. 오른쪽 정렬·숫자 폭 고정은 shared/stageSelect.css */
+.stage-card--infinite .stage-card__status-sub {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
 }
