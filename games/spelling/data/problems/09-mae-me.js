@@ -44,7 +44,7 @@ export const MAE_ME_PROBLEMS = [
   {
     id: 'mae-me-06',
     tokens: [
-      { text: '가방을' },
+      { text: '책가방을' },
       { text: '가볍게' },
       { correct: '메고', wrong: '매고', fixedSide: 'right' },
       { text: '집을' },

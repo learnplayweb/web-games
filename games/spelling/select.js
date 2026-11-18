@@ -1,4 +1,4 @@
-// spelling v0.10.0 : 무한 마당 카드에 최근·최고 기록 표시 (왼쪽 '최근 N', 오른쪽 '최고 N')
+// spelling v0.11.0 : 무한 마당 카드를 선택 화면 맨 위에 표시 (표시 순서만 변경, STAGES 순서·level 번호는 그대로)
 
 import { getSpellingBestStars, getSpellingReviewBestStars, getSpellingInfiniteRecord, getSpellingInfiniteBestRecord } from '../../core/saveManager.js';
 import { initStageSelect } from '../../shared/stageSelect.js';
@@ -93,7 +93,7 @@ function showLockModal(message) {
 // 맞춤법 고유 규칙: 일반 마당은 항상 해금, 달인 마당은 묶인 일반 마당 모두 별 3점일 때 해금
 // 별점은 달인 마당은 level별(매달 1일 초기화), 일반 마당은 topic별 최고 별점
 function buildCards() {
-  return STAGES.map((stage) => {
+  const cards = STAGES.map((stage) => {
     // 무한 마당: 별점 대신 최근 기록을 표시하고, 진한 노랑 카드(stage-card--infinite)로 구분
     if (stage.type === 'infinite') {
       return {
@@ -127,6 +127,11 @@ function buildCards() {
       },
     };
   });
+
+  // 무한 마당은 선택 화면 맨 위에 표시한다. STAGES 배열 순서(맨 끝)와 level 번호는 그대로 두고 표시 순서만 바꾼다.
+  // (배열 앞에 넣으면 잘못된 ?level= 일 때 STAGES[0]으로 무한 마당이 열리는 등 다른 코드에 영향이 생긴다)
+  const isInfinite = (card) => card.extraClass === 'stage-card--infinite';
+  return [...cards.filter(isInfinite), ...cards.filter((card) => !isInfinite(card))];
 }
 
 initStageSelect({ getCards: buildCards });

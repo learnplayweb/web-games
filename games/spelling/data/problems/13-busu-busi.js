@@ -57,7 +57,7 @@ export const BUSU_BUSI_PROBLEMS = [
     tokens: [
       { text: '얼음을' },
       { text: '조각조각' },
-      { correct: '부수고', wrong: '부시고', fixedSide: 'left' },
+      { correct: '부수어', wrong: '부시어', fixedSide: 'left' },
       { text: '넣었다.' }
     ]
   },

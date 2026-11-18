@@ -1,4 +1,4 @@
-// spelling v0.5.0 : 무한 마당(infinite) 단계와 점수·목숨 상수 추가
+// spelling v0.5.1 : 무한 마당 위치 설명 수정 (배열은 맨 끝, 선택 화면에서는 select.js가 맨 위로 표시)
 // Spelling Game - 마당(스테이지) 구성
 // - STAGES는 직접 나열하지 않고 topics.js의 TOPICS 배열에서 자동으로 만든다.
 //   일반 마당 5개(CHUNK_SIZE)마다 그 5개를 묶은 달인 마당을 하나씩 끼워 넣는다.
@@ -8,7 +8,7 @@
 //   saveManager의 달인 마당별 최근 별점을 구분하는 키로도 쓰인다).
 // - 화면에 보이는 "마당N" 번호·"달인 마당 N~M" 범위는 select.js가 STAGES를 보고 따로 계산한다.
 // - 마지막 묶음이 5개를 채우지 못하면(예: 7개 중 마지막 2개) 그 묶음은 아직 달인 마당을 만들지 않는다.
-// - 무한 마당(type: 'infinite')은 항상 맨 끝에 1개 추가된다. level 번호는 마당이 늘면 뒤로 밀리므로 저장 키로 쓰지 않는다(saveManager의 'infinite' 고정 키 사용).
+// - 무한 마당(type: 'infinite')은 항상 배열 맨 끝에 1개 추가된다(선택 화면에서는 select.js가 맨 위에 표시). level 번호는 마당이 늘면 뒤로 밀리므로 저장 키로 쓰지 않는다(saveManager의 'infinite' 고정 키 사용).
 
 import { TOPICS } from './topics.js';
 
@@ -32,7 +32,7 @@ function buildStages(topics) {
     }
   }
 
-  // 무한 마당 : 항상 맨 끝 (선택 화면에서도 맨 아래에 표시됨)
+  // 무한 마당 : 항상 배열 맨 끝 (level 번호와 STAGES[0] 기본값에 영향을 주지 않도록 순서는 그대로 두고, 선택 화면의 맨 위 표시는 select.js가 처리)
   stages.push({ level, type: 'infinite' });
 
   return stages;
