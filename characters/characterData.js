@@ -1,6 +1,6 @@
-// v0.1.10 : 
-// - 효과(Effect) 데이터 및 가격 정보 추가// Character Data (캐릭터용 데이터 카탈로그)
-// - 랜덤 추출을 위한 표정 및 애니메이션 키 배열 추가
+// characters v0.2.0 : 미사용 표정·애니메이션 키 배열(EXPRESSION_KEYS, ANIMATION_KEYS) 제거 (동작·표정 조합은 motions.js 등록부 사용)
+// Character Data (캐릭터용 데이터 카탈로그)
+// - 효과(Effect) 데이터 및 가격 정보
 // - 에셋 경로(assetPath)를 외부 모듈(게임 화면 등)에서도 정상적으로 참조할 수 있도록 import.meta.url 기반 절대 경로로 변경
 // - Feat: 색 섞기용 선형(4방향) 및 방사형(5좌표) SVG 그래디언트 프리셋(GRADIENT_PRESETS) 및 통합 추첨(pickRandomMixStyle) 목록
 // - BODY_ASSETS/FACE_ASSETS: 좌우 분리된 팔·다리, 표정별 눈·입 에셋 경로
@@ -17,11 +17,7 @@ function resolvePath(relativePath) {
   return new URL(relativePath, import.meta.url).href;
 }
 
-// 2. 표정/애니메이션 키
-export const EXPRESSION_KEYS = Object.freeze(['idle', 'correct', 'wrong']);
-export const ANIMATION_KEYS = Object.freeze(['idle', 'correct', 'wrong']);
-
-// 3. 파티클 방식의 효과 배열 (assetPath 대신 uiClass 사용)
+// 2. 파티클 방식의 효과 배열 (assetPath 대신 uiClass 사용)
 export const EFFECTS = Object.freeze([
   // 단순 효과 (500골드)
   { id: 'stardust', name: '별가루', price: 500, type: 'particle', uiClass: 'ui-eff-stardust' },
@@ -144,4 +140,3 @@ export function pickRandomMixStyle(excludedId = null) {
 
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
-
