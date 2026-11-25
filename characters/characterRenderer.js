@@ -1,8 +1,9 @@
-// v0.2.6
+// characters v0.4.0 : setCharacterFace 추가 (눈·입 슬롯만 교체, 전체 다시 그리기 없이 표정 변경)
 // characterRenderer.js
 // - SVG 캐릭터 슬롯 조립 및 렌더링 (head/body/legs/eyes/mouth)
 // - 애니메이션 클래스 다중 래핑, 눈 깜빡임 origin 동적 계산
 // - 색상 틴트 및 컬러믹스(그라디언트/패턴) 적용
+// - 동작: animation('state-*' 한 클래스로 전체 부위) 또는 motions({ body, arms, legs } 슬롯별 'mo-*' 클래스)
 
 
 import { embedSvgFragment, fetchSvgFragmentRoot } from '../core/svgloader.js';
@@ -242,6 +243,77 @@ async function applyColorMixToRoot(svgRoot, patternId, colors, instanceId) {
   }
 }
 
+// 눈·입 표정 교체 요청마다 번호를 매겨, 느리게 도착한 이전 요청이 나중에 덮어쓰지 못하게 한다
+let faceSwapCounter = 0;
+
+async function swapFaceAsset(wrapper, assetPath) {
+  faceSwapCounter += 1;
+  const token = String(faceSwapCounter);
+  wrapper.dataset.faceToken = token;
+
+  const assetRoot = await fetchSvgFragmentRoot(assetPath); // 에셋 텍스트는 svgloader가 캐시하므로 두 번째부터는 즉시
+
+  // 더 새로운 교체 요청이 있었거나, 그 사이 캐릭터가 다시 그려져 이 래퍼가 사라졌으면 쓰지 않는다
+  if (wrapper.dataset.faceToken !== token || !wrapper.isConnected) return;
+  wrapper.replaceChildren(...Array.from(assetRoot.childNodes).map((node) => node.cloneNode(true)));
+}
+
+/**
+ * 눈·입 표정만 바꾼다 (캐릭터 전체를 다시 그리지 않음).
+ * - eyes / mouth: FACE_ASSETS의 키. 지정하지 않은 쪽은 그대로 둔다.
+ * - 슬롯 안의 애니메이션 래퍼(<g class="anim-head anim-eyes"> 등)는 그대로 두고 내용만 교체하므로,
+ *   둥실둥실 같은 동작이 처음부터 다시 시작해 머리와 어긋나는 일이 없다.
+ * - 아직 그려지지 않았거나 머리가 없는 상태(플레이스홀더)면 아무것도 하지 않고 false를 돌려준다.
+ *   (호출부가 renderCharacterSvg로 전체를 그리면 된다)
+ */
+export async function setCharacterFace(svgElement, { eyes, mouth } = {}) {
+  const root = svgElement.querySelector('#character-root');
+  const eyeWrapper = root?.querySelector('#face-eyes-slot g.anim-eyes');
+  const mouthWrapper = root?.querySelector('#face-mouth-slot > g.anim-head');
+  if (!eyeWrapper || !mouthWrapper) return false;
+
+  const jobs = [];
+  if (eyes !== undefined) jobs.push(swapFaceAsset(eyeWrapper, FACE_ASSETS.eyes[eyes] || FACE_ASSETS.eyes.idle));
+  if (mouth !== undefined) jobs.push(swapFaceAsset(mouthWrapper, FACE_ASSETS.mouth[mouth] || FACE_ASSETS.mouth.idle));
+  await Promise.all(jobs);
+  return true;
+}
+
+// 동작 슬롯: body(머리+눈·입+상체+하체), arms(좌우 팔), legs(좌우 다리)
+const MOTION_SLOTS = ['body', 'arms', 'legs'];
+
+function clearMotionClasses(svgElement) {
+  Array.from(svgElement.classList).forEach((cls) => {
+    if (cls.startsWith('state-') || cls.startsWith('mo-')) svgElement.classList.remove(cls);
+  });
+}
+
+/**
+ * 슬롯별 동작만 교체한다 (파츠를 다시 불러오지 않으므로 즉시 반영).
+ * motions: { body, arms, legs } — 값은 character-anim.css에 정의된 동작 이름 (예: 'bounce'). 지정하지 않은 슬롯은 동작 없음.
+ */
+export function setCharacterMotions(svgElement, motions) {
+  clearMotionClasses(svgElement);
+  MOTION_SLOTS.forEach((slot) => {
+    const name = motions?.[slot];
+    if (name) svgElement.classList.add(`mo-${slot}-${name}`);
+  });
+}
+
+// motions가 있으면 슬롯별 클래스(mo-*), 없으면 기존 방식(state-<animation>)으로 적용
+function applyMotionClasses(svgElement, animation, motions) {
+  if (motions) {
+    setCharacterMotions(svgElement, {
+      body: motions.body ?? animation,
+      arms: motions.arms ?? animation,
+      legs: motions.legs ?? animation,
+    });
+    return;
+  }
+  clearMotionClasses(svgElement);
+  if (animation) svgElement.classList.add(`state-${animation}`);
+}
+
 export async function renderCharacterSvg(svgElement, config) {
   const {
     head, body, legs,
@@ -249,13 +321,11 @@ export async function renderCharacterSvg(svgElement, config) {
     expression = 'idle',
     eyes, mouth,
     animation = 'idle',
+    motions,
     placeholderText = 'ㅠ _ ㅠ'
   } = config;
 
-  Array.from(svgElement.classList).forEach(cls => {
-    if (cls.startsWith('state-')) svgElement.classList.remove(cls);
-  });
-  if (animation) svgElement.classList.add(`state-${animation}`);
+  applyMotionClasses(svgElement, animation, motions);
 
   const root = initializeCharacterSvg(svgElement);
 

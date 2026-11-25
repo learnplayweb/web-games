@@ -1,4 +1,4 @@
-/* v0.2.0
+/* characters v0.3.0 : 슬롯 단위 동작 클래스(mo-body-/mo-arms-/mo-legs-*) 추가 (기존 state-* 규칙은 그대로 유지)
 // character-anim.css
 // - 캐릭터 파츠별 애니메이션 정의 (idle/correct/wrong + wiggle/bounce/squish/sway/breathe)
 // - 관절 회전축(transform-origin) 및 8개 상태별 keyframe 세트 관리
@@ -384,3 +384,75 @@
   0%, 100% { transform: rotate(0deg); }
   50% { transform: rotate(2deg); }
 }
+
+/* ===========================
+   슬롯 단위 동작 (mo-body-* / mo-arms-* / mo-legs-*)
+   - 부위 묶음마다 다른 동작을 조합하기 위한 클래스. 키프레임은 위 state 규칙과 같은 것을 재사용한다.
+   - body = 머리(눈·입 포함) + 상체 + 하체, arms = 좌우 팔, legs = 좌우 다리
+   - 새 동작 추가: 위에 keyframes와 .state-<이름> 규칙을 만든 뒤, 아래 세 그룹에도 같은 이름으로 추가하고
+     characters/motions.js의 동작 이름 목록(BODY_MOTIONS 등)에도 등록한다.
+=========================== */
+/* idle */
+.mo-body-idle .anim-head { animation: idle-float-head 3s ease-in-out infinite; }
+.mo-body-idle .anim-body { animation: idle-float-body 3s ease-in-out infinite; }
+.mo-body-idle .anim-body-lower { animation: idle-float-lower 3s ease-in-out infinite; }
+.mo-arms-idle .anim-left-arm { animation: idle-flap-l-arm 3s ease-in-out infinite; }
+.mo-arms-idle .anim-right-arm { animation: idle-flap-r-arm 3s ease-in-out infinite; }
+.mo-legs-idle .anim-left-leg { animation: idle-swing-l-leg 3s ease-in-out infinite; }
+.mo-legs-idle .anim-right-leg { animation: idle-swing-r-leg 3s ease-in-out infinite; }
+/* correct */
+.mo-body-correct .anim-head { animation: idle-float-head 3s ease-in-out infinite; }
+.mo-body-correct .anim-body { animation: idle-float-body 3s ease-in-out infinite; }
+.mo-body-correct .anim-body-lower { animation: idle-float-lower 3s ease-in-out infinite; }
+.mo-arms-correct .anim-left-arm { animation: correct-flap-l-arm 0.3s ease-in-out infinite; }
+.mo-arms-correct .anim-right-arm { animation: correct-flap-r-arm 0.3s ease-in-out infinite; }
+.mo-legs-correct .anim-left-leg { animation: correct-flap-l-leg 0.3s ease-in-out infinite; }
+.mo-legs-correct .anim-right-leg { animation: correct-flap-r-leg 0.3s ease-in-out infinite; }
+/* wrong */
+.mo-body-wrong .anim-head { animation: idle-float-head 3s ease-in-out infinite; }
+.mo-body-wrong .anim-body { animation: idle-float-body 3s ease-in-out infinite; }
+.mo-body-wrong .anim-body-lower { animation: idle-float-lower 3s ease-in-out infinite; }
+.mo-arms-wrong .anim-left-arm { animation: wrong-flap-l-arm 3s ease-in-out infinite; }
+.mo-arms-wrong .anim-right-arm { animation: wrong-flap-r-arm 3s ease-in-out infinite; }
+.mo-legs-wrong .anim-left-leg { animation: wrong-swing-l-leg 3s ease-in-out infinite; }
+.mo-legs-wrong .anim-right-leg { animation: wrong-swing-r-leg 3s ease-in-out infinite; }
+/* wiggle */
+.mo-body-wiggle .anim-head { animation: wiggle-head 3s ease-in-out infinite; }
+.mo-body-wiggle .anim-body { animation: wiggle-body 3s ease-in-out infinite; }
+.mo-body-wiggle .anim-body-lower { animation: wiggle-lower 3s ease-in-out infinite; }
+.mo-arms-wiggle .anim-left-arm { animation: wiggle-l-arm 3s ease-in-out infinite; }
+.mo-arms-wiggle .anim-right-arm { animation: wiggle-r-arm 3s ease-in-out infinite; }
+.mo-legs-wiggle .anim-left-leg { animation: wiggle-l-leg 3s ease-in-out infinite; }
+.mo-legs-wiggle .anim-right-leg { animation: wiggle-r-leg 3s ease-in-out infinite; }
+/* bounce */
+.mo-body-bounce .anim-head { animation: bounce-head 3s ease-in-out infinite; }
+.mo-body-bounce .anim-body { animation: bounce-body 3s ease-in-out infinite; }
+.mo-body-bounce .anim-body-lower { animation: bounce-lower 3s ease-in-out infinite; }
+.mo-arms-bounce .anim-left-arm { animation: bounce-l-arm 3s ease-in-out infinite; }
+.mo-arms-bounce .anim-right-arm { animation: bounce-r-arm 3s ease-in-out infinite; }
+.mo-legs-bounce .anim-left-leg { animation: bounce-l-leg 3s ease-in-out infinite; }
+.mo-legs-bounce .anim-right-leg { animation: bounce-r-leg 3s ease-in-out infinite; }
+/* squish */
+.mo-body-squish .anim-head { animation: squish-head 3s ease-in-out infinite; }
+.mo-body-squish .anim-body { animation: squish-body 3s ease-in-out infinite; }
+.mo-body-squish .anim-body-lower { animation: squish-lower 3s ease-in-out infinite; }
+.mo-arms-squish .anim-left-arm { animation: squish-l-arm 3s ease-in-out infinite; }
+.mo-arms-squish .anim-right-arm { animation: squish-r-arm 3s ease-in-out infinite; }
+.mo-legs-squish .anim-left-leg { animation: squish-l-leg 3s ease-in-out infinite; }
+.mo-legs-squish .anim-right-leg { animation: squish-r-leg 3s ease-in-out infinite; }
+/* sway */
+.mo-body-sway .anim-head { animation: sway-head 3s ease-in-out infinite; }
+.mo-body-sway .anim-body { animation: sway-body 3s ease-in-out infinite; }
+.mo-body-sway .anim-body-lower { animation: sway-lower 3s ease-in-out infinite; }
+.mo-arms-sway .anim-left-arm { animation: sway-l-arm 3s ease-in-out infinite; }
+.mo-arms-sway .anim-right-arm { animation: sway-r-arm 3s ease-in-out infinite; }
+.mo-legs-sway .anim-left-leg { animation: sway-l-leg 3s ease-in-out infinite; }
+.mo-legs-sway .anim-right-leg { animation: sway-r-leg 3s ease-in-out infinite; }
+/* breathe */
+.mo-body-breathe .anim-head { animation: breathe-head 3s ease-in-out infinite; }
+.mo-body-breathe .anim-body { animation: breathe-body 3s ease-in-out infinite; }
+.mo-body-breathe .anim-body-lower { animation: breathe-lower 3s ease-in-out infinite; }
+.mo-arms-breathe .anim-left-arm { animation: breathe-l-arm 3s ease-in-out infinite; }
+.mo-arms-breathe .anim-right-arm { animation: breathe-r-arm 3s ease-in-out infinite; }
+.mo-legs-breathe .anim-left-leg { animation: breathe-l-leg 3s ease-in-out infinite; }
+.mo-legs-breathe .anim-right-leg { animation: breathe-r-leg 3s ease-in-out infinite; }

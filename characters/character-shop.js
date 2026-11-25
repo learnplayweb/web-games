@@ -1,9 +1,10 @@
-// v0.1.50 : Add_캐릭터 저장(내보내기) - JSON 파일 다운로드 및 저장 결과 모달
+// characters v0.1.51 : 캐릭터 터치 반응을 motionPlayer(등록부 motions.js의 shop:touch 프리셋)로 변경
 
 import { createHeader, updateHeaderGold } from '../shared/header.js';
 import { replaceSvgContent } from '../core/svgloader.js';
-import { getPart, SHOP_COST, EXPRESSION_KEYS, ANIMATION_KEYS, EFFECTS } from './characterData.js';
+import { getPart, SHOP_COST, EFFECTS } from './characterData.js';
 import { renderCharacterSvg } from './characterRenderer.js';
+import { createMotionPlayer } from './motionPlayer.js';
 import {
   getPartQuantity, purchasePart, purchaseRandomPart, getEquippedPart, applyPart,
   canCombine, previewCombine, canRecombine, previewRecombine, confirmCombine,
@@ -26,6 +27,17 @@ const characterPlaceholder = document.querySelector('.character-placeholder');
 let renderChain = Promise.resolve();
 let isCharacterReacting = false; // 연타 방지 플래그
 
+// 캐릭터 동작 엔진: 터치 반응은 motions.js에 'shop:touch' 이벤트로 등록된 프리셋 중 하나를 무작위로 재생한다.
+const motion = createMotionPlayer(characterPlaceholder, {
+  getEquip: () => ({
+    head: getEquippedPart('head'),
+    body: getEquippedPart('body'),
+    legs: getEquippedPart('legs'),
+    color: getEquippedColor(),
+    colorMix: getEquippedColorMix(),
+  }),
+});
+
 function renderCharacterPreview() {
   renderChain = renderChain.then(() => renderCharacterPreviewOnce());
   return renderChain;
@@ -46,29 +58,24 @@ async function renderCharacterPreviewOnce(customConfig = null) {
   
   const config = { ...baseConfig, ...customConfig };
   await renderCharacterSvg(characterPlaceholder, config);
+
+  // 전체를 다시 그렸으므로 동작 엔진이 아는 현재 상태를 맞추고, 진행 중이던 터치 반응(복귀 타이머)은 끝난 것으로 처리
+  motion.syncState({ eyes: config.eyes, mouth: config.mouth, body: config.animation, arms: config.animation, legs: config.animation });
+  isCharacterReacting = false;
 }
 
 // 터치(클릭) 시 랜덤 리액션 발동
-characterPlaceholder.addEventListener('click', () => {
+characterPlaceholder.addEventListener('click', async () => {
   // 이미 반응 중이거나, 머리가 없으면(빈 플레이스홀더면) 무시
   if (isCharacterReacting || !getEquippedPart('head')) return;
-  
+
   isCharacterReacting = true;
 
-  // 랜덤 요소 뽑기
-  const randomEye = EXPRESSION_KEYS[Math.floor(Math.random() * EXPRESSION_KEYS.length)];
-  const randomMouth = EXPRESSION_KEYS[Math.floor(Math.random() * EXPRESSION_KEYS.length)];
-  const randomAnim = ANIMATION_KEYS[Math.floor(Math.random() * ANIMATION_KEYS.length)];
-
-  // 랜덤 상태 적용
-  renderCharacterPreviewOnce({ eyes: randomEye, mouth: randomMouth, animation: randomAnim });
-
-  // 3초 뒤 원래 상태로 복구 (애니메이션 길이와 같아야 자연스러움)
-  setTimeout(() => {
-    renderCharacterPreviewOnce(); // 파라미터 없이 부르면 기본(idle) 상태로 돌아감
-    isCharacterReacting = false;
-  }, 3000);
+  // 'shop:touch'에 등록된 프리셋 중 하나를 무작위로 재생. 정해진 길이(기본 3초)가 지나면 기본 상태로 복귀하고 연타 방지를 해제한다.
+  const played = await motion.play('shop:touch', { onEnd: () => { isCharacterReacting = false; } });
+  if (!played) isCharacterReacting = false; // 등록된 프리셋이 없으면 바로 해제
 });
+
 
 renderCharacterPreview();
 

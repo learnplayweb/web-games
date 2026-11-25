@@ -1,9 +1,10 @@
-// spelling v0.32.1 : 마당 완료 결과 제목에 주제 이름 표시 (topics.js의 label, 예: 안 / 않 완료!)
+// spelling v0.33.0 : 캐릭터 반응을 motionPlayer(등록부 characters/motions.js)로 변경 (spelling:jump / fall / flash 이벤트)
 //
 // Public API
 // - initCharacter()
 
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
+import { createMotionPlayer } from '../../characters/motionPlayer.js';
 import { calcStars, starsToString, calcRewardGold, calcRecordGold } from '../../core/reward.js';
 import { getEquippedParts, getCharacterName, getSpellingBestStars, getSpellingReviewBestStars, saveSpellingResult, saveSpellingReviewResult, saveSpellingInfiniteResult } from '../../core/saveManager.js';
 import { spawnEffect } from '../../characters/assets/effects/effects.js';
@@ -146,6 +147,7 @@ const PREV_BEST_STARS = IS_INFINITE_STAGE
 =========================== */
 
 let characterSvgEl = null;
+let motion = null; // 캐릭터 동작 엔진 (initCharacter에서 생성)
 let characterEquipState = null;
 
 function initCharacter() {
@@ -168,25 +170,10 @@ function initCharacter() {
     expression: 'idle',
     animation: 'idle'
   });
-}
 
-// expression/animation을 독립적으로 지정 가능 (예: 조작 실수는 눈·입은 wrong, 움직임은 correct)
-function renderCharacterState(expression, animation) {
-  if (!characterSvgEl || !characterEquipState) return;
-  renderCharacterSvg(characterSvgEl, {
-    head: characterEquipState.head,
-    body: characterEquipState.body,
-    legs: characterEquipState.legs,
-    color: characterEquipState.color,
-    colorMix: characterEquipState.colorMix,
-    expression,
-    animation
-  });
-}
-
-function playCharacterMotion(expression, animation, duration) {
-  renderCharacterState(expression, animation);
-  setTimeout(() => renderCharacterState('idle', 'idle'), duration);
+  // 캐릭터 동작 엔진: 반응 동작은 characters/motions.js에 등록된 프리셋을 쓴다.
+  // 게임 흐름(점프·추락 시간)과 맞물린 이벤트는 아래처럼 게임 쪽 길이로 덮어쓴다.
+  motion = createMotionPlayer(characterSvgEl, { getEquip: () => characterEquipState });
 }
 
 /* ===========================
@@ -933,7 +920,7 @@ function playJumpMotion() {
   jumpEl.classList.remove('is-jumping');
   void jumpEl.offsetWidth; // 리플로우로 애니메이션 재시작
   jumpEl.classList.add('is-jumping');
-  playCharacterMotion('idle', 'correct', JUMP_ANIM_DURATION);
+  motion?.play('spelling:jump', { duration: JUMP_ANIM_DURATION });
 }
 
 // 빠른 점멸 후 자동으로 멈춤 (조작 실수 롤백 / 갈림길 오답 롤백 공통 사용)
@@ -961,8 +948,8 @@ function handleOperationMistake() {
   }
 
   isBusy = true;
-  // 눈·입은 wrong, 움직임(팔다리)은 correct 세트 조합
-  playCharacterMotion('wrong', 'correct', FALL_DURATION);
+  // 눈·입은 wrong, 움직임(팔다리)은 correct 세트 조합 (등록된 spelling:fall 프리셋)
+  motion?.play('spelling:fall', { duration: FALL_DURATION });
 
   jumpEl.classList.remove('is-jumping');
   void jumpEl.offsetWidth;
@@ -1031,7 +1018,7 @@ function handleInput(action) {
       flashBlock(correctEl, 'correct');
 
       // 캐릭터 : 눈·입은 wrong, 움직임은 correct 세트 + 추락하며 회전
-      playCharacterMotion('wrong', 'correct', REVIEW_WRONG_FALL_DURATION);
+      motion?.play('spelling:fall', { duration: REVIEW_WRONG_FALL_DURATION });
       jumpEl.classList.remove('is-jumping');
       void jumpEl.offsetWidth;
       jumpEl.classList.add('is-falling-fast');
@@ -1059,7 +1046,7 @@ function handleInput(action) {
       flashBlock(wrongEl, 'wrong');
       collapseBlock(wrongEl);
       flashBlock(correctEl, 'correct');
-      playCharacterMotion('wrong', 'wrong', FLASH_DURATION);
+      motion?.play('spelling:flash', { duration: FLASH_DURATION });
       jumpEl.classList.add('is-blinking');
 
       setTimeout(() => {

@@ -1,5 +1,4 @@
-// v0.6.0 
-// Clock Game - 보상 계산(별점·정답 보상·콤보 보너스·별 보상)을 core/reward.js 공통 모듈로 이동
+// clock v0.7.0 : 캐릭터 정답/오답 반응을 motionPlayer(등록부 characters/motions.js)로 변경
 //
 // Public API (Internal Game Logic)
 // - setClock(hour, minute, second)
@@ -9,6 +8,7 @@
 
 import { getClockBestStars, saveClockResult, getEquippedParts } from '../../core/saveManager.js';
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
+import { createMotionPlayer } from '../../characters/motionPlayer.js';
 import { LEVELS, shuffleArray } from './data/levels.js';
 import { spawnEffect } from '../../characters/assets/effects/effects.js';
 import { pickRandomEquippedEffect } from '../../characters/inventory.js';
@@ -331,9 +331,9 @@ function checkAnswer() {
     stageState.correctCount += 1;
     inputArea.classList.add('input-area--correct');
 
-    // [캐릭터 정답 리액션]
+    // [캐릭터 정답 리액션] 등록된 'correct' 동작 재생 (600ms 뒤 자동으로 기본 상태 복귀)
     if (characterSvg && equipState.head) {
-      renderCharacterSvg(characterSvg, { ...equipState, expression: 'correct', animation: 'correct' });
+      motion?.play('correct');
     }
 
     // [콤보 파티클 효과 연동] 3콤보 이상이면서 3의 배수일 때 (3, 6, 9 ...)
@@ -344,9 +344,6 @@ function checkAnswer() {
     setTimeout(() => {
       inputArea.classList.remove('input-area--correct');
       // 복구 후 다음 문제로 진행
-      if (characterSvg && equipState.head) {
-        renderCharacterSvg(characterSvg, { ...equipState, expression: 'idle', animation: 'idle' });
-      }
       resetInput();
       nextQuestion();
       isJudging = false;
@@ -356,17 +353,14 @@ function checkAnswer() {
     handleWrongAnswer(); 
     inputArea.classList.add('input-area--wrong');
 
-    // [캐릭터 오답 리액션]
+    // [캐릭터 오답 리액션] 등록된 'wrong' 동작 재생 (600ms 뒤 자동으로 기본 상태 복귀)
     if (characterSvg && equipState.head) {
-      renderCharacterSvg(characterSvg, { ...equipState, expression: 'wrong', animation: 'wrong' });
+      motion?.play('wrong');
     }
 
     setTimeout(() => {
       inputArea.classList.remove('input-area--wrong');
       // 복구 후 오답 모달 띄우기
-      if (characterSvg && equipState.head) {
-        renderCharacterSvg(characterSvg, { ...equipState, expression: 'idle', animation: 'idle' });
-      }
       showAnswerModal();
     }, 600);
   }
@@ -427,6 +421,9 @@ function moveCharacterToRandomPosition() {
 }
 
 
+// 캐릭터 동작 엔진 (캐릭터 초기화에서 생성)
+let motion = null;
+
 function initCharacter() {
   const container = document.getElementById('character-container');
   if (!container) return;
@@ -451,6 +448,9 @@ function initCharacter() {
     colorMix: equipState.colorMix,
     expression: 'idle'
   });
+
+  // 캐릭터 동작 엔진 (정답/오답 반응은 characters/motions.js에 등록된 프리셋을 쓴다)
+  motion = createMotionPlayer(svgEl, { getEquip: () => equipState });
 }
 
 /* ===========================

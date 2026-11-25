@@ -1,3 +1,4 @@
+<!-- characters v0.2.0 : 동작 조합(몸·팔·다리), 프리셋 등록용 코드 복사, 등록된 이벤트·프리셋 재생 패널 추가 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -55,8 +56,28 @@
       </section>
 
       <section class="panel">
-        <h2>애니메이션 상태</h2>
-        <p class="hint">재렌더링 없이 즉시 전환됩니다.</p>
+        <h2>동작 조합</h2>
+        <p class="hint">눈·입은 위 파츠 설정에서 고르고 적용 버튼을 누르세요. 몸·팔·다리 동작은 고르는 즉시 바뀝니다.</p>
+
+        <label>
+          Body 동작 <span class="sub">(머리·눈·입 + 상체 + 하체)</span>
+          <select id="input-motion-body"></select>
+        </label>
+
+        <label>
+          Arms 동작 <span class="sub">(좌우 팔)</span>
+          <select id="input-motion-arms"></select>
+        </label>
+
+        <label>
+          Legs 동작 <span class="sub">(좌우 다리)</span>
+          <select id="input-motion-legs"></select>
+        </label>
+      </section>
+
+      <section class="panel">
+        <h2>전체 동작 한 번에</h2>
+        <p class="hint">몸·팔·다리에 같은 동작을 한꺼번에 적용합니다. 재렌더링 없이 즉시 전환됩니다.</p>
         <div class="anim-buttons">
           <button data-anim="idle">idle</button>
           <button data-anim="correct">correct</button>
@@ -67,6 +88,49 @@
           <button data-anim="sway">sway</button>
           <button data-anim="breathe">breathe</button>
         </div>
+      </section>
+
+      <section class="panel">
+        <h2>프리셋 만들기</h2>
+        <p class="hint">위에서 고른 눈·입·몸·팔·다리 조합으로 프리셋을 만듭니다.</p>
+
+        <label>
+          id
+          <input type="text" id="preset-id" value="my-preset" autocomplete="off">
+        </label>
+
+        <label>
+          이름 (label)
+          <input type="text" id="preset-label" value="새 동작" autocomplete="off">
+        </label>
+
+        <label>
+          길이 (ms)
+          <input type="number" id="preset-duration" value="600" min="100" step="50">
+        </label>
+
+        <label>
+          이벤트 <span class="sub">(쉼표로 구분. 예: correct, spelling:jump)</span>
+          <input type="text" id="preset-events" value="correct" autocomplete="off">
+        </label>
+
+        <div class="button-row">
+          <button id="btn-preview" class="btn-secondary" type="button">길이만큼 재생 후 복귀</button>
+          <button id="btn-copy" class="btn-primary" type="button">등록용 코드 복사</button>
+        </div>
+
+        <p class="hint" id="copy-message"></p>
+        <pre id="preset-code" class="code-box"></pre>
+        <p class="hint">복사한 한 줄을 characters/motions.js의 PRESETS에 붙여 넣으면 등록됩니다.</p>
+      </section>
+
+      <section class="panel">
+        <h2>등록된 이벤트·프리셋 재생</h2>
+        <p class="hint">motions.js에 등록된 항목입니다. 같은 이벤트에 프리셋이 여러 개면 무작위로 재생됩니다.</p>
+        <h3 class="sub-title">이벤트</h3>
+        <div id="registered-events" class="pill-buttons"></div>
+        <h3 class="sub-title">프리셋</h3>
+        <div id="registered-presets" class="pill-buttons"></div>
       </section>
 
     </div>

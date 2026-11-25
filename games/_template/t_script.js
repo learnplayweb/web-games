@@ -1,4 +1,4 @@
-// template v0.1.3 : 저장·이전 별점을 saveManager 일반 함수(getStageBestStars/saveStageResult)로 연결, 단계 종류(STAGE_KIND)로 복습 단계 규칙 A/B 선택
+// template v0.2.0 : 캐릭터 반응을 motionPlayer(등록부 characters/motions.js)로 변경 (renderCharacterState/playCharacterMotion 제거)
 // <게임 이름> - 새 게임 시작용 뼈대
 //
 // 사용법
@@ -12,6 +12,7 @@
 // - finishStage()
 
 import { renderCharacterSvg } from '../../characters/characterRenderer.js';
+import { createMotionPlayer } from '../../characters/motionPlayer.js';
 import { calcStars, starsToString, calcRewardGold } from '../../core/reward.js';
 import {
   getEquippedParts,
@@ -69,6 +70,7 @@ let stageEnded = false; // [공통] finishStage 중복 실행 방지 (보상 중
 
 let characterSvgEl = null;
 let characterEquipState = null;
+let motion = null; // 캐릭터 동작 엔진
 
 function initCharacter() {
   const container = document.getElementById('character-container');
@@ -93,24 +95,10 @@ function initCharacter() {
   });
 }
 
-// 표정(expression)과 동작(animation)을 독립적으로 지정 (값: 'idle' | 'correct' | 'wrong')
-function renderCharacterState(expression, animation) {
-  if (!characterSvgEl || !characterEquipState) return;
-  renderCharacterSvg(characterSvgEl, {
-    head: characterEquipState.head,
-    body: characterEquipState.body,
-    legs: characterEquipState.legs,
-    color: characterEquipState.color,
-    colorMix: characterEquipState.colorMix,
-    expression,
-    animation,
-  });
-}
-
-// 정오답 리액션: 지정한 표정·동작을 보여준 뒤 duration(ms) 후 평소 모습(idle)으로 복귀
-function playCharacterMotion(expression, animation, duration) {
-  renderCharacterState(expression, animation);
-  setTimeout(() => renderCharacterState('idle', 'idle'), duration);
+// 캐릭터 동작 엔진: 반응 동작은 characters/motions.js의 프리셋(이벤트 이름으로 등록)을 쓴다.
+// 게임 흐름이 동작 길이와 맞물려 있을 때는 play('이벤트', { duration })으로 게임 쪽 길이를 쓴다.
+function setupCharacterMotion() {
+  if (characterSvgEl) motion = createMotionPlayer(characterSvgEl, { getEquip: () => characterEquipState });
 }
 
 /* ===========================
@@ -174,11 +162,11 @@ function submitAnswer(isCorrect) {
   if (isCorrect) {
     correctCount += 1;
     increaseCombo();
-    // TODO(게임별): 표정·동작 조합과 시간은 게임마다 다름 (맞춤법은 상황별로 'idle'/'wrong' 표정 + 'correct'/'wrong' 동작 조합 사용)
-    playCharacterMotion('correct', 'correct', REACTION_DURATION);
+    // TODO(게임별): 게임 전용 반응이 필요하면 motions.js에 '게임이름:이벤트' 프리셋을 등록하고 그 이름으로 재생 (예: 'spelling:jump')
+    motion?.play('correct', { duration: REACTION_DURATION }); // 'correct' 이벤트에 등록된 동작 (motions.js)
   } else {
     resetCombo();
-    playCharacterMotion('wrong', 'wrong', REACTION_DURATION);
+    motion?.play('wrong', { duration: REACTION_DURATION }); // 'wrong' 이벤트에 등록된 동작 (motions.js)
   }
 
   // 리액션이 끝난 뒤 다음 문제로 진행
@@ -257,6 +245,7 @@ stageResultEl.addEventListener('click', goToSelect);
 
 function startStage() {
   initCharacter();
+  setupCharacterMotion();
   updateComboDisplay();
   // TODO(게임별): 문제 준비(섞기 등)
   showNextQuestion();

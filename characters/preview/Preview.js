@@ -1,12 +1,16 @@
-// characters v0.3.1 : 디버그 메뉴에 맞춤법 전체 단계 해금·초기화 항목 추가 (액션이 비동기라 실행 완료 후 새로고침)
+// characters v0.4.0 : 동작 조합(눈·입·몸·팔·다리) 테스트, 프리셋 코드 복사, 등록된 이벤트·프리셋 재생 추가
 // preview.js
 // - characterRenderer.js의 renderCharacterSvg 재사용, characterData.js에서 파츠/표정 목록을 직접 import
 // - head/body/legs/eyes/mouth 드롭다운을 BASE_PARTS·FACE_ASSETS로부터 런타임 생성 (목록 추가 시 코드 수정 불필요)
 // - eyes/mouth는 expression 매개 없이 완전히 독립 선택 → 서로 다른 상태 조합 테스트 가능
-// - 애니메이션 상태(8종) 전환은 재렌더링 없이 state-* 클래스만 교체하여 즉시 확인
+// - 몸·팔·다리 동작(motions.js 목록)은 고르는 즉시 클래스만 교체하여 반영 (재렌더링 없음)
+// - 합격한 조합은 "등록용 코드 복사"로 motions.js의 PRESETS에 붙여 넣는다
+// - 등록된 이벤트·프리셋은 motionPlayer.js(게임이 쓰는 엔진과 동일)로 재생해 실제 동작을 확인한다
 
-import { renderCharacterSvg } from '../characterRenderer.js';
+import { renderCharacterSvg, setCharacterMotions } from '../characterRenderer.js';
 import { BASE_PARTS, FACE_ASSETS } from '../characterData.js';
+import { BODY_MOTIONS, ARM_MOTIONS, LEG_MOTIONS, PRESETS } from '../motions.js';
+import { createMotionPlayer } from '../motionPlayer.js';
 
 const svg = document.getElementById('character-svg');
 
@@ -20,10 +24,23 @@ const els = {
   colorEnabled: document.getElementById('input-color-enabled'),
   applyBtn: document.getElementById('btn-apply'),
   animButtons: document.querySelectorAll('.anim-buttons button'),
+  motionBody: document.getElementById('input-motion-body'),
+  motionArms: document.getElementById('input-motion-arms'),
+  motionLegs: document.getElementById('input-motion-legs'),
+  presetId: document.getElementById('preset-id'),
+  presetLabel: document.getElementById('preset-label'),
+  presetDuration: document.getElementById('preset-duration'),
+  presetEvents: document.getElementById('preset-events'),
+  previewBtn: document.getElementById('btn-preview'),
+  copyBtn: document.getElementById('btn-copy'),
+  copyMessage: document.getElementById('copy-message'),
+  presetCode: document.getElementById('preset-code'),
+  registeredEvents: document.getElementById('registered-events'),
+  registeredPresets: document.getElementById('registered-presets'),
 };
 
 // ─────────────────────────────────────────────
-// 드롭다운 옵션 채우기 (BASE_PARTS / FACE_ASSETS 기준, 하드코딩 없음)
+// 드롭다운 옵션 채우기 (BASE_PARTS / FACE_ASSETS / motions.js 기준, 하드코딩 없음)
 // ─────────────────────────────────────────────
 function populateSelect(selectEl, options, { noneLabel } = {}) {
   selectEl.innerHTML = '';
@@ -47,12 +64,16 @@ const partOptions = BASE_PARTS.map((part) => ({ value: part.id, label: `${part.n
 // eyes/mouth는 각자의 키 목록을 그대로 사용 (두 목록이 다를 수 있음을 전제, 서로 강제 매칭하지 않음)
 const eyeOptions = Object.keys(FACE_ASSETS.eyes).map((key) => ({ value: key, label: key }));
 const mouthOptions = Object.keys(FACE_ASSETS.mouth).map((key) => ({ value: key, label: key }));
+const toOptions = (names) => names.map((name) => ({ value: name, label: name }));
 
 populateSelect(els.head, partOptions);
 populateSelect(els.body, partOptions, { noneLabel: '없음' });
 populateSelect(els.legs, partOptions, { noneLabel: '없음' });
 populateSelect(els.eyes, eyeOptions);
 populateSelect(els.mouth, mouthOptions);
+populateSelect(els.motionBody, toOptions(BODY_MOTIONS));
+populateSelect(els.motionArms, toOptions(ARM_MOTIONS));
+populateSelect(els.motionLegs, toOptions(LEG_MOTIONS));
 
 // ─────────────────────────────────────────────
 // 초기 기본값
@@ -65,7 +86,7 @@ let currentConfig = {
   colorMix: null,
   eyes: eyeOptions[0]?.value ?? 'idle',
   mouth: mouthOptions[0]?.value ?? 'idle',
-  animation: 'idle',
+  motions: { body: 'idle', arms: 'idle', legs: 'idle' },
 };
 
 els.head.value = currentConfig.head;
@@ -73,6 +94,18 @@ els.body.value = currentConfig.body;
 els.legs.value = currentConfig.legs;
 els.eyes.value = currentConfig.eyes;
 els.mouth.value = currentConfig.mouth;
+els.motionBody.value = 'idle';
+els.motionArms.value = 'idle';
+els.motionLegs.value = 'idle';
+
+const readMotions = () => ({
+  body: els.motionBody.value,
+  arms: els.motionArms.value,
+  legs: els.motionLegs.value,
+});
+
+// 지금 화면에서 고른 눈·입·몸·팔·다리 조합
+const readCombo = () => ({ eyes: els.eyes.value, mouth: els.mouth.value, ...readMotions() });
 
 function readConfigFromInputs() {
   return {
@@ -83,37 +116,121 @@ function readConfigFromInputs() {
     eyes: els.eyes.value,
     mouth: els.mouth.value,
     color: els.colorEnabled.checked ? els.color.value : null,
+    motions: readMotions(),
   };
 }
+
+// 게임이 쓰는 동작 엔진과 같은 것을 프리뷰에서도 사용 (눈·입을 바꿀 때 다시 그리기 위해 현재 장착 상태를 넘겨 줌)
+const player = createMotionPlayer(svg, {
+  getEquip: () => ({
+    head: currentConfig.head,
+    body: currentConfig.body,
+    legs: currentConfig.legs,
+    color: currentConfig.color,
+    colorMix: currentConfig.colorMix,
+  }),
+});
 
 async function applyAndRender() {
   currentConfig = readConfigFromInputs();
   await renderCharacterSvg(svg, currentConfig);
-  setAnimation(currentConfig.animation);
+  player.syncState(readCombo()); // 엔진이 알고 있는 현재 상태를 화면과 맞춤
+  updateAnimButtons();
 }
 
-// renderCharacterSvg 내부와 동일한 방식(state-* 클래스 교체)으로 애니메이션만 전환.
-// 파츠를 다시 불러오지 않으므로 즉시 반영됨.
-function setAnimation(animName) {
-  currentConfig.animation = animName;
+// 몸·팔·다리 동작만 교체 (파츠를 다시 불러오지 않으므로 즉시 반영)
+function applyMotions() {
+  currentConfig.motions = readMotions();
+  setCharacterMotions(svg, currentConfig.motions);
+  player.syncState(readCombo());
+  updateAnimButtons();
+}
 
-  Array.from(svg.classList).forEach((cls) => {
-    if (cls.startsWith('state-')) svg.classList.remove(cls);
-  });
-  svg.classList.add(`state-${animName}`);
+// "전체 동작 한 번에" 버튼: 몸·팔·다리에 같은 동작 적용
+function setAllMotions(name) {
+  els.motionBody.value = name;
+  els.motionArms.value = name;
+  els.motionLegs.value = name;
+  applyMotions();
+}
 
+function updateAnimButtons() {
+  const { body, arms, legs } = readMotions();
+  const sameForAll = body === arms && arms === legs ? body : null;
   els.animButtons.forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.anim === animName);
+    btn.classList.toggle('active', btn.dataset.anim === sameForAll);
   });
 }
 
 els.applyBtn.addEventListener('click', applyAndRender);
-
+[els.motionBody, els.motionArms, els.motionLegs].forEach((select) => select.addEventListener('change', applyMotions));
 els.animButtons.forEach((btn) => {
-  btn.addEventListener('click', () => setAnimation(btn.dataset.anim));
+  btn.addEventListener('click', () => setAllMotions(btn.dataset.anim));
 });
 
+// ─────────────────────────────────────────────
+// 프리셋 만들기: 코드 복사 / 길이만큼 재생 후 복귀
+// ─────────────────────────────────────────────
+function buildPresetCode() {
+  const combo = readCombo();
+  const id = els.presetId.value.trim() || 'new-preset';
+  const label = els.presetLabel.value.trim() || id;
+  const duration = Number(els.presetDuration.value) || 600;
+  const events = els.presetEvents.value.split(',').map((name) => name.trim()).filter(Boolean);
+  const eventsText = events.map((name) => `'${name}'`).join(', ');
+  return `  { id: '${id}', label: '${label}', eyes: '${combo.eyes}', mouth: '${combo.mouth}', body: '${combo.body}', arms: '${combo.arms}', legs: '${combo.legs}', duration: ${duration}, events: [${eventsText}], enabled: true },`;
+}
+
+async function copyPresetCode() {
+  const code = buildPresetCode();
+  els.presetCode.textContent = code;
+  try {
+    await navigator.clipboard.writeText(code);
+    els.copyMessage.textContent = '복사했습니다.';
+  } catch {
+    // 클립보드를 쓸 수 없는 환경: 아래 표시된 코드를 직접 복사
+    els.copyMessage.textContent = '자동 복사에 실패했습니다. 아래 코드를 직접 복사해 주세요.';
+  }
+}
+
+els.copyBtn.addEventListener('click', copyPresetCode);
+els.previewBtn.addEventListener('click', () => {
+  const duration = Number(els.presetDuration.value) || 600;
+  player.applyCombo(readCombo(), { duration }); // 길이가 지나면 기본(idle) 상태로 돌아감
+});
+
+// ─────────────────────────────────────────────
+// 등록된 이벤트·프리셋 재생 (게임이 쓰는 엔진 그대로)
+// ─────────────────────────────────────────────
+function renderRegisteredList() {
+  const makeButtons = (container, items, onClick) => {
+    container.innerHTML = '';
+    if (items.length === 0) {
+      const empty = document.createElement('span');
+      empty.className = 'empty';
+      empty.textContent = '등록된 항목이 없습니다.';
+      container.appendChild(empty);
+      return;
+    }
+    items.forEach(({ key, label }) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = label;
+      button.addEventListener('click', () => onClick(key));
+      container.appendChild(button);
+    });
+  };
+
+  makeButtons(els.registeredEvents, player.getEvents().map((name) => ({ key: name, label: name })), (name) => player.play(name));
+  makeButtons(
+    els.registeredPresets,
+    PRESETS.filter((preset) => preset.enabled !== false).map((preset) => ({ key: preset.id, label: `${preset.label} (${preset.id})` })),
+    (id) => player.playPreset(id),
+  );
+}
+
 setupDebugMenu();
+renderRegisteredList();
 
 // 초기 렌더링
 applyAndRender();
